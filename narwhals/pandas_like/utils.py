@@ -236,7 +236,7 @@ def evaluate_simple_aggregation(expr: PandasExpr, grouped: Any, keys: list[str])
         if len(ser.shape) > 1:
             # dataframe
             ser = ser.drop(columns=keys)
-            ser = ser[ser.columns[0]]
+            ser = ser[ser.columns[0]].reset_index(drop=True)
         ser.name = expr._output_names[0]  # type: ignore[index]
         return ser
     if expr._root_names is None or expr._output_names is None:
