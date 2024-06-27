@@ -234,6 +234,9 @@ class DataFrame(BaseFrame):
     def __array__(self, *args: Any, **kwargs: Any) -> np.ndarray:
         return self._dataframe.to_numpy(*args, **kwargs)
 
+    def __narwhals_dataframe__(self) -> Any:
+        return self._dataframe
+
     def __repr__(self) -> str:  # pragma: no cover
         header = " Narwhals DataFrame                            "
         length = len(header)

@@ -1,4 +1,5 @@
 from narwhals import selectors
+from narwhals import stable
 from narwhals.dataframe import DataFrame
 from narwhals.dataframe import LazyFrame
 from narwhals.dtypes import Boolean
@@ -78,4 +79,5 @@ __all__ = [
     "narwhalify",
     "narwhalify_method",
     "show_versions",
+    "stable",
 ]
