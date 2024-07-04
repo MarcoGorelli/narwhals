@@ -379,6 +379,9 @@ class PandasDataFrame:
     def shape(self) -> tuple[int, int]:
         return self._dataframe.shape  # type: ignore[no-any-return]
 
+    def clone(self) -> Self:
+        return self._from_dataframe(self._dataframe.copy())
+
     def to_dict(self, *, as_series: bool = False) -> dict[str, Any]:
         if as_series:
             # todo: should this return narwhals series?

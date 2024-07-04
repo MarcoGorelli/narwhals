@@ -298,7 +298,76 @@ class DataFrame(BaseFrame):
         """
         return self._dataframe.to_pandas()
 
-    def write_parquet(self, file: str | Path | BytesIO) -> Any:
+    def clone(self) -> Self:
+        """
+        Create a copy of this DataFrame.
+
+        Whether or not this operation immediately triggers a copy depends
+        on the dataframe implementation.
+
+        You probably don't need this - Narwhals' operations are never in-place.
+        However, if you're interoperating with other libraries, it may be useful,
+        see the example below.
+
+        Examples:
+            >>> import pandas as pd
+            >>> import narwhals as nw
+            >>> import polars as pl
+            >>> data = {"a": [1, 2, 3], "b": [4, 5, 6]}
+
+            Let's define a function which converts a dataframe to numpy, then modifies
+            the an element.
+
+            >>> @nw.narwhalify
+            ... def func(df):
+            ...     df_copy = df.clone()
+            ...     arr = df.to_numpy()
+            ...     arr[0, 0] = 100
+            ...     return df_copy
+
+            Note that, for pandas (which can do zero-copy conversion from dataframe to 2D NumPy
+            arrays in some cases), the modification will be reflected in the original dataframe.
+            Polars, on the other hand, always copies when converting dataframes to 2D NumPy,
+            so the original dataframe will not be affected by `func`:
+
+            >>> df_pd = pd.DataFrame(data)
+            >>> df_pl = pl.DataFrame(data)
+            >>> func(df_pd)
+               a  b
+            0  1  4
+            1  2  5
+            2  3  6
+            >>> df_pd  # note how modifying the NumPy array modified the original dataframe!
+                 a  b
+            0  100  4
+            1    2  5
+            2    3  6
+            >>> func(df_pl)
+            shape: (3, 2)
+            ┌─────┬─────┐
+            │ a   ┆ b   │
+            │ --- ┆ --- │
+            │ i64 ┆ i64 │
+            ╞═════╪═════╡
+            │ 1   ┆ 4   │
+            │ 2   ┆ 5   │
+            │ 3   ┆ 6   │
+            └─────┴─────┘
+            >>> df_pl
+            shape: (3, 2)
+            ┌─────┬─────┐
+            │ a   ┆ b   │
+            │ --- ┆ --- │
+            │ i64 ┆ i64 │
+            ╞═════╪═════╡
+            │ 1   ┆ 4   │
+            │ 2   ┆ 5   │
+            │ 3   ┆ 6   │
+            └─────┴─────┘
+        """
+        return self._from_dataframe(self._dataframe.clone())
+
+    def write_parquet(self, file: str | Path | BytesIO) -> None:
         """
         Write dataframe to parquet file.
 
@@ -2889,3 +2958,73 @@ class LazyFrame(BaseFrame):
             └─────┴─────┴─────┴───────┘
         """
         return super().join(other, how=how, left_on=left_on, right_on=right_on)
+
+    def clone(self) -> Self:
+        """
+        Create a copy of this LazyFrame.
+
+        Whether or not this operation immediately triggers a copy depends
+        on the dataframe implementation.
+
+        You probably don't need this - Narwhals' operations are never in-place.
+        However, if you're interoperating with other libraries, it may be useful,
+        see the example below.
+
+        Examples:
+            >>> import pandas as pd
+            >>> import narwhals as nw
+            >>> import polars as pl
+            >>> data = {"a": [1, 2, 3], "b": [4, 5, 6]}
+
+            Let's define a function which converts a dataframe to numpy, then modifies
+            the an element.
+
+            >>> @nw.narwhalify
+            ... def func(df):
+            ...     lf = df.lazy()
+            ...     lf_copy = lf.clone()
+            ...     arr = lf.collect().to_numpy()
+            ...     arr[0, 0] = 100
+            ...     return lf_copy
+
+            Note that, for pandas (which can do zero-copy conversion from dataframe to 2D NumPy
+            arrays in some cases), the modification will be reflected in the original dataframe.
+            Polars, on the other hand, always copies when converting dataframes to 2D NumPy,
+            so the original dataframe will not be affected by `func`:
+
+            >>> df_pd = pd.DataFrame(data)
+            >>> lf_pl = pl.LazyFrame(data)
+            >>> func(df_pd)
+               a  b
+            0  1  4
+            1  2  5
+            2  3  6
+            >>> df_pd  # note how modifying the NumPy array modified the original dataframe!
+                 a  b
+            0  100  4
+            1    2  5
+            2    3  6
+            >>> func(lf_pl).collect()
+            shape: (3, 2)
+            ┌─────┬─────┐
+            │ a   ┆ b   │
+            │ --- ┆ --- │
+            │ i64 ┆ i64 │
+            ╞═════╪═════╡
+            │ 1   ┆ 4   │
+            │ 2   ┆ 5   │
+            │ 3   ┆ 6   │
+            └─────┴─────┘
+            >>> lf_pl.collect()
+            shape: (3, 2)
+            ┌─────┬─────┐
+            │ a   ┆ b   │
+            │ --- ┆ --- │
+            │ i64 ┆ i64 │
+            ╞═════╪═════╡
+            │ 1   ┆ 4   │
+            │ 2   ┆ 5   │
+            │ 3   ┆ 6   │
+            └─────┴─────┘
+        """
+        return self._from_dataframe(self._dataframe.clone())
