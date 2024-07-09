@@ -254,6 +254,9 @@ def from_native(  # noqa: PLR0915
     from narwhals._pandas_like.dataframe import PandasLikeDataFrame
     from narwhals._pandas_like.series import PandasLikeSeries
     from narwhals._pandas_like.utils import Implementation
+    from narwhals._polars.series import PolarsSeries
+    from narwhals._polars.dataframe import PolarsDataFrame
+    from narwhals._polars.dataframe import PolarsLazyFrame
     from narwhals.dataframe import DataFrame
     from narwhals.dataframe import LazyFrame
     from narwhals.series import Series
@@ -267,8 +270,7 @@ def from_native(  # noqa: PLR0915
         if series_only:  # pragma: no cover (todo)
             raise TypeError("Cannot only use `series_only` with polars.DataFrame")
         return DataFrame(
-            native_dataframe,
-            is_polars=True,
+            PolarsDataFrame(native_dataframe, backend_version=parse_version(pl.__version__)),
             backend_version=parse_version(pl.__version__),
         )
     elif (pl := get_polars()) is not None and isinstance(native_dataframe, pl.LazyFrame):
@@ -277,8 +279,7 @@ def from_native(  # noqa: PLR0915
         if eager_only:  # pragma: no cover (todo)
             raise TypeError("Cannot only use `eager_only` with polars.LazyFrame")
         return LazyFrame(
-            native_dataframe,
-            is_polars=True,
+            PolarsLazyFrame(native_dataframe, backend_version=parse_version(pl.__version__)),
             backend_version=parse_version(pl.__version__),
         )
     elif (pd := get_pandas()) is not None and isinstance(native_dataframe, pd.DataFrame):
@@ -355,8 +356,7 @@ def from_native(  # noqa: PLR0915
         if not allow_series:  # pragma: no cover (todo)
             raise TypeError("Please set `allow_series=True`")
         return Series(
-            native_dataframe,
-            is_polars=True,
+            PolarsSeries(native_dataframe, backend_version=parse_version(pl.__version__)),
             backend_version=parse_version(pl.__version__),
         )
     elif (pd := get_pandas()) is not None and isinstance(native_dataframe, pd.Series):

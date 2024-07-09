@@ -31,7 +31,7 @@ class Series:
         series: Any,
         *,
         backend_version: tuple[int, ...],
-        is_polars: bool,
+        is_polars: bool = False,
     ) -> None:
         self._is_polars = is_polars
         self._backend_version = backend_version
