@@ -8,6 +8,8 @@ from typing import Literal
 from narwhals._expression_parsing import reuse_series_implementation
 from narwhals._expression_parsing import reuse_series_namespace_implementation
 from narwhals._polars.series import PolarsSeries
+from narwhals._polars.utils import extract_native
+from narwhals.dependencies import get_polars
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -15,71 +17,33 @@ if TYPE_CHECKING:
     from narwhals._polars.dataframe import PolarsDataFrame
     from narwhals._polars.namespace import PolarsNamespace
     from narwhals._polars.utils import Implementation
+    import polars as pl
 
 
 class PolarsExpr:
     def __init__(  # noqa: PLR0913
         self,
-        call: Callable[[PolarsDataFrame], list[PolarsSeries]],
-        *,
-        depth: int,
-        function_name: str,
-        root_names: list[str] | None,
-        output_names: list[str] | None,
-        implementation: Implementation,
+        expr: pl.Expr,
         backend_version: tuple[int, ...],
     ) -> None:
-        self._call = call
-        self._depth = depth
-        self._function_name = function_name
-        self._root_names = root_names
-        self._depth = depth
-        self._output_names = output_names
-        self._implementation = implementation
+        self._expr = get_polars().col(expr) if isinstance(expr, str) else expr
         self._backend_version = backend_version
 
     def __repr__(self) -> str:  # pragma: no cover
         return (
             f"PolarsExpr("
-            f"depth={self._depth}, "
-            f"function_name={self._function_name}, "
-            f"root_names={self._root_names}, "
-            f"output_names={self._output_names}"
+            f"expr: {self._expr}"
         )
 
     def __narwhals_namespace__(self) -> PolarsNamespace:
         from narwhals._polars.namespace import PolarsNamespace
 
-        return PolarsNamespace(self._implementation, self._backend_version)
+        return PolarsNamespace(self._backend_version)
 
     def __narwhals_expr__(self) -> None: ...
 
-    @classmethod
-    def from_column_names(
-        cls: type[Self],
-        *column_names: str,
-        implementation: Implementation,
-        backend_version: tuple[int, ...],
-    ) -> Self:
-        def func(df: PolarsDataFrame) -> list[PolarsSeries]:
-            return [
-                PolarsSeries(
-                    df._native_dataframe.loc[:, column_name],
-                    implementation=df._implementation,
-                    backend_version=df._backend_version,
-                )
-                for column_name in column_names
-            ]
-
-        return cls(
-            func,
-            depth=0,
-            function_name="col",
-            root_names=list(column_names),
-            output_names=list(column_names),
-            implementation=implementation,
-            backend_version=backend_version,
-        )
+    def _from_native_expr(self, expr):
+        return self.__class__(expr, backend_version=self._backend_version)
 
     def cast(
         self,
@@ -88,238 +52,82 @@ class PolarsExpr:
         return reuse_series_implementation(self, "cast", dtype=dtype)
 
     def __eq__(self, other: PolarsExpr | Any) -> Self:  # type: ignore[override]
-        return reuse_series_implementation(self, "__eq__", other=other)
+        return self._from_native_expr(self._expr.__eq__(extract_native(other)))
 
     def __ne__(self, other: PolarsExpr | Any) -> Self:  # type: ignore[override]
-        return reuse_series_implementation(self, "__ne__", other=other)
+        return self._from_native_expr(self._expr.__ne__(extract_native(other)))
 
     def __ge__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__ge__", other=other)
+        return self._from_native_expr(self._expr.__ge__(extract_native(other)))
 
     def __gt__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__gt__", other=other)
+        return self._from_native_expr(self._expr.__gt__(extract_native(other)))
 
     def __le__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__le__", other=other)
+        return self._from_native_expr(self._expr.__le__(extract_native(other)))
 
     def __lt__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__lt__", other=other)
+        return self._from_native_expr(self._expr.__lt__(extract_native(other)))
 
     def __and__(self, other: PolarsExpr | bool | Any) -> Self:
-        return reuse_series_implementation(self, "__and__", other=other)
+        return self._from_native_expr(self._expr.__and__(extract_native(other)))
 
     def __rand__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rand__", other=other)
+        return self._from_native_expr(self._expr.__rand__(extract_native(other)))
 
     def __or__(self, other: PolarsExpr | bool | Any) -> Self:
-        return reuse_series_implementation(self, "__or__", other=other)
+        return self._from_native_expr(self._expr.__or__(extract_native(other)))
 
     def __ror__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__ror__", other=other)
+        return self._from_native_expr(self._expr.__ror__(extract_native(other)))
 
     def __add__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__add__", other=other)
+        return self._from_native_expr(self._expr.__add__(extract_native(other)))
 
     def __radd__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__radd__", other=other)
+        return self._from_native_expr(self._expr.__radd__(extract_native(other)))
 
     def __sub__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__sub__", other=other)
+        return self._from_native_expr(self._expr.__sub__(extract_native(other)))
 
     def __rsub__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rsub__", other=other)
+        return self._from_native_expr(self._expr.__rsub__(extract_native(other)))
 
     def __mul__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__mul__", other=other)
+        return self._from_native_expr(self._expr.__mul__(extract_native(other)))
 
     def __rmul__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rmul__", other=other)
+        return self._from_native_expr(self._expr.__rmul__(extract_native(other)))
 
     def __truediv__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__truediv__", other=other)
+        return self._from_native_expr(self._expr.__truediv__(extract_native(other)))
 
     def __rtruediv__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rtruediv__", other=other)
+        return self._from_native_expr(self._expr.__rtruediv__(extract_native(other)))
 
     def __floordiv__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__floordiv__", other=other)
+        return self._from_native_expr(self._expr.__floordiv__(extract_native(other)))
 
     def __rfloordiv__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rfloordiv__", other=other)
+        return self._from_native_expr(self._expr.__rfloordiv__(extract_native(other)))
 
     def __pow__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__pow__", other=other)
+        return self._from_native_expr(self._expr.__pow__(extract_native(other)))
 
     def __rpow__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rpow__", other=other)
+        return self._from_native_expr(self._expr.__rpow__(extract_native(other)))
 
     def __mod__(self, other: PolarsExpr | Any) -> Self:
-        return reuse_series_implementation(self, "__mod__", other=other)
+        return self._from_native_expr(self._expr.__mod__(extract_native(other)))
 
     def __rmod__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rmod__", other=other)
+        return self._from_native_expr(self._expr.__rmod__(extract_native(other)))
 
     # Unary
 
     def __invert__(self) -> Self:
-        return reuse_series_implementation(self, "__invert__")
+        return self._from_native_expr(self._expr.__invert__())
 
-    # Reductions
-    def null_count(self) -> Self:
-        return reuse_series_implementation(self, "null_count", returns_scalar=True)
-
-    def n_unique(self) -> Self:
-        return reuse_series_implementation(self, "n_unique", returns_scalar=True)
-
-    def sum(self) -> Self:
-        return reuse_series_implementation(self, "sum", returns_scalar=True)
-
-    def mean(self) -> Self:
-        return reuse_series_implementation(self, "mean", returns_scalar=True)
-
-    def std(self, *, ddof: int = 1) -> Self:
-        return reuse_series_implementation(self, "std", ddof=ddof, returns_scalar=True)
-
-    def any(self) -> Self:
-        return reuse_series_implementation(self, "any", returns_scalar=True)
-
-    def all(self) -> Self:
-        return reuse_series_implementation(self, "all", returns_scalar=True)
-
-    def max(self) -> Self:
-        return reuse_series_implementation(self, "max", returns_scalar=True)
-
-    def min(self) -> Self:
-        return reuse_series_implementation(self, "min", returns_scalar=True)
-
-    # Other
-    def is_between(
-        self, lower_bound: Any, upper_bound: Any, closed: str = "both"
-    ) -> Self:
-        return reuse_series_implementation(
-            self,
-            "is_between",
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
-            closed=closed,
-        )
-
-    def is_null(self) -> Self:
-        return reuse_series_implementation(self, "is_null")
-
-    def fill_null(self, value: Any) -> Self:
-        return reuse_series_implementation(self, "fill_null", value=value)
-
-    def is_in(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "is_in", other=other)
-
-    def filter(self, *predicates: Any) -> Self:
-        from narwhals._polars.namespace import PolarsNamespace
-
-        plx = PolarsNamespace(self._implementation, self._backend_version)
-        expr = plx.all_horizontal(*predicates)
-        return reuse_series_implementation(self, "filter", other=expr)
-
-    def drop_nulls(self) -> Self:
-        return reuse_series_implementation(self, "drop_nulls")
-
-    def sort(self, *, descending: bool = False) -> Self:
-        return reuse_series_implementation(self, "sort", descending=descending)
-
-    def abs(self) -> Self:
-        return reuse_series_implementation(self, "abs")
-
-    def cum_sum(self) -> Self:
-        return reuse_series_implementation(self, "cum_sum")
-
-    def unique(self) -> Self:
-        return reuse_series_implementation(self, "unique")
-
-    def diff(self) -> Self:
-        return reuse_series_implementation(self, "diff")
-
-    def shift(self, n: int) -> Self:
-        return reuse_series_implementation(self, "shift", n=n)
-
-    def sample(
-        self,
-        n: int | None = None,
-        fraction: float | None = None,
-        *,
-        with_replacement: bool = False,
-    ) -> Self:
-        return reuse_series_implementation(
-            self, "sample", n=n, fraction=fraction, with_replacement=with_replacement
-        )
-
-    def alias(self, name: str) -> Self:
-        # Define this one manually, so that we can
-        # override `output_names` and not increase depth
-        return self.__class__(
-            lambda df: [series.alias(name) for series in self._call(df)],
-            depth=self._depth,
-            function_name=self._function_name,
-            root_names=self._root_names,
-            output_names=[name],
-            implementation=self._implementation,
-            backend_version=self._backend_version,
-        )
-
-    def over(self, keys: list[str]) -> Self:
-        def func(df: PolarsDataFrame) -> list[PolarsSeries]:
-            if self._output_names is None:
-                msg = (
-                    "Anonymous expressions are not supported in over.\n"
-                    "Instead of `nw.all()`, try using a named expression, such as "
-                    "`nw.col('a', 'b')`\n"
-                )
-                raise ValueError(msg)
-            tmp = df.group_by(keys).agg(self)
-            tmp = df.select(*keys).join(tmp, how="left", left_on=keys, right_on=keys)
-            return [tmp[name] for name in self._output_names]
-
-        return self.__class__(
-            func,
-            depth=self._depth + 1,
-            function_name=self._function_name + "->over",
-            root_names=self._root_names,
-            output_names=self._output_names,
-            implementation=self._implementation,
-            backend_version=self._backend_version,
-        )
-
-    def is_duplicated(self) -> Self:
-        return reuse_series_implementation(self, "is_duplicated")
-
-    def is_unique(self) -> Self:
-        return reuse_series_implementation(self, "is_unique")
-
-    def is_first_distinct(self) -> Self:
-        return reuse_series_implementation(self, "is_first_distinct")
-
-    def is_last_distinct(self) -> Self:
-        return reuse_series_implementation(self, "is_last_distinct")
-
-    def quantile(
-        self,
-        quantile: float,
-        interpolation: Literal["nearest", "higher", "lower", "midpoint", "linear"],
-    ) -> Self:
-        return reuse_series_implementation(
-            self, "quantile", quantile, interpolation, returns_scalar=True
-        )
-
-    def head(self, n: int) -> Self:
-        return reuse_series_implementation(self, "head", n)
-
-    def tail(self, n: int) -> Self:
-        return reuse_series_implementation(self, "tail", n)
-
-    def round(self: Self, decimals: int) -> Self:
-        return reuse_series_implementation(self, "round", decimals)
-
-    def len(self: Self) -> Self:
-        return reuse_series_implementation(self, "len", returns_scalar=True)
 
     @property
     def str(self) -> PolarsExprStringNamespace:

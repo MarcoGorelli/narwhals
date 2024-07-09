@@ -8,7 +8,6 @@ from typing import Sequence
 
 from narwhals._polars.utils import reverse_translate_dtype
 from narwhals._polars.utils import translate_dtype
-from narwhals._polars.utils import validate_column_comparand
 from narwhals.dependencies import get_polars
 from narwhals.dependencies import get_pyarrow_compute
 

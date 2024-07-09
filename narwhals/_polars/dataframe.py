@@ -12,7 +12,7 @@ from typing import overload
 from narwhals._expression_parsing import evaluate_into_exprs
 from narwhals._polars.expr import PolarsExpr
 from narwhals._polars.utils import translate_dtype
-from narwhals._polars.utils import validate_dataframe_comparand
+from narwhals._polars.utils import extract_native_from_args_and_kwargs
 from narwhals.dependencies import get_cudf, get_polars
 from narwhals.dependencies import get_modin
 from narwhals.dependencies import get_numpy
@@ -190,46 +190,8 @@ class PolarsDataFrame:
         *exprs: IntoPolarsExpr,
         **named_exprs: IntoPolarsExpr,
     ) -> Self:
-        index = self._native_dataframe.index
-        new_columns = evaluate_into_exprs(self, *exprs, **named_exprs)
-        # If the inputs are all Expressions which return full columns
-        # (as opposed to scalars), we can use a fast path (concat, instead of assign).
-        # We can't use the fastpath if any input is not an expression (e.g.
-        # if it's a Series) because then we might be changing its flags.
-        # See `test_memmap` for an example of where this is necessary.
-        fast_path = (
-            all(len(s) > 1 for s in new_columns)
-            and all(isinstance(x, PolarsExpr) for x in exprs)
-            and all(isinstance(x, PolarsExpr) for (_, x) in named_exprs.items())
-        )
-
-        if fast_path:
-            new_column_name_to_new_column_map = {s.name: s for s in new_columns}
-            to_concat = []
-            # Make sure to preserve column order
-            for name in self._native_dataframe.columns:
-                if name in new_column_name_to_new_column_map:
-                    to_concat.append(
-                        validate_dataframe_comparand(
-                            index, new_column_name_to_new_column_map.pop(name)
-                        )
-                    )
-                else:
-                    to_concat.append(self._native_dataframe.loc[:, name])
-            to_concat.extend(
-                validate_dataframe_comparand(index, new_column_name_to_new_column_map[s])
-                for s in new_column_name_to_new_column_map
-            )
-
-            df = horizontal_concat(
-                to_concat,
-                backend_version=self._backend_version,
-            )
-        else:
-            df = self._native_dataframe.assign(
-                **{s.name: validate_dataframe_comparand(index, s) for s in new_columns}
-            )
-        return self._from_native_dataframe(df)
+        exprs, named_exprs = extract_native_from_args_and_kwargs(*exprs, **named_exprs)
+        return self._from_native_dataframe(self._native_dataframe.with_columns(*exprs, **named_exprs))
 
     def rename(self, mapping: dict[str, str]) -> Self:
         return self._from_native_dataframe(self._native_dataframe.rename(columns=mapping))

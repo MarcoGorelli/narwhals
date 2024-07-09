@@ -10,11 +10,8 @@ from narwhals import dtypes
 from narwhals._expression_parsing import parse_into_exprs
 from narwhals._polars.dataframe import PolarsDataFrame
 from narwhals._polars.expr import PolarsExpr
-from narwhals._polars.selectors import PandasSelectorNamespace
+# from narwhals._polars.selectors import PolarsSelectorNamespace
 from narwhals._polars.series import PolarsSeries
-from narwhals._polars.utils import create_native_series
-from narwhals._polars.utils import horizontal_concat
-from narwhals._polars.utils import vertical_concat
 from narwhals.utils import flatten
 
 if TYPE_CHECKING:
@@ -44,16 +41,15 @@ class PolarsNamespace:
     Date = dtypes.Date
 
     @property
-    def selectors(self) -> PandasSelectorNamespace:
-        return PandasSelectorNamespace(
+    def selectors(self) -> PolarsSelectorNamespace:
+        return PolarsSelectorNamespace(
             implementation=self._implementation, backend_version=self._backend_version
         )
 
     # --- not in spec ---
     def __init__(
-        self, implementation: Implementation, backend_version: tuple[int, ...]
+        self, backend_version: tuple[int, ...]
     ) -> None:
-        self._implementation = implementation
         self._backend_version = backend_version
 
     def _create_expr_from_callable(  # noqa: PLR0913
@@ -71,7 +67,6 @@ class PolarsNamespace:
             function_name=function_name,
             root_names=root_names,
             output_names=output_names,
-            implementation=self._implementation,
             backend_version=self._backend_version,
         )
 
@@ -82,7 +77,6 @@ class PolarsNamespace:
             [value],
             name=series._native_series.name,
             index=series._native_series.index[0:1],
-            implementation=self._implementation,
             backend_version=self._backend_version,
         )
 
@@ -93,31 +87,24 @@ class PolarsNamespace:
             function_name="series",
             root_names=None,
             output_names=None,
-            implementation=self._implementation,
             backend_version=self._backend_version,
         )
 
     def _create_native_series(self, value: Any) -> Any:
         return create_native_series(
             value,
-            implementation=self._implementation,
             backend_version=self._backend_version,
         )
 
     # --- selection ---
     def col(self, *column_names: str | Iterable[str]) -> PolarsExpr:
-        return PolarsExpr.from_column_names(
-            *flatten(column_names),
-            implementation=self._implementation,
-            backend_version=self._backend_version,
-        )
+        return PolarsExpr(*column_names, backend_version=self._backend_version)
 
     def all(self) -> PolarsExpr:
         return PolarsExpr(
             lambda df: [
                 PolarsSeries(
                     df._native_dataframe.loc[:, column_name],
-                    implementation=self._implementation,
                     backend_version=self._backend_version,
                 )
                 for column_name in df.columns
@@ -126,7 +113,6 @@ class PolarsNamespace:
             function_name="all",
             root_names=None,
             output_names=None,
-            implementation=self._implementation,
             backend_version=self._backend_version,
         )
 
@@ -136,7 +122,6 @@ class PolarsNamespace:
                 data=[value],
                 name="lit",
                 index=df._native_dataframe.index[0:1],
-                implementation=self._implementation,
                 backend_version=self._backend_version,
             )
             if dtype:
@@ -149,7 +134,6 @@ class PolarsNamespace:
             function_name="lit",
             root_names=None,
             output_names=["lit"],
-            implementation=self._implementation,
             backend_version=self._backend_version,
         )
 
