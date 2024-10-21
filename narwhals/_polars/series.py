@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from typing import Any
+from typing import Mapping
 from typing import Sequence
 from typing import overload
 
@@ -195,6 +196,15 @@ class PolarsSeries:
         return PolarsDataFrame(
             result, backend_version=self._backend_version, dtypes=self._dtypes
         )
+
+    def replace(self, mapping: Mapping[Any, Any]) -> Self:
+        result = self._from_native_series(self._native_series.replace(mapping))
+        if (
+            self._backend_version < (1,) and result.dtype != self.dtype
+        ):  # pragma: no cover
+            msg = "dtype changed - please use `replace_strict` instead"
+            raise ValueError(msg)
+        return result
 
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> Self:
         if self._backend_version < (0, 20, 6):  # pragma: no cover

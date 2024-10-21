@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import Callable
 from typing import Literal
+from typing import Mapping
 from typing import NoReturn
 
 from narwhals._dask.utils import add_row_index
@@ -475,6 +476,14 @@ class DaskExpr:
         # We can't (yet?) allow methods which modify the index
         msg = "`Expr.head` is not supported for the Dask backend. Please use `LazyFrame.head` instead."
         raise NotImplementedError(msg)
+
+    def replace(self, mapping: Mapping[Any, Any]) -> Self:
+        return self._from_call(
+            lambda _input, mapping: _input.replace(mapping),
+            "replace",
+            mapping,
+            returns_scalar=False,
+        )
 
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> NoReturn:
         # We can't (yet?) allow methods which modify the index

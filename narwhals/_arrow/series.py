@@ -5,6 +5,7 @@ from typing import Any
 from typing import Iterable
 from typing import Iterator
 from typing import Literal
+from typing import Mapping
 from typing import Sequence
 from typing import overload
 
@@ -648,6 +649,19 @@ class ArrowSeries:
         import pyarrow.compute as pc  # ignore-banned-import()
 
         return self._from_native_series(pc.unique(self._native_series))
+
+    def replace(self, mapping: Mapping[Any, Any]) -> ArrowSeries:
+        import pyarrow as pa  # ignore-banned-import
+        import pyarrow.compute as pc  # ignore-banned-import
+
+        series = self._native_series
+        conditions = []
+        for key in mapping:
+            condition = pc.equal(series, pa.scalar(key))
+            conditions.append(condition)
+        for condition, value in zip(conditions, mapping.values()):
+            series = pc.if_else(condition, pa.scalar(value), series)
+        return self._from_native_series(series)
 
     def sort(
         self: Self, *, descending: bool = False, nulls_last: bool = False

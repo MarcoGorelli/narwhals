@@ -6,6 +6,7 @@ from typing import Callable
 from typing import Generic
 from typing import Iterator
 from typing import Literal
+from typing import Mapping
 from typing import Sequence
 from typing import TypeVar
 from typing import overload
@@ -1300,6 +1301,86 @@ class Series:
             ]
         """
         return self.alias(name=name)
+
+    def replace(self, mapping: Mapping[Any, Any]) -> Self:
+        """
+        Sort this column. Place null values first.
+
+        Arguments:
+            descending: Sort in descending order.
+            nulls_last: Place null values last instead of first.
+
+        Examples:
+            >>> import narwhals as nw
+            >>> import pandas as pd
+            >>> import polars as pl
+            >>> import pyarrow as pa
+            >>> df_pd = pd.DataFrame({"a": [5, None, 1, 2]})
+            >>> df_pl = pl.DataFrame({"a": [5, None, 1, 2]})
+            >>> df_pa = pa.table({"a": [5, None, 1, 2]})
+
+            Let's define dataframe-agnostic functions:
+
+            >>> @nw.narwhalify
+            ... def func(df):
+            ...     return df.select(nw.col("a").sort())
+
+            >>> def func_descend(df):
+            ...     df = nw.from_native(df)
+            ...     df = df.select(nw.col("a").sort(descending=True))
+            ...     return nw.to_native(df)
+
+            We can then pass any supported library such as Pandas, Polars, or PyArrow to `func`:
+
+            >>> func(df_pd)
+                 a
+            1  NaN
+            2  1.0
+            3  2.0
+            0  5.0
+            >>> func(df_pl)
+            shape: (4, 1)
+            ┌──────┐
+            │ a    │
+            │ ---  │
+            │ i64  │
+            ╞══════╡
+            │ null │
+            │ 1    │
+            │ 2    │
+            │ 5    │
+            └──────┘
+            >>> func(df_pa)
+            pyarrow.Table
+            a: int64
+            ----
+            a: [[null,1,2,5]]
+
+            >>> func_descend(df_pd)
+                 a
+            1  NaN
+            0  5.0
+            3  2.0
+            2  1.0
+            >>> func_descend(df_pl)
+            shape: (4, 1)
+            ┌──────┐
+            │ a    │
+            │ ---  │
+            │ i64  │
+            ╞══════╡
+            │ null │
+            │ 5    │
+            │ 2    │
+            │ 1    │
+            └──────┘
+            >>> func_descend(df_pa)
+            pyarrow.Table
+            a: int64
+            ----
+            a: [[null,5,2,1]]
+        """
+        return self._from_compliant_series(self._compliant_series.replace(mapping))
 
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> Self:
         """
@@ -2602,37 +2683,58 @@ class SeriesStringNamespace(Generic[T]):
     def replace(
         self: Self, pattern: str, value: str, *, literal: bool = False, n: int = 1
     ) -> T:
-        r"""
-        Replace first matching regex/literal substring with a new string value.
+        """
+        Replace values according to mapping.
+
+        This function always preserves the input data type. To replace
+        all values (potentially with a default value for values not present
+        in `mapping`, use `replace_strict` instead).
 
         Arguments:
-            pattern: A valid regular expression pattern.
-            value: String that will replace the matched substring.
-            literal: Treat `pattern` as a literal string.
-            n: Number of matches to replace.
+            mapping: Mapping of old values to new values.
 
         Examples:
+            >>> import narwhals as nw
             >>> import pandas as pd
             >>> import polars as pl
-            >>> import narwhals as nw
-            >>> data = ["123abc", "abc abc123"]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
+            >>> import pyarrow as pa
+            >>> df_pd = pd.DataFrame({"a": [5, 0, 1, 2]})
+            >>> df_pl = pl.DataFrame({"a": [5, 0, 1, 2]})
+            >>> df_pa = pa.table({"a": [5, 0, 1, 2]})
 
-            We define a dataframe-agnostic function:
+            Let's define dataframe-agnostic functions:
 
             >>> @nw.narwhalify
             ... def func(s):
-            ...     s = s.str.replace("abc", "")
-            ...     return s.to_list()
+            ...     return s.replace({1: 9, 2: 10})
 
-            We can then pass either pandas or Polars to `func`:
+            We can then pass any supported library such as Pandas, Polars, or PyArrow to `func`:
 
-            >>> func(s_pd)
-            ['123', ' abc123']
-
-            >>> func(s_pl)
-            ['123', ' abc123']
+            >>> func(df_pd["a"])
+            0     5
+            1     0
+            2     9
+            3    10
+            Name: a, dtype: int64
+            >>> func(df_pl["a"])  # doctest: +NORMALIZE_WHITESPACE
+            shape: (4,)
+            Series: 'a' [i64]
+            [
+               5
+               0
+               9
+               10
+            ]
+            >>> func(df_pa["a"])
+            <pyarrow.lib.ChunkedArray object at ...>
+            [
+              [
+                5,
+                0,
+                9,
+                10
+              ]
+            ]
         """
         return self._narwhals_series._from_compliant_series(
             self._narwhals_series._compliant_series.str.replace(

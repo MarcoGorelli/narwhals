@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 from typing import Callable
 from typing import Literal
+from typing import Mapping
 
 from narwhals._expression_parsing import reuse_series_implementation
 from narwhals._expression_parsing import reuse_series_namespace_implementation
@@ -270,6 +271,9 @@ class PandasLikeExpr:
 
     def drop_nulls(self) -> Self:
         return reuse_series_implementation(self, "drop_nulls")
+
+    def replace(self, mapping: Mapping[Any, Any]) -> Self:
+        return reuse_series_implementation(self, "replace", mapping)
 
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> Self:
         return reuse_series_implementation(
