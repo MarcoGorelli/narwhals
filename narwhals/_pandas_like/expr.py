@@ -275,6 +275,13 @@ class PandasLikeExpr:
     def replace(self, mapping: Mapping[Any, Any]) -> Self:
         return reuse_series_implementation(self, "replace", mapping)
 
+    def replace_strict(
+        self, mapping: Mapping[Any, Any], *, default, return_dtype
+    ) -> Self:
+        return reuse_series_implementation(
+            self, "replace_strict", mapping, default=default, return_dtype=return_dtype
+        )
+
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> Self:
         return reuse_series_implementation(
             self, "sort", descending=descending, nulls_last=nulls_last

@@ -41,6 +41,13 @@ class PolarsExpr:
         dtype = narwhals_to_native_dtype(dtype, self._dtypes)
         return self._from_native_expr(expr.cast(dtype))
 
+    def replace_strict(self, mapping, *, return_dtype: DType) -> Self:
+        expr = self._native_expr
+        return_dtype = narwhals_to_native_dtype(return_dtype, self._dtypes)
+        return self._from_native_expr(
+            expr.replace_strict(mapping, return_dtype=return_dtype)
+        )
+
     def __eq__(self, other: object) -> Self:  # type: ignore[override]
         return self._from_native_expr(self._native_expr.__eq__(extract_native(other)))
 

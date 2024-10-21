@@ -663,6 +663,16 @@ class ArrowSeries:
             series = pc.if_else(condition, pa.scalar(value), series)
         return self._from_native_series(series)
 
+    def replace_strict(self, mapping: Mapping[Any, Any], *, return_dtype) -> ArrowSeries:
+        import pyarrow as pa  # ignore-banned-import
+
+        # https://stackoverflow.com/a/79111029/4451315
+        idxs = pa.compute.index_in(self._native_series, pa.array(list(mapping.keys())))
+        result = pa.compute.take(pa.array(list(mapping.values())), idxs).cast(
+            narwhals_to_native_dtype(return_dtype, self._dtypes)
+        )  # lookup value at...
+        return self._from_native_series(result)
+
     def sort(
         self: Self, *, descending: bool = False, nulls_last: bool = False
     ) -> ArrowSeries:

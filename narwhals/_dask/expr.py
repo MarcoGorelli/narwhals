@@ -485,6 +485,18 @@ class DaskExpr:
             returns_scalar=False,
         )
 
+    def replace_strict(self, mapping: Mapping[Any, Any], *, return_dtype) -> Self:
+        dtype = narwhals_to_native_dtype(return_dtype, self._dtypes)
+        return self._from_call(
+            lambda _input, mapping, return_dtype: _input.map(
+                mapping, meta=(_input.name, dtype)
+            ),
+            "replace_strict",
+            mapping,
+            return_dtype,
+            returns_scalar=False,
+        )
+
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> NoReturn:
         # We can't (yet?) allow methods which modify the index
         msg = "`Expr.sort` is not supported for the Dask backend. Please use `LazyFrame.sort` instead."

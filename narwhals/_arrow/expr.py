@@ -324,6 +324,11 @@ class ArrowExpr:
     def replace(self: Self, mapping: Mapping[Any, Any]) -> Self:
         return reuse_series_implementation(self, "replace", mapping)
 
+    def replace_strict(self: Self, mapping: Mapping[Any, Any], *, return_dtype) -> Self:
+        return reuse_series_implementation(
+            self, "replace_strict", mapping, return_dtype=return_dtype
+        )
+
     def sort(self: Self, *, descending: bool = False, nulls_last: bool = False) -> Self:
         return reuse_series_implementation(
             self, "sort", descending=descending, nulls_last=nulls_last
