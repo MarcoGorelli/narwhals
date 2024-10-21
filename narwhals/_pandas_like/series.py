@@ -494,30 +494,29 @@ class PandasLikeSeries:
     def replace_strict(
         self, mapping: Mapping[Any, Any], *, default, return_dtype
     ) -> PandasLikeSeries:
-        from narwhals.utils import generate_unique_token
-
-        token = generate_unique_token(8, [self.name])
+        tmp_name = f'{self.name}_tmp'
         present_keys = self._native_series.isin(list(mapping.keys()))
         unique_missing_keys = self._native_series[~present_keys].unique()
         mapping = {**mapping, **{x: default for x in unique_missing_keys}}
+        dtype=narwhals_to_native_dtype(
+            return_dtype,
+            self._native_series.dtype,
+            self._implementation,
+            self._backend_version,
+            self._dtypes,
+        )
+        breakpoint()
         other = self.__native_namespace__().DataFrame(
             {
                 self.name: list(mapping.keys()),
-                token: self.__native_namespace__().Series(
-                    mapping.values(),
-                    dtype=narwhals_to_native_dtype(
-                        return_dtype,
-                        self.dtype,
-                        self._implementation,
-                        self._backend_version,
-                        self._dtypes,
-                    ),
+                tmp_name: self.__native_namespace__().Series(
+                    mapping.values(), dtype=dtype
                 ),
             }
         )
         result = (
             self._native_series.to_frame()
-            .merge(other, on=self.name, how="left")[token]
+            .merge(other, on=self.name, how="left")[tmp_name]
             .rename(self.name)
         )
         return self._from_native_series(result)
