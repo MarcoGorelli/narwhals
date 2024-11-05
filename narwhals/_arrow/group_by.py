@@ -11,6 +11,8 @@ from narwhals._expression_parsing import parse_into_exprs
 from narwhals.utils import remove_prefix
 
 if TYPE_CHECKING:
+    import pyarrow as pa
+
     from narwhals._arrow.dataframe import ArrowDataFrame
     from narwhals._arrow.expr import ArrowExpr
     from narwhals._arrow.typing import IntoArrowExpr
@@ -40,20 +42,23 @@ class ArrowGroupBy:
     def __init__(
         self, df: ArrowDataFrame, keys: list[str], *, drop_null_keys: bool
     ) -> None:
-        import pyarrow as pa  # ignore-banned-import()
 
         if drop_null_keys:
             self._df = df.drop_nulls(keys)
         else:
             self._df = df
         self._keys = list(keys)
-        self._grouped = pa.TableGroupBy(self._df._native_frame, list(self._keys))
+        self._grouped: None | pa.TableGroupBy = None
 
     def agg(
         self,
         *aggs: IntoArrowExpr,
         **named_aggs: IntoArrowExpr,
     ) -> ArrowDataFrame:
+        if self._grouped is None:
+            import pyarrow as pa  # ignore-banned-import
+
+            self._grouped = pa.TableGroupBy(self._df._native_frame, list(self._keys))
         exprs = parse_into_exprs(
             *aggs,
             namespace=self._df.__narwhals_namespace__(),
