@@ -79,17 +79,23 @@ class ArrowGroupBy:
         )
 
     def __iter__(self) -> Iterator[tuple[Any, ArrowDataFrame]]:
-        key_values = self._df.select(*self._keys).unique(subset=self._keys, keep="first")
-        nw_namespace = self._df.__narwhals_namespace__()
-        yield from (
-            (
-                key_value,
-                self._df.filter(
-                    *[nw_namespace.col(k) == v for k, v in zip(self._keys, key_value)]
+        import pyarrow as pa  # ignore-banned-import
+
+        for group in self._grouped.aggregate(
+            [(val, "list") for val in self._df.columns]
+        ).to_struct_array():
+            yield (
+                tuple([group[key].as_py() for key in self._keys]),
+                self._df._from_native_frame(
+                    pa.table(
+                        {
+                            key.removesuffix("_list"): value
+                            for key, value in group.items()
+                            if key not in self._keys
+                        }
+                    )
                 ),
             )
-            for key_value in key_values.iter_rows()
-        )
 
 
 def agg_arrow(
