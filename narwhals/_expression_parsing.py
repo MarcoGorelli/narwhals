@@ -221,6 +221,8 @@ def reuse_series_implementation(
     """
     plx = expr.__narwhals_namespace__()
 
+    output_names = expr._output_names
+
     def func(df: CompliantDataFrame) -> list[CompliantSeries]:
         _args = [maybe_evaluate_expr(df, arg) for arg in args]
         _kwargs = {
@@ -237,8 +239,9 @@ def reuse_series_implementation(
             else getattr(series, attr)(*_args, **_kwargs)
             for series in expr._call(df)  # type: ignore[arg-type]
         ]
-        if expr._output_names is not None and (
-            [s.name for s in out] != expr._output_names
+
+        if output_names is not None and (
+            [s.name for s in out] != output_names
         ):  # pragma: no cover
             msg = "Safety assertion failed, please report a bug to https://github.com/narwhals-dev/narwhals/issues"
             raise AssertionError(msg)
@@ -249,7 +252,7 @@ def reuse_series_implementation(
     # expression appears (e.g. nw.all()), then give up on tracking root names
     # and just set it to None.
     root_names = copy(expr._root_names)
-    output_names = expr._output_names
+
     for arg in list(args) + list(kwargs.values()):
         if root_names is not None and isinstance(arg, expr.__class__):
             if arg._root_names is not None:

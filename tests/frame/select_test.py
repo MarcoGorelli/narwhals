@@ -53,3 +53,10 @@ def test_comparison_with_list_error_message() -> None:
         nw.from_native(pa.chunked_array([[1, 2, 3]]), series_only=True) == [1, 2, 3]  # noqa: B015
     with pytest.raises(ValueError, match=msg):
         nw.from_native(pd.Series([[1, 2, 3]]), series_only=True) == [1, 2, 3]  # noqa: B015
+
+
+def test_rhs_naming(constructor: Constructor) -> None:
+    df = nw.from_native(constructor({"a": [1, 2, 3]}))
+    result = df.with_columns(1 - nw.col("a"))
+    expected = {"a": [1, 2, 3], "literal": [0, -1, -2]}
+    assert_equal_data(result, expected)

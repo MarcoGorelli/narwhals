@@ -151,55 +151,59 @@ class PandasLikeExpr:
         return reuse_series_implementation(self, "__and__", other=other)
 
     def __rand__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rand__", other=other)
+        return reuse_series_implementation(self, "__rand__", other=other).alias("literal")
 
     def __or__(self, other: PandasLikeExpr | bool | Any) -> Self:
         return reuse_series_implementation(self, "__or__", other=other)
 
     def __ror__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__ror__", other=other)
+        return reuse_series_implementation(self, "__ror__", other=other).alias("literal")
 
     def __add__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__add__", other=other)
 
     def __radd__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__radd__", other=other)
+        return reuse_series_implementation(self, "__radd__", other=other).alias("literal")
 
     def __sub__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__sub__", other=other)
 
     def __rsub__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rsub__", other=other)
+        return reuse_series_implementation(self, "__rsub__", other=other).alias("literal")
 
     def __mul__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__mul__", other=other)
 
     def __rmul__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rmul__", other=other)
+        return reuse_series_implementation(self, "__rmul__", other=other).alias("literal")
 
     def __truediv__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__truediv__", other=other)
 
     def __rtruediv__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rtruediv__", other=other)
+        return reuse_series_implementation(self, "__rtruediv__", other=other).alias(
+            "literal"
+        )
 
     def __floordiv__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__floordiv__", other=other)
 
     def __rfloordiv__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rfloordiv__", other=other)
+        return reuse_series_implementation(self, "__rfloordiv__", other=other).alias(
+            "literal"
+        )
 
     def __pow__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__pow__", other=other)
 
     def __rpow__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rpow__", other=other)
+        return reuse_series_implementation(self, "__rpow__", other=other).alias("literal")
 
     def __mod__(self, other: PandasLikeExpr | Any) -> Self:
         return reuse_series_implementation(self, "__mod__", other=other)
 
     def __rmod__(self, other: Any) -> Self:
-        return reuse_series_implementation(self, "__rmod__", other=other)
+        return reuse_series_implementation(self, "__rmod__", other=other).alias("literal")
 
     # Unary
 
