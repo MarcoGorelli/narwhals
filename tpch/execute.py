@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import os
 from importlib import import_module
-from pathlib import Path
 
 import dask.dataframe as dd
 import pandas as pd
@@ -14,15 +14,15 @@ import narwhals as nw
 pd.options.mode.copy_on_write = True
 pd.options.future.infer_string = True
 
-DATA_DIR = Path("data")
-LINEITEM_PATH = DATA_DIR / "lineitem.parquet"
-REGION_PATH = DATA_DIR / "region.parquet"
-NATION_PATH = DATA_DIR / "nation.parquet"
-SUPPLIER_PATH = DATA_DIR / "supplier.parquet"
-PART_PATH = DATA_DIR / "part.parquet"
-PARTSUPP_PATH = DATA_DIR / "partsupp.parquet"
-ORDERS_PATH = DATA_DIR / "orders.parquet"
-CUSTOMER_PATH = DATA_DIR / "customer.parquet"
+DATA_DIR = "{}"
+LINEITEM_PATH = os.path.join(DATA_DIR, "lineitem.parquet")  # noqa: PTH118
+REGION_PATH = os.path.join(DATA_DIR, "region.parquet")  # noqa: PTH118
+NATION_PATH = os.path.join(DATA_DIR, "nation.parquet")  # noqa: PTH118
+SUPPLIER_PATH = os.path.join(DATA_DIR, "supplier.parquet")  # noqa: PTH118
+PART_PATH = os.path.join(DATA_DIR, "part.parquet")  # noqa: PTH118
+PARTSUPP_PATH = os.path.join(DATA_DIR, "partsupp.parquet")  # noqa: PTH118
+ORDERS_PATH = os.path.join(DATA_DIR, "orders.parquet")  # noqa: PTH118
+CUSTOMER_PATH = os.path.join(DATA_DIR, "customer.parquet")  # noqa: PTH118
 
 BACKEND_NAMESPACE_KWARGS_MAP = {
     "pandas[pyarrow]": (pd, {"engine": "pyarrow", "dtype_backend": "pyarrow"}),
@@ -84,9 +84,9 @@ QUERY_DATA_PATH_MAP = {
 }
 
 
-def execute_query(query_id: str) -> None:
+def execute_query(query_id: str, data_dir: str, *, verbose: bool) -> None:
     query_module = import_module(f"tpch.queries.{query_id}")
-    data_paths = QUERY_DATA_PATH_MAP[query_id]
+    data_paths = [x.format(data_dir) for x in QUERY_DATA_PATH_MAP[query_id]]
 
     for backend, (native_namespace, kwargs) in BACKEND_NAMESPACE_KWARGS_MAP.items():
         print(f"\nRunning {query_id} with {backend=}")  # noqa: T201
@@ -98,15 +98,24 @@ def execute_query(query_id: str) -> None:
         )
         if collect_func := BACKEND_COLLECT_FUNC_MAP.get(backend):
             result = collect_func(result)
-        print(result)  # noqa: T201
+        if verbose:
+            print(result)  # noqa: T201
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Execute a TPCH query by number.")
     parser.add_argument("query", type=str, help="The query to execute, e.g. 'q1'.")
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        required=False,
+        default="data",
+        help="Where the generated data is stored",
+    )
+    parser.add_argument("--verbose", action="store_true", help="Whether to print results")
     args = parser.parse_args()
 
-    execute_query(query_id=args.query)
+    execute_query(query_id=args.query, data_dir=args.data_dir, verbose=args.verbose)
 
 
 if __name__ == "__main__":
