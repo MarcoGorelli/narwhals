@@ -15,12 +15,15 @@ from typing import overload
 from narwhals.dependencies import is_numpy_array
 from narwhals.exceptions import InvalidIntoExprError
 from narwhals.utils import Implementation
+from narwhals.utils import remove_prefix
 
 if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from narwhals._arrow.expr import ArrowExpr
+    from narwhals._arrow.series import ArrowSeries
     from narwhals._pandas_like.expr import PandasLikeExpr
+    from narwhals._pandas_like.series import PandasLikeSeries
     from narwhals.typing import CompliantDataFrame
     from narwhals.typing import CompliantExpr
     from narwhals.typing import CompliantLazyFrame
@@ -230,7 +233,7 @@ def reuse_series_implementation(
     return plx._create_expr_from_callable(  # type: ignore[return-value]
         func,  # type: ignore[arg-type]
         depth=expr._depth + 1,
-        function_name=f"{expr._function_name}->{attr}",
+        function_name=f"{expr._function_name}->{attr}({kwargs})",
         root_names=root_names,
         output_names=output_names,
     )
@@ -274,6 +277,27 @@ def reuse_series_namespace_implementation(
         root_names=expr._root_names,
         output_names=expr._output_names,
     )
+
+
+def parse_simple_function_name(
+    expr: CompliantExpr[ArrowSeries] | CompliantExpr[PandasLikeSeries],
+) -> tuple[str, dict[str, Any]]:
+    """Parse function name and arguments from function name.
+    """
+    if not is_simple_aggregation(expr):  # pragma: no cover
+        msg = "Expected simple aggregation, please report bug."
+        raise AssertionError(msg)
+    function_name = remove_prefix(expr._function_name, "col->")
+    open_paren_idx = function_name.index("(")
+    closed_paren_idx = function_name.index(")")
+    import ast
+
+    if kwargs_str := function_name[open_paren_idx + 1 : closed_paren_idx]:
+        kwargs = ast.literal_eval(kwargs_str)
+    else:
+        kwargs = {}
+    function_name = function_name[:open_paren_idx]
+    return function_name, kwargs
 
 
 def is_simple_aggregation(expr: CompliantExpr[Any]) -> bool:

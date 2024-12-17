@@ -11,12 +11,12 @@ from typing import Sequence
 
 from narwhals._expression_parsing import is_simple_aggregation
 from narwhals._expression_parsing import parse_into_exprs
+from narwhals._expression_parsing import parse_simple_function_name
 from narwhals._pandas_like.utils import native_series_from_iterable
 from narwhals._pandas_like.utils import rename
 from narwhals._pandas_like.utils import select_columns_by_name
 from narwhals.utils import Implementation
 from narwhals.utils import find_stacklevel
-from narwhals.utils import remove_prefix
 from narwhals.utils import tupleify
 
 if TYPE_CHECKING:
@@ -154,14 +154,19 @@ def agg_pandas(  # noqa: PLR0915
     - https://github.com/rapidsai/cudf/issues/15084
     """
     all_aggs_are_simple = True
+    parsed_function_names: list[str] = []
     for expr in exprs:
-        if not (
-            is_simple_aggregation(expr)
-            and remove_prefix(expr._function_name, "col->")
-            in POLARS_TO_PANDAS_AGGREGATIONS
-        ):
+        if not is_simple_aggregation(expr):
             all_aggs_are_simple = False
             break
+        function_name, kwargs = parse_simple_function_name(expr)
+        if function_name not in POLARS_TO_PANDAS_AGGREGATIONS:
+            all_aggs_are_simple = False
+            break
+        if function_name == "std" and kwargs.get("ddof", None) != 1:
+            all_aggs_are_simple = False
+            break
+        parsed_function_names.append(function_name)
 
     # dict of {output_name: root_name} that we count n_unique on
     # We need to do this separately from the rest so that we
@@ -170,18 +175,15 @@ def agg_pandas(  # noqa: PLR0915
 
     if all_aggs_are_simple:
         simple_aggregations: dict[str, tuple[str, str]] = {}
-        for expr in exprs:
+        for i, expr in enumerate(exprs):
             if expr._depth == 0:
                 # e.g. agg(nw.len()) # noqa: ERA001
                 if expr._output_names is None:  # pragma: no cover
                     msg = "Safety assertion failed, please report a bug to https://github.com/narwhals-dev/narwhals/issues"
                     raise AssertionError(msg)
 
-                function_name = POLARS_TO_PANDAS_AGGREGATIONS.get(
-                    expr._function_name, expr._function_name
-                )
                 for output_name in expr._output_names:
-                    simple_aggregations[output_name] = (keys[0], function_name)
+                    simple_aggregations[output_name] = (keys[0], parsed_function_names[i])
                 continue
 
             # e.g. agg(nw.mean('a')) # noqa: ERA001
@@ -191,7 +193,7 @@ def agg_pandas(  # noqa: PLR0915
                 msg = "Safety assertion failed, please report a bug to https://github.com/narwhals-dev/narwhals/issues"
                 raise AssertionError(msg)
 
-            function_name = remove_prefix(expr._function_name, "col->")
+            function_name = parsed_function_names[i]
             function_name = POLARS_TO_PANDAS_AGGREGATIONS.get(
                 function_name, function_name
             )
