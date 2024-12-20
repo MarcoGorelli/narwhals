@@ -20,6 +20,7 @@ from narwhals.dataframe import LazyFrame as NwLazyFrame
 from narwhals.expr import Expr as NwExpr
 from narwhals.expr import Then as NwThen
 from narwhals.expr import When as NwWhen
+from narwhals.expr import col as nw_col
 from narwhals.expr import when as nw_when
 from narwhals.functions import _from_dict_impl
 from narwhals.functions import _from_numpy_impl
@@ -2316,7 +2317,10 @@ def all() -> Expr:
 
 
 def col(*names: str | Iterable[str]) -> Expr:
-    return _stableify(nw.col(*names))
+    return _stableify(nw_col(*names))
+
+
+col.__doc__ = nw_col.__doc__
 
 
 def nth(*indices: int | Sequence[int]) -> Expr:
