@@ -2316,52 +2316,6 @@ def all() -> Expr:
 
 
 def col(*names: str | Iterable[str]) -> Expr:
-    """Creates an expression that references one or more columns by their name(s).
-
-    Arguments:
-        names: Name(s) of the columns to use in the aggregation function.
-
-    Returns:
-        A new expression.
-
-    Examples:
-        >>> import pandas as pd
-        >>> import polars as pl
-        >>> import pyarrow as pa
-        >>> import narwhals as nw
-        >>> from narwhals.typing import IntoFrameT
-        >>> df_pl = pl.DataFrame({"a": [1, 2], "b": [3, 4]})
-        >>> df_pd = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-        >>> df_pa = pa.table({"a": [1, 2], "b": [3, 4]})
-
-        We define a dataframe-agnostic function:
-
-        >>> def my_library_agnostic_function(df_native: IntoFrameT) -> IntoFrameT:
-        ...     df = nw.from_native(df_native)
-        ...     return df.select(nw.col("a") * nw.col("b")).to_native()
-
-        We can pass any supported library such as Pandas, Polars, or PyArrow to `func`:
-
-        >>> my_library_agnostic_function(df_pd)
-           a
-        0  3
-        1  8
-        >>> my_library_agnostic_function(df_pl)
-        shape: (2, 1)
-        ┌─────┐
-        │ a   │
-        │ --- │
-        │ i64 │
-        ╞═════╡
-        │ 3   │
-        │ 8   │
-        └─────┘
-        >>> my_library_agnostic_function(df_pa)
-        pyarrow.Table
-        a: int64
-        ----
-        a: [[3,8]]
-    """
     return _stableify(nw.col(*names))
 
 
