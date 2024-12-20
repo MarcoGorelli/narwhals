@@ -92,6 +92,23 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+def doc(source_func):
+    """A decorator that replaces the decorated function's docstring with the docstring of the source function.
+
+    Args:
+        source_func (function): The function whose docstring will be used.
+
+    Returns:
+        function: The decorated function with its docstring modified.
+    """
+
+    def decorator(target_func):
+        target_func.__doc__ = source_func.__doc__
+        return target_func
+
+    return decorator
+
+
 class DataFrame(NwDataFrame[IntoDataFrameT]):
     """Narwhals DataFrame, backed by a native eager dataframe.
 
@@ -2316,11 +2333,9 @@ def all() -> Expr:
     return _stableify(nw.all())
 
 
+@doc(nw_col)
 def col(*names: str | Iterable[str]) -> Expr:
     return _stableify(nw_col(*names))
-
-
-col.__doc__ = nw_col.__doc__
 
 
 def nth(*indices: int | Sequence[int]) -> Expr:
