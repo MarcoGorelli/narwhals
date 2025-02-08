@@ -672,15 +672,13 @@ def test_join_duplicate_column_names(
     if "polars" in str(constructor):
         # https://github.com/pola-rs/polars/issues/21048
         request.applymarker(pytest.mark.xfail)
-    if "cudf" in str(constructor):
-        # TODO(unassigned): cudf doesn't raise here for some reason,
-        # need to investigate.
-        request.applymarker(pytest.mark.xfail)
     if "pyspark" in str(constructor):
         from pyspark.errors import AnalysisException
 
         exception = AnalysisException
     elif "modin" in str(constructor):
+        exception = NotImplementedError
+    elif 'cudf' in str(constructor):
         exception = NotImplementedError
     else:
         exception = nw.exceptions.DuplicateError

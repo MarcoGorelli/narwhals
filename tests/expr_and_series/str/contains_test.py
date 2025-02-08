@@ -14,6 +14,7 @@ def test_contains_case_insensitive(
     constructor: Constructor, request: pytest.FixtureRequest
 ) -> None:
     if "cudf" in str(constructor):
+        # https://github.com/rapidsai/cudf/issues/17962
         request.applymarker(pytest.mark.xfail)
 
     df = nw.from_native(constructor(data))
@@ -30,6 +31,7 @@ def test_contains_series_case_insensitive(
     constructor_eager: ConstructorEager, request: pytest.FixtureRequest
 ) -> None:
     if "cudf" in str(constructor_eager):
+        # https://github.com/rapidsai/cudf/issues/17962
         request.applymarker(pytest.mark.xfail)
 
     df = nw.from_native(constructor_eager(data), eager_only=True)
