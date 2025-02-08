@@ -90,21 +90,16 @@ class Series(Generic[IntoSeriesT]):
             Implementation.
 
         Examples:
-            >>> import narwhals as nw
             >>> import pandas as pd
-
-            >>> s_native = pd.Series([1, 2, 3])
+            >>> import narwhals as nw
+            >>> s_native = pd.Series([1, 2])
             >>> s = nw.from_native(s_native, series_only=True)
-
             >>> s.implementation
             <Implementation.PANDAS: 1>
-
             >>> s.implementation.is_pandas()
             True
-
             >>> s.implementation.is_pandas_like()
             True
-
             >>> s.implementation.is_polars()
             False
         """
@@ -133,63 +128,12 @@ class Series(Generic[IntoSeriesT]):
             A single element if `idx` is an integer, else a subset of the Series.
 
         Examples:
-            >>> from typing import Any
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_get_first_item(s_native: IntoSeriesT) -> Any:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s[0]
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_get_first_item`:
-
-            >>> agnostic_get_first_item(s_pd)
-            np.int64(1)
-
-            >>> agnostic_get_first_item(s_pl)
-            1
-
-            >>> agnostic_get_first_item(s_pa)
-            1
-
-            We can also make a function to slice the Series:
-
-            >>> def agnostic_slice(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s[:2].to_native()
-
-            >>> agnostic_slice(s_pd)
-            0    1
-            1    2
-            dtype: int64
-
-            >>> agnostic_slice(s_pl)  # doctest:+NORMALIZE_WHITESPACE
-            shape: (2,)
-            Series: '' [i64]
-            [
-                1
-                2
-            ]
-
-            >>> agnostic_slice(s_pa)  # doctest:+ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                2
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> s = nw.from_native(s_native, series_only=True)
+            >>> s[0]
+            >>> s[1:]
         """
         if isinstance(idx, int) or (
             is_numpy_scalar(idx) and idx.dtype.kind in ("i", "u")
@@ -233,49 +177,10 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_to_native(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_to_native`:
-
-            >>> agnostic_to_native(s_pd)
-            0    1
-            1    2
-            2    3
-            dtype: int64
-
-            >>> agnostic_to_native(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-                1
-                2
-                3
-            ]
-
-            >>> agnostic_to_native(s_pa)  # doctest:+ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                2,
-                3
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> s = nw.from_native(s_native, series_only=True)
+            >>> s.to_native()
         """
         return self._compliant_series._native_series  # type: ignore[no-any-return]
 
@@ -312,52 +217,11 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoFrameT
-
             >>> data = {"a": [1, 2, 3], "b": [4, 5, 6]}
-            >>> df_pd = pd.DataFrame(data)
-            >>> df_pl = pl.DataFrame(data)
-            >>> df_pa = pa.table(data)
-
-            We define a library agnostic function:
-
-            >>> def agnostic_scatter(df_native: IntoFrameT) -> IntoFrameT:
-            ...     df = nw.from_native(df_native)
-            ...     return df.with_columns(
-            ...         df["a"].scatter([0, 1], [999, 888])
-            ...     ).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_scatter`:
-
-            >>> agnostic_scatter(df_pd)
-                 a  b
-            0  999  4
-            1  888  5
-            2    3  6
-
-            >>> agnostic_scatter(df_pl)
-            shape: (3, 2)
-            ┌─────┬─────┐
-            │ a   ┆ b   │
-            │ --- ┆ --- │
-            │ i64 ┆ i64 │
-            ╞═════╪═════╡
-            │ 999 ┆ 4   │
-            │ 888 ┆ 5   │
-            │ 3   ┆ 6   │
-            └─────┴─────┘
-
-            >>> agnostic_scatter(df_pa)
-            pyarrow.Table
-            a: int64
-            b: int64
-            ----
-            a: [[999,888,3]]
-            b: [[4,5,6]]
+            >>> df_native = pd.DataFrame(data)
+            >>> df = nw.from_native(df_native)
+            >>> df.with_columns(df["a"].scatter([0, 1], [999, 888])).to_native()
         """
         return self._from_compliant_series(
             self._compliant_series.scatter(indices, self._extract_native(values))
@@ -371,33 +235,10 @@ class Series(Generic[IntoSeriesT]):
             A tuple containing the length of the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_shape(s_native: IntoSeries) -> tuple[int]:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.shape
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_shape`:
-
-            >>> agnostic_shape(s_pd)
-            (3,)
-
-            >>> agnostic_shape(s_pl)
-            (3,)
-
-            >>> agnostic_shape(s_pa)
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).shape
             (3,)
         """
         return self._compliant_series.shape  # type: ignore[no-any-return]
@@ -424,50 +265,10 @@ class Series(Generic[IntoSeriesT]):
             A new Series with the results of the piped function applied.
 
         Examples:
-            >>> import polars as pl
             >>> import pandas as pd
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a function to pipe into:
-
-            >>> def agnostic_pipe(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.pipe(lambda x: x + 2).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_pipe`:
-
-            >>> agnostic_pipe(s_pd)
-            0    3
-            1    4
-            2    5
-            dtype: int64
-
-            >>> agnostic_pipe(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               3
-               4
-               5
-            ]
-
-            >>> agnostic_pipe(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                3,
-                4,
-                5
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).pipe(lambda x: x + 1)
         """
         return function(self, *args, **kwargs)
 
@@ -487,32 +288,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, None]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a dataframe-agnostic function that computes the len of the series:
-
-            >>> def agnostic_len(s_native: IntoSeries) -> int:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.len()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_len`:
-
-            >>> agnostic_len(s_pd)
-            3
-
-            >>> agnostic_len(s_pl)
-            3
-
-            >>> agnostic_len(s_pa)
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).len()
             3
         """
         return len(self._compliant_series)
@@ -526,33 +304,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_dtype(s_native: IntoSeriesT) -> nw.dtypes.DType:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.dtype
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_dtype`:
-
-            >>> agnostic_dtype(s_pd)
-            Int64
-
-            >>> agnostic_dtype(s_pl)
-            Int64
-
-            >>> agnostic_dtype(s_pa)
-            Int64
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).dtype
         """
         return self._compliant_series.dtype  # type: ignore[no-any-return]
 
@@ -565,29 +319,10 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data, name="foo")
-            >>> s_pl = pl.Series("foo", data)
-
-            We define a library agnostic function:
-
-            >>> def agnostic_name(s_native: IntoSeries) -> str:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.name
-
-            We can then pass any supported library such as pandas or Polars
-            to `agnostic_name`:
-
-            >>> agnostic_name(s_pd)
-            'foo'
-
-            >>> agnostic_name(s_pl)
-            'foo'
+            >>> s_native = pd.Series([1, 2, 3], name="belugas")
+            >>> nw.from_native(s_native, series_only=True).name
+            'belugas'
         """
         return self._compliant_series.name  # type: ignore[no-any-return]
 
@@ -645,37 +380,10 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(name="a", data=data)
-            >>> s_pl = pl.Series(name="a", values=data)
-
-            We define a library agnostic function:
-
-            >>> def agnostic_ewm_mean(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.ewm_mean(com=1, ignore_nulls=False).to_native()
-
-            We can then pass any supported library such as pandas or Polars
-            to `agnostic_ewm_mean`:
-
-            >>> agnostic_ewm_mean(s_pd)
-            0    1.000000
-            1    1.666667
-            2    2.428571
-            Name: a, dtype: float64
-
-            >>> agnostic_ewm_mean(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: 'a' [f64]
-            [
-               1.0
-               1.666667
-               2.428571
-            ]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> s = nw.from_native(s_native, series_only=True)
+            >>> s.ewm_mean(com=1)
         """
         return self._from_compliant_series(
             self._compliant_series.ewm_mean(
@@ -700,49 +408,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [True, False, True]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a dataframe-agnostic function:
-
-            >>> def agnostic_cast(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.cast(nw.Int64).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_cast`:
-
-            >>> agnostic_cast(s_pd)
-            0    1
-            1    0
-            2    1
-            dtype: int64
-
-            >>> agnostic_cast(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               1
-               0
-               1
-            ]
-
-            >>> agnostic_cast(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                0,
-                1
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).cast(nw.Float32)
         """
         _validate_dtype(dtype)
         return self._from_compliant_series(self._compliant_series.cast(dtype))
@@ -755,47 +423,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoDataFrame
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2]
-            >>> s_pd = pd.Series(data, name="a")
-            >>> s_pl = pl.Series("a", data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_to_frame(s_native: IntoSeries) -> IntoDataFrame:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.to_frame().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_to_frame`:
-
-            >>> agnostic_to_frame(s_pd)
-               a
-            0  1
-            1  2
-
-            >>> agnostic_to_frame(s_pl)
-            shape: (2, 1)
-            ┌─────┐
-            │ a   │
-            │ --- │
-            │ i64 │
-            ╞═════╡
-            │ 1   │
-            │ 2   │
-            └─────┘
-
-            >>> agnostic_to_frame(s_pa)
-            pyarrow.Table
-            : int64
-            ----
-            : [[1,2]]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).to_frame().to_native()
         """
         return self._dataframe(
             self._compliant_series.to_frame(),
@@ -816,33 +446,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_to_list(s_native: IntoSeries):
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.to_list()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_to_list`:
-
-            >>> agnostic_to_list(s_pd)
-            [1, 2, 3]
-
-            >>> agnostic_to_list(s_pl)
-            [1, 2, 3]
-
-            >>> agnostic_to_list(s_pa)
-            [1, 2, 3]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).to_list()
         """
         return self._compliant_series.to_list()  # type: ignore[no-any-return]
 
@@ -853,34 +459,10 @@ class Series(Generic[IntoSeriesT]):
             The average of all elements in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_mean(s_native: IntoSeries) -> float:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.mean()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_mean`:
-
-            >>> agnostic_mean(s_pd)
-            np.float64(2.0)
-
-            >>> agnostic_mean(s_pl)
-            2.0
-
-            >>> agnostic_mean(s_pa)
-            2.0
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).mean()
         """
         return self._compliant_series.mean()  # type: ignore[no-any-return]
 
@@ -894,76 +476,28 @@ class Series(Generic[IntoSeriesT]):
             The median value of all elements in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [5, 3, 8]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a library agnostic function:
-
-            >>> def agnostic_median(s_native: IntoSeries) -> float:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.median()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_median`:
-
-            >>> agnostic_median(s_pd)
-            np.float64(5.0)
-
-            >>> agnostic_median(s_pl)
-            5.0
-
-            >>> agnostic_median(s_pa)
-            5.0
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).median()
         """
         return self._compliant_series.median()  # type: ignore[no-any-return]
 
     def skew(self: Self) -> float | None:
         """Calculate the sample skewness of the Series.
 
+        Notes:
+            The skewness is a measure of the asymmetry of the probability distribution.
+            A perfectly symmetric distribution has a skewness of 0.
+
         Returns:
             The sample skewness of the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 1, 2, 10, 100]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_skew(s_native: IntoSeries) -> float:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.skew()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_skew`:
-
-            >>> agnostic_skew(s_pd)
-            np.float64(1.4724267269058975)
-
-            >>> agnostic_skew(s_pl)
-            1.4724267269058975
-
-            >>> agnostic_skew(s_pa)
-            1.4724267269058975
-
-        Notes:
-            The skewness is a measure of the asymmetry of the probability distribution.
-            A perfectly symmetric distribution has a skewness of 0.
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).skew()
         """
         return self._compliant_series.skew()  # type: ignore[no-any-return]
 
@@ -974,34 +508,10 @@ class Series(Generic[IntoSeriesT]):
             The number of non-null elements in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_count(s_native: IntoSeries) -> int:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.count()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_count`:
-
-            >>> agnostic_count(s_pd)
-            np.int64(3)
-
-            >>> agnostic_count(s_pl)
-            3
-
-            >>> agnostic_count(s_pa)
-            3
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).count()
         """
         return self._compliant_series.count()  # type: ignore[no-any-return]
 
@@ -1015,34 +525,10 @@ class Series(Generic[IntoSeriesT]):
             A boolean indicating if any values in the Series are True.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [False, True, False]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_any(s_native: IntoSeries) -> bool:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.any()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_any`:
-
-            >>> agnostic_any(s_pd)
-            np.True_
-
-            >>> agnostic_any(s_pl)
-            True
-
-            >>> agnostic_any(s_pa)
-            True
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).any()
         """
         return self._compliant_series.any()  # type: ignore[no-any-return]
 
@@ -1053,34 +539,10 @@ class Series(Generic[IntoSeriesT]):
             A boolean indicating if all values in the Series are True.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [False, True, False]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_all(s_native: IntoSeries) -> bool:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.all()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_all`:
-
-            >>> agnostic_all(s_pd)
-            np.False_
-
-            >>> agnostic_all(s_pl)
-            False
-
-            >>> agnostic_all(s_pa)
-            False
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).all()
         """
         return self._compliant_series.all()  # type: ignore[no-any-return]
 
@@ -1091,34 +553,10 @@ class Series(Generic[IntoSeriesT]):
             The minimum value in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_min(s_native: IntoSeries):
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.min()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_min`:
-
-            >>> agnostic_min(s_pd)
-            np.int64(1)
-
-            >>> agnostic_min(s_pl)
-            1
-
-            >>> agnostic_min(s_pa)
-            1
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).min()
         """
         return self._compliant_series.min()
 
@@ -1129,34 +567,10 @@ class Series(Generic[IntoSeriesT]):
             The maximum value in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_max(s_native: IntoSeries):
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.max()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_max`:
-
-            >>> agnostic_max(s_pd)
-            np.int64(3)
-
-            >>> agnostic_max(s_pl)
-            3
-
-            >>> agnostic_max(s_pa)
-            3
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).max()
         """
         return self._compliant_series.max()
 
@@ -1164,34 +578,10 @@ class Series(Generic[IntoSeriesT]):
         """Returns the index of the minimum value.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_arg_min(s_native: IntoSeries):
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.arg_min()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_arg_min`:
-
-            >>> agnostic_arg_min(s_pd)
-            np.int64(0)
-
-            >>> agnostic_arg_min(s_pl)
-            0
-
-            >>> agnostic_arg_min(s_pa)
-            0
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).arg_min()
         """
         return self._compliant_series.arg_min()  # type: ignore[no-any-return]
 
@@ -1199,34 +589,10 @@ class Series(Generic[IntoSeriesT]):
         """Returns the index of the maximum value.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_arg_max(s_native: IntoSeries):
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.arg_max()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_arg_max`:
-
-            >>> agnostic_arg_max(s_pd)
-            np.int64(2)
-
-            >>> agnostic_arg_max(s_pl)
-            2
-
-            >>> agnostic_arg_max(s_pa)
-            2
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).arg_max()
         """
         return self._compliant_series.arg_max()  # type: ignore[no-any-return]
 
@@ -1237,34 +603,10 @@ class Series(Generic[IntoSeriesT]):
             The sum of all elements in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_sum(s_native: IntoSeries):
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.sum()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_sum`:
-
-            >>> agnostic_sum(s_pd)
-            np.int64(6)
-
-            >>> agnostic_sum(s_pl)
-            6
-
-            >>> agnostic_sum(s_pa)
-            6
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).sum()
         """
         return self._compliant_series.sum()  # type: ignore[no-any-return]
 
@@ -1279,34 +621,10 @@ class Series(Generic[IntoSeriesT]):
             The standard deviation of all elements in the Series.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_std(s_native: IntoSeries) -> float:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.std()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_std`:
-
-            >>> agnostic_std(s_pd)
-            np.float64(1.0)
-
-            >>> agnostic_std(s_pl)
-            1.0
-
-            >>> agnostic_std(s_pa)
-            1.0
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).std()
         """
         return self._compliant_series.std(ddof=ddof)  # type: ignore[no-any-return]
 
@@ -1318,34 +636,10 @@ class Series(Generic[IntoSeriesT]):
                      where N represents the number of elements.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeries
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_var(s_native: IntoSeries) -> float:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.var()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_var`:
-
-            >>> agnostic_var(s_pd)
-            np.float64(1.0)
-
-            >>> agnostic_var(s_pl)
-            1.0
-
-            >>> agnostic_var(s_pa)
-            1.0
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).var(ddof=1)
         """
         return self._compliant_series.var(ddof=ddof)  # type: ignore[no-any-return]
 
@@ -1364,134 +658,10 @@ class Series(Generic[IntoSeriesT]):
             A new Series with values clipped to the specified bounds.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_clip_lower(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.clip(2).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_clip_lower`:
-
-            >>> agnostic_clip_lower(s_pd)
-            0    2
-            1    2
-            2    3
-            dtype: int64
-
-            >>> agnostic_clip_lower(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               2
-               2
-               3
-            ]
-
-            >>> agnostic_clip_lower(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                2,
-                2,
-                3
-              ]
-            ]
-
-            We define another library agnostic function:
-
-            >>> def agnostic_clip_upper(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.clip(upper_bound=2).to_native()
-
-           We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_clip_upper`:
-
-            >>> agnostic_clip_upper(s_pd)
-            0    1
-            1    2
-            2    2
-            dtype: int64
-
-            >>> agnostic_clip_upper(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               1
-               2
-               2
-            ]
-
-            >>> agnostic_clip_upper(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                2,
-                2
-              ]
-            ]
-
-            We can have both at the same time
-
-            >>> data = [-1, 1, -3, 3, -5, 5]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_clip(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.clip(-1, 3).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_clip`:
-
-            >>> agnostic_clip(s_pd)
-            0   -1
-            1    1
-            2   -1
-            3    3
-            4   -1
-            5    3
-            dtype: int64
-
-            >>> agnostic_clip(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (6,)
-            Series: '' [i64]
-            [
-               -1
-                1
-               -1
-                3
-               -1
-                3
-            ]
-
-            >>> agnostic_clip_upper(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                -1,
-                1,
-                -3,
-                2,
-                -5,
-                2
-              ]
-            ]
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).clip(2, 3)
         """
         return self._from_compliant_series(
             self._compliant_series.clip(
@@ -1510,50 +680,10 @@ class Series(Generic[IntoSeriesT]):
             A new Series with boolean values indicating if the elements are in the other sequence.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_is_in(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.is_in([3, 2, 8]).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_is_in`:
-
-            >>> agnostic_is_in(s_pd)
-            0    False
-            1     True
-            2     True
-            dtype: bool
-
-            >>> agnostic_is_in(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [bool]
-            [
-               false
-               true
-               true
-            ]
-
-            >>> agnostic_is_in(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                false,
-                true,
-                true
-              ]
-            ]
+            >>> s_native = pa.chunked_array([[1, 2, 3]])
+            >>> nw.from_native(s_native, series_only=True).is_in([3, 4])
         """
         return self._from_compliant_series(
             self._compliant_series.is_in(self._extract_native(other))
@@ -1567,46 +697,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, None, None, 2]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_arg_true(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.is_null().arg_true().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_arg_true`:
-
-            >>> agnostic_arg_true(s_pd)
-            1    1
-            2    2
-            dtype: int64
-
-            >>> agnostic_arg_true(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (2,)
-            Series: '' [u32]
-            [
-               1
-               2
-            ]
-
-            >>> agnostic_arg_true(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                2
-              ]
-            ]
+            >>> s_native = pd.Series([True, False, True])
+            >>> nw.from_native(s_native, series_only=True).arg_true()
         """
         return self._from_compliant_series(self._compliant_series.arg_true())
 
@@ -1623,52 +716,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [2, 4, None, 3, 5]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a dataframe-agnostic function:
-
-            >>> def agnostic_drop_nulls(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.drop_nulls().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_drop_nulls`:
-
-            >>> agnostic_drop_nulls(s_pd)
-            0    2.0
-            1    4.0
-            3    3.0
-            4    5.0
-            dtype: float64
-
-            >>> agnostic_drop_nulls(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (4,)
-            Series: '' [i64]
-            [
-                2
-                4
-                3
-                5
-            ]
-
-            >>> agnostic_drop_nulls(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                2,
-                4,
-                3,
-                5
-              ]
-            ]
+            >>> s_native = pd.Series([1, None, 2], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).drop_nulls()
         """
         return self._from_compliant_series(self._compliant_series.drop_nulls())
 
@@ -1680,49 +730,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [2, -4, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a dataframe-agnostic function:
-
-            >>> def agnostic_abs(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.abs().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_abs`:
-
-            >>> agnostic_abs(s_pd)
-            0    2
-            1    4
-            2    3
-            dtype: int64
-
-            >>> agnostic_abs(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               2
-               4
-               3
-            ]
-
-            >>> agnostic_abs(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                2,
-                4,
-                3
-              ]
-            ]
+            >>> s_native = pd.Series([1, -2, 3])
+            >>> nw.from_native(s_native, series_only=True).abs().to_native()
         """
         return self._from_compliant_series(self._compliant_series.abs())
 
@@ -1737,49 +747,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [2, 4, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a dataframe-agnostic function:
-
-            >>> def agnostic_cum_sum(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.cum_sum().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_cum_sum`:
-
-            >>> agnostic_cum_sum(s_pd)
-            0    2
-            1    6
-            2    9
-            dtype: int64
-
-            >>> agnostic_cum_sum(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               2
-               6
-               9
-            ]
-
-            >>> agnostic_cum_sum(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                2,
-                6,
-                9
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3])
+            >>> nw.from_native(s_native, series_only=True).cum_sum().to_native()
         """
         return self._from_compliant_series(
             self._compliant_series.cum_sum(reverse=reverse)
@@ -1798,49 +768,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [2, 4, 4, 6]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a dataframe-agnostic function:
-
-            >>> def agnostic_unique(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.unique(maintain_order=True).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_unique`:
-
-            >>> agnostic_unique(s_pd)
-            0    2
-            1    4
-            2    6
-            dtype: int64
-
-            >>> agnostic_unique(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               2
-               4
-               6
-            ]
-
-            >>> agnostic_unique(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                2,
-                4,
-                6
-              ]
-            ]
+            >>> s_native = pd.Series([1, 1, 2], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).unique()
         """
         return self._from_compliant_series(
             self._compliant_series.unique(maintain_order=maintain_order)
@@ -1863,49 +793,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [2, 4, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a dataframe-agnostic function:
-
-            >>> def agnostic_diff(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.diff().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_diff`:
-
-            >>> agnostic_diff(s_pd)
-            0    NaN
-            1    2.0
-            2   -1.0
-            dtype: float64
-
-            >>> agnostic_diff(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               null
-               2
-               -1
-            ]
-
-            >>> agnostic_diff(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                null,
-                2,
-                -1
-              ]
-            ]
+            >>> s_native = pd.Series([1, 3, 4], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).diff()
         """
         return self._from_compliant_series(self._compliant_series.diff())
 
@@ -1930,49 +820,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [2, 4, 3]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a dataframe-agnostic function:
-
-            >>> def agnostic_shift(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.shift(1).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_shift`:
-
-            >>> agnostic_shift(s_pd)
-            0    NaN
-            1    2.0
-            2    4.0
-            dtype: float64
-
-            >>> agnostic_shift(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               null
-               2
-               4
-            ]
-
-            >>> agnostic_shift(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                null,
-                2,
-                4
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).shift(1).to_native()
         """
         return self._from_compliant_series(self._compliant_series.shift(n))
 
@@ -2003,52 +853,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3, 4]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_sample(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.sample(fraction=1.0, with_replacement=True).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_sample`:
-
-            >>> agnostic_sample(s_pd)  # doctest: +SKIP
-               a
-            2  3
-            1  2
-            3  4
-            3  4
-
-            >>> agnostic_sample(s_pl)  # doctest: +SKIP
-            shape: (4,)
-            Series: '' [i64]
-            [
-               1
-               4
-               3
-               4
-            ]
-
-            >>> agnostic_sample(s_pa)  # doctest: +SKIP
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                4,
-                3,
-                4
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).sample(2).to_native()
         """
         return self._from_compliant_series(
             self._compliant_series.sample(
@@ -2086,49 +893,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data, name="foo")
-            >>> s_pl = pl.Series("foo", data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_alias(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.alias("bar").to_native()
-
-            We can then pass any supported library such as pandas or Polars, or
-            PyArrow to `agnostic_alias`:
-
-            >>> agnostic_alias(s_pd)
-            0    1
-            1    2
-            2    3
-            Name: bar, dtype: int64
-
-            >>> agnostic_alias(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: 'bar' [i64]
-            [
-               1
-               2
-               3
-            ]
-
-            >>> agnostic_alias(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at 0x...>
-            [
-              [
-                1,
-                2,
-                3
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3], name="a", dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).alias("b").to_native()
         """
         return self._from_compliant_series(self._compliant_series.alias(name=name))
 
@@ -2164,49 +931,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, 3]
-            >>> s_pd = pd.Series(data, name="foo")
-            >>> s_pl = pl.Series("foo", data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define a library agnostic function:
-
-            >>> def agnostic_rename(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.rename("bar").to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_rename`:
-
-            >>> agnostic_rename(s_pd)
-            0    1
-            1    2
-            2    3
-            Name: bar, dtype: int64
-
-            >>> agnostic_rename(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: 'bar' [i64]
-            [
-               1
-               2
-               3
-            ]
-
-            >>> agnostic_rename(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at 0x...>
-            [
-              [
-                1,
-                2,
-                3
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3], name="a", dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).rename("b")
         """
         return self.alias(name=name)
 
@@ -2235,56 +962,10 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = {"a": [3, 0, 1, 2]}
-            >>> df_pd = pd.DataFrame(data)
-            >>> df_pl = pl.DataFrame(data)
-            >>> df_pa = pa.table(data)
-
-            Let's define dataframe-agnostic functions:
-
-            >>> def agnostic_replace_strict(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.replace_strict(
-            ...         [0, 1, 2, 3],
-            ...         ["zero", "one", "two", "three"],
-            ...         return_dtype=nw.String,
-            ...     ).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_replace_strict`:
-
-            >>> agnostic_replace_strict(df_pd["a"])
-            0    three
-            1     zero
-            2      one
-            3      two
-            Name: a, dtype: object
-
-            >>> agnostic_replace_strict(df_pl["a"])  # doctest: +NORMALIZE_WHITESPACE
-            shape: (4,)
-            Series: 'a' [str]
-            [
-                "three"
-                "zero"
-                "one"
-                "two"
-            ]
-
-            >>> agnostic_replace_strict(df_pa["a"])
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                "three",
-                "zero",
-                "one",
-                "two"
-              ]
-            ]
+            >>> s_native = pd.Series([1, 2, 3], name="a", dtype="Int64[pyarrow]")
+            >>> s = nw.from_native(s_native, series_only=True)
+            >>> s.replace_strict([2, 3], [5, 6])
         """
         if new is None:
             if not isinstance(old, Mapping):
@@ -2310,84 +991,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [5, None, 1, 2]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            We define library agnostic functions:
-
-            >>> def agnostic_sort(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.sort().to_native()
-
-            >>> def agnostic_sort_descending(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.sort(descending=True).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_sort` and `agnostic_sort_descending`:
-
-            >>> agnostic_sort(s_pd)
-            1    NaN
-            2    1.0
-            3    2.0
-            0    5.0
-            dtype: float64
-
-            >>> agnostic_sort(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (4,)
-            Series: '' [i64]
-            [
-               null
-               1
-               2
-               5
-            ]
-
-            >>> agnostic_sort(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                null,
-                1,
-                2,
-                5
-              ]
-            ]
-
-            >>> agnostic_sort_descending(s_pd)
-            1    NaN
-            0    5.0
-            3    2.0
-            2    1.0
-            dtype: float64
-
-            >>> agnostic_sort_descending(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (4,)
-            Series: '' [i64]
-            [
-               null
-               5
-               2
-               1
-            ]
-
-            >>> agnostic_sort_descending(s_pa)  # doctest: +ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                null,
-                5,
-                2,
-                1
-              ]
-            ]
+            >>> s_native = pd.Series([1, 3, 2])
+            >>> nw.from_native(s_native, series_only=True).sort()
         """
         return self._from_compliant_series(
             self._compliant_series.sort(descending=descending, nulls_last=nulls_last)
@@ -2406,49 +1012,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, None]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a dataframe-agnostic function:
-
-            >>> def agnostic_is_null(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.is_null().to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_is_null`:
-
-            >>> agnostic_is_null(s_pd)
-            0    False
-            1    False
-            2     True
-            dtype: bool
-
-            >>> agnostic_is_null(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [bool]
-            [
-               false
-               false
-               true
-            ]
-
-            >>> agnostic_is_null(s_pa)  # doctest:+ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                false,
-                false,
-                true
-              ]
-            ]
+            >>> s_native = pd.Series([1, None, 3], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).is_null()
         """
         return self._from_compliant_series(self._compliant_series.is_null())
 
@@ -2464,44 +1030,10 @@ class Series(Generic[IntoSeriesT]):
             for reference.
 
         Examples:
-            >>> import pandas as pd
-            >>> import polars as pl
             >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [0.0, None, 2.0]
-            >>> s_pd = pd.Series(data, dtype="Float64")
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data], type=pa.float64())
-
-            >>> def agnostic_self_div_is_nan(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.is_nan().to_native()
-
-            >>> print(agnostic_self_div_is_nan(s_pd))
-            0    False
-            1     <NA>
-            2    False
-            dtype: boolean
-
-            >>> print(agnostic_self_div_is_nan(s_pl))  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [bool]
-            [
-                    false
-                    null
-                    false
-            ]
-
-            >>> print(agnostic_self_div_is_nan(s_pa))  # doctest: +NORMALIZE_WHITESPACE
-            [
-              [
-                false,
-                null,
-                false
-              ]
-            ]
+            >>> s_native = pa.chunked_array([[1.3, float("nan"), None]])
+            >>> nw.from_native(s_native, series_only=True).is_nan().to_native()
         """
         return self._from_compliant_series(self._compliant_series.is_nan())
 
@@ -2528,82 +1060,9 @@ class Series(Generic[IntoSeriesT]):
 
         Examples:
             >>> import pandas as pd
-            >>> import polars as pl
-            >>> import pyarrow as pa
             >>> import narwhals as nw
-            >>> from narwhals.typing import IntoSeriesT
-
-            >>> data = [1, 2, None]
-            >>> s_pd = pd.Series(data)
-            >>> s_pl = pl.Series(data)
-            >>> s_pa = pa.chunked_array([data])
-
-            Let's define a dataframe-agnostic function:
-
-            >>> def agnostic_fill_null(s_native: IntoSeriesT) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.fill_null(5).to_native()
-
-            We can then pass any supported library such as pandas, Polars, or
-            PyArrow to `agnostic_fill_null`:
-
-            >>> agnostic_fill_null(s_pd)
-            0    1.0
-            1    2.0
-            2    5.0
-            dtype: float64
-
-            >>> agnostic_fill_null(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               1
-               2
-               5
-            ]
-
-            >>> agnostic_fill_null(s_pa)  # doctest:+ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                2,
-                5
-              ]
-            ]
-
-            Using a strategy:
-
-            >>> def agnostic_fill_null_with_strategy(
-            ...     s_native: IntoSeriesT,
-            ... ) -> IntoSeriesT:
-            ...     s = nw.from_native(s_native, series_only=True)
-            ...     return s.fill_null(strategy="forward", limit=1).to_native()
-
-            >>> agnostic_fill_null_with_strategy(s_pd)
-            0    1.0
-            1    2.0
-            2    2.0
-            dtype: float64
-
-            >>> agnostic_fill_null_with_strategy(s_pl)  # doctest: +NORMALIZE_WHITESPACE
-            shape: (3,)
-            Series: '' [i64]
-            [
-               1
-               2
-               2
-            ]
-
-            >>> agnostic_fill_null_with_strategy(s_pa)  # doctest:+ELLIPSIS
-            <pyarrow.lib.ChunkedArray object at ...>
-            [
-              [
-                1,
-                2,
-                2
-              ]
-            ]
+            >>> s_native = pd.Series([1, None, 3], dtype="Int64[pyarrow]")
+            >>> nw.from_native(s_native, series_only=True).fill_null(9).to_native()
         """
         if value is not None and strategy is not None:
             msg = "cannot specify both `value` and `strategy`"
