@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 import numpy as np
+import pyarrow as pa
 import pytest
 
 import narwhals.stable.v1 as nw
@@ -129,3 +130,15 @@ def test_date_lit(constructor: Constructor, request: pytest.FixtureRequest) -> N
         assert result == {"a": nw.Int64, "literal": nw.Datetime}
     else:
         assert result == {"a": nw.Int64, "literal": nw.Date}
+
+
+def test_pyarrow_lit_string() -> None:
+    df = nw.from_native(pa.table({"a": [1, 2, 3]}))
+    result = df.select(nw.lit("foo")).to_native().schema.field_by_name("literal")
+    assert pa.types.is_large_string(result.type)
+    result = (
+        df.select(nw.lit("foo", dtype=nw.String))
+        .to_native()
+        .schema.field_by_name("literal")
+    )
+    assert pa.types.is_large_string(result.type)
