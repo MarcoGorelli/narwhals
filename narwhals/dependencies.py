@@ -7,33 +7,33 @@ import sys
 from typing import TYPE_CHECKING
 from typing import Any
 
-if TYPE_CHECKING:
-    import cudf
-    import dask.dataframe as dd
-    import duckdb
-    import ibis
-    import modin.pandas as mpd
-    import numpy as np
-    import pandas as pd
-    import polars as pl
-    import pyarrow as pa
-    import pyspark.sql as pyspark_sql
-    from typing_extensions import TypeGuard
-    from typing_extensions import TypeIs
+# if TYPE_CHECKING:
+#     import cudf
+#     import dask.dataframe as dd
+#     import duckdb
+#     import ibis
+#     import modin.pandas as mpd
+#     import numpy as np
+#     import pandas as pd
+#     import polars as pl
+#     import pyarrow as pa
+#     import pyspark.sql as pyspark_sql
+#     from typing_extensions import TypeGuard
+#     from typing_extensions import TypeIs
 
-    from narwhals._arrow.typing import ArrowChunkedArray
-    from narwhals._spark_like.dataframe import SQLFrameDataFrame
-    from narwhals.dataframe import DataFrame
-    from narwhals.dataframe import LazyFrame
-    from narwhals.series import Series
-    from narwhals.typing import DataFrameT
-    from narwhals.typing import FrameT
-    from narwhals.typing import IntoDataFrameT
-    from narwhals.typing import IntoSeriesT
-    from narwhals.typing import _1DArray
-    from narwhals.typing import _2DArray
-    from narwhals.typing import _NDArray
-    from narwhals.typing import _ShapeT
+#     from narwhals._arrow.typing import ArrowChunkedArray
+#     from narwhals._spark_like.dataframe import SQLFrameDataFrame
+#     from narwhals.dataframe import DataFrame
+#     from narwhals.dataframe import LazyFrame
+#     from narwhals.series import Series
+#     from narwhals.typing import DataFrameT
+#     from narwhals.typing import FrameT
+#     from narwhals.typing import IntoDataFrameT
+#     from narwhals.typing import IntoSeriesT
+#     from narwhals.typing import _1DArray
+#     from narwhals.typing import _2DArray
+#     from narwhals.typing import _NDArray
+#     from narwhals.typing import _ShapeT
 
 # We silently allow these but - given that they claim
 # to be drop-in replacements for pandas - testing is

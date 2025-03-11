@@ -39,15 +39,15 @@ from narwhals.dependencies import is_pyspark_dataframe
 from narwhals.dependencies import is_sqlframe_dataframe
 from narwhals.utils import Version
 
-if TYPE_CHECKING:
-    from narwhals.dataframe import DataFrame
-    from narwhals.dataframe import LazyFrame
-    from narwhals.series import Series
-    from narwhals.typing import IntoDataFrameT
-    from narwhals.typing import IntoFrame
-    from narwhals.typing import IntoFrameT
-    from narwhals.typing import IntoSeries
-    from narwhals.typing import IntoSeriesT
+# if TYPE_CHECKING:
+#     from narwhals.dataframe import DataFrame
+#     from narwhals.dataframe import LazyFrame
+#     from narwhals.series import Series
+#     from narwhals.typing import IntoDataFrameT
+#     from narwhals.typing import IntoFrame
+#     from narwhals.typing import IntoFrameT
+#     from narwhals.typing import IntoSeries
+#     from narwhals.typing import IntoSeriesT
 
 T = TypeVar("T")
 
