@@ -135,6 +135,6 @@ def test_date_lit(constructor: Constructor, request: pytest.FixtureRequest) -> N
 def test_pyarrow_lit_string() -> None:
     df = nw.from_native(pa.table({"a": [1, 2, 3]}))
     result = df.select(nw.lit("foo")).to_native().schema.field("literal")
-    assert pa.types.is_large_string(result.type)
+    assert pa.types.is_string(result.type)
     result = df.select(nw.lit("foo", dtype=nw.String)).to_native().schema.field("literal")
     assert pa.types.is_large_string(result.type)
