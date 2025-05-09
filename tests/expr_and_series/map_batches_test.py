@@ -30,7 +30,7 @@ def test_map_batches_expr_numpy(
     )
     assert_equal_data(expected, {"a": [9.0]})
 
-    expected = df.select(nw.all().map_batches(lambda s: s.to_numpy().argmax()))
+    expected = df.select(nw.all().map_batches(lambda s: s.to_numpy().argmax(), returns_scalar=True))
     assert_equal_data(expected, {"a": [2], "b": [2], "z": [2]})
 
 

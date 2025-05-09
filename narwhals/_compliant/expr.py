@@ -19,6 +19,7 @@ from narwhals._compliant.any_namespace import NameNamespace
 from narwhals._compliant.any_namespace import StringNamespace
 from narwhals._compliant.any_namespace import StructNamespace
 from narwhals._compliant.namespace import CompliantNamespace
+from narwhals.exceptions import InvalidOperationError
 from narwhals._compliant.typing import AliasName
 from narwhals._compliant.typing import AliasNames
 from narwhals._compliant.typing import CompliantExprT_co
@@ -186,6 +187,9 @@ class CompliantExpr(Protocol38[CompliantFrameT, CompliantSeriesOrNativeExprT_co]
         self,
         function: Callable[[CompliantSeries[Any]], CompliantExpr[Any, Any]],
         return_dtype: DType | type[DType] | None,
+        *,
+        is_elementwise: bool,
+        returns_scalar: bool,
     ) -> Self: ...
 
     def clip(
@@ -823,6 +827,9 @@ class EagerExpr(
         self,
         function: Callable[[Any], Any],
         return_dtype: DType | type[DType] | None,
+        *,
+        is_elementwise: bool,
+        returns_scalar: bool,
     ) -> Self:
         def func(df: EagerDataFrameT) -> Sequence[EagerSeriesT]:
             input_series_list = self(df)
@@ -840,6 +847,13 @@ class EagerExpr(
                 ]
             if return_dtype is not None:
                 result = [series.cast(return_dtype) for series in result]
+            if returns_scalar and not all(len(s)==1 for s in result):
+                msg = "Expected function which returns scalar got result with more than one value."
+                raise InvalidOperationError(msg)
+            len_df = len(df)
+            if not returns_scalar and not all(len(s) == len_df for s in result):
+                msg = "Expected function which preserves input length, got result with more than one value."
+                raise InvalidOperationError(msg)
             return result
 
         return self._from_callable(
