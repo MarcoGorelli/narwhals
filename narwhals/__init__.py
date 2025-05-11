@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing as _t
 
 from narwhals import dependencies
+from narwhals import sql
 from narwhals import dtypes
 from narwhals import exceptions
 from narwhals import selectors
@@ -161,6 +162,7 @@ __all__ = [
     "scan_parquet",
     "selectors",
     "show_versions",
+    "sql",
     "sum",
     "sum_horizontal",
     "to_native",

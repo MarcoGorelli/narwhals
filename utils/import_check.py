@@ -16,6 +16,7 @@ BANNED_IMPORTS = {
     "polars",
     "pyarrow",
     "pyspark",
+    "sqlframe"
 }
 
 ALLOWED_IMPORTS = {
