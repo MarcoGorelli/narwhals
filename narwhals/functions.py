@@ -3,6 +3,7 @@ from __future__ import annotations
 import platform
 import sys
 from collections.abc import Iterable, Mapping, Sequence
+from functools import partial
 from importlib.metadata import version
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -1570,12 +1571,15 @@ def when(*predicates: IntoExpr | Iterable[IntoExpr]) -> When:
     return When(*predicates)
 
 
-def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
+def all_horizontal(
+    *exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool = False
+) -> Expr:
     r"""Compute the bitwise AND horizontally across columns.
 
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
             expression input.
+        ignore_nulls: Whether to ignore null values or to use Kleene logic.
 
     Returns:
         A new expression.
@@ -1610,7 +1614,10 @@ def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
     flat_exprs = flatten(exprs)
     return Expr(
         lambda plx: apply_n_ary_operation(
-            plx, plx.all_horizontal, *flat_exprs, str_as_lit=False
+            plx,
+            partial(plx.all_horizontal, ignore_nulls=ignore_nulls),
+            *flat_exprs,
+            str_as_lit=False,
         ),
         ExprMetadata.from_horizontal_op(*flat_exprs),
     )
@@ -1655,12 +1662,15 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
     return Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal())
 
 
-def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
+def any_horizontal(
+    *exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool = False
+) -> Expr:
     r"""Compute the bitwise OR horizontally across columns.
 
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
             expression input.
+        ignore_nulls: Whether to ignore null values or to use Kleene logic.
 
     Returns:
         A new expression.
@@ -1699,7 +1709,10 @@ def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
     flat_exprs = flatten(exprs)
     return Expr(
         lambda plx: apply_n_ary_operation(
-            plx, plx.any_horizontal, *flat_exprs, str_as_lit=False
+            plx,
+            partial(plx.any_horizontal, ignore_nulls=ignore_nulls),
+            *flat_exprs,
+            str_as_lit=False,
         ),
         ExprMetadata.from_horizontal_op(*flat_exprs),
     )

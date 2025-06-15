@@ -177,6 +177,22 @@ class PolarsNamespace:
             backend_version=self._backend_version,
         )
 
+    def all_horizontal(self, *exprs: PolarsExpr, ignore_nulls: bool) -> PolarsExpr:
+        args = exprs if not ignore_nulls else (x.fill_null(value=True) for x in exprs)
+        return self._expr(
+            pl.all_horizontal(*(x._native_expr for x in args)),
+            version=self._version,
+            backend_version=self._backend_version,
+        )
+
+    def any_horizontal(self, *exprs: PolarsExpr, ignore_nulls: bool) -> PolarsExpr:
+        args = exprs if not ignore_nulls else (x.fill_null(value=True) for x in exprs)
+        return self._expr(
+            pl.any_horizontal(*(x._native_expr for x in args)),
+            version=self._version,
+            backend_version=self._backend_version,
+        )
+
     def concat_str(
         self, *exprs: PolarsExpr, separator: str, ignore_nulls: bool
     ) -> PolarsExpr:

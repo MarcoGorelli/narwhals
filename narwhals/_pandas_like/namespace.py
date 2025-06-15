@@ -115,7 +115,9 @@ class PandasLikeNamespace(
             context=self,
         )
 
-    def all_horizontal(self, *exprs: PandasLikeExpr) -> PandasLikeExpr:
+    def all_horizontal(
+        self, *exprs: PandasLikeExpr, ignore_nulls: bool
+    ) -> PandasLikeExpr:
         def func(df: PandasLikeDataFrame) -> list[PandasLikeSeries]:
             series = align_series_full_broadcast(
                 *(s for _expr in exprs for s in _expr(df))
@@ -131,7 +133,9 @@ class PandasLikeNamespace(
             context=self,
         )
 
-    def any_horizontal(self, *exprs: PandasLikeExpr) -> PandasLikeExpr:
+    def any_horizontal(
+        self, *exprs: PandasLikeExpr, ignore_nulls: bool
+    ) -> PandasLikeExpr:
         def func(df: PandasLikeDataFrame) -> list[PandasLikeSeries]:
             series = align_series_full_broadcast(
                 *(s for _expr in exprs for s in _expr(df))

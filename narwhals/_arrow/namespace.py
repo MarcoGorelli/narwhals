@@ -83,7 +83,7 @@ class ArrowNamespace(EagerNamespace[ArrowDataFrame, ArrowSeries, ArrowExpr, pa.T
             version=self._version,
         )
 
-    def all_horizontal(self, *exprs: ArrowExpr) -> ArrowExpr:
+    def all_horizontal(self, *exprs: ArrowExpr, ignore_nulls: bool) -> ArrowExpr:
         def func(df: ArrowDataFrame) -> list[ArrowSeries]:
             series = chain.from_iterable(expr(df) for expr in exprs)
             return [reduce(operator.and_, align_series_full_broadcast(*series))]
@@ -97,7 +97,7 @@ class ArrowNamespace(EagerNamespace[ArrowDataFrame, ArrowSeries, ArrowExpr, pa.T
             context=self,
         )
 
-    def any_horizontal(self, *exprs: ArrowExpr) -> ArrowExpr:
+    def any_horizontal(self, *exprs: ArrowExpr, ignore_nulls: bool) -> ArrowExpr:
         def func(df: ArrowDataFrame) -> list[ArrowSeries]:
             series = chain.from_iterable(expr(df) for expr in exprs)
             return [reduce(operator.or_, align_series_full_broadcast(*series))]

@@ -1315,30 +1315,32 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
     return _stableify(nw.sum_horizontal(*exprs))
 
 
-def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
+def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:
     r"""Compute the bitwise AND horizontally across columns.
 
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
             expression input.
+        ignore_nulls: Whether to ignore null values or to use Kleene logic.
 
     Returns:
         A new expression.
     """
-    return _stableify(nw.all_horizontal(*exprs))
+    return _stableify(nw.all_horizontal(*exprs, ignore_nulls=ignore_nulls))
 
 
-def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
+def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:
     r"""Compute the bitwise OR horizontally across columns.
 
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
             expression input.
+        ignore_nulls: Whether to ignore null values or to use Kleene logic.
 
     Returns:
         A new expression.
     """
-    return _stableify(nw.any_horizontal(*exprs))
+    return _stableify(nw.any_horizontal(*exprs, ignore_nulls=ignore_nulls))
 
 
 def mean_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
