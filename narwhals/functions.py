@@ -1576,6 +1576,10 @@ def all_horizontal(
 ) -> Expr:
     r"""Compute the bitwise AND horizontally across columns.
 
+    [Kleene Logic](https://en.wikipedia.org/wiki/Three-valued_logic)
+    is followed, except for pandas' classical NumPy types which can't hold null
+    values, see [Boolean columns](../concepts/boolean.md).
+
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
             expression input.
@@ -1666,6 +1670,10 @@ def any_horizontal(
     *exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool = False
 ) -> Expr:
     r"""Compute the bitwise OR horizontally across columns.
+
+    [Kleene Logic](https://en.wikipedia.org/wiki/Three-valued_logic)
+    is followed, except for pandas' classical NumPy types which can't hold null
+    values, see [Boolean columns](../concepts/boolean.md).
 
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts

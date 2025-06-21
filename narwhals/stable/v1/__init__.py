@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, cast, overload
 from warnings import warn
 
 import narwhals as nw
-from narwhals import dependencies, exceptions, functions as nw_f, selectors
+from narwhals import exceptions, functions as nw_f
 from narwhals._typing_compat import TypeVar
 from narwhals._utils import (
     Implementation,
@@ -29,7 +29,7 @@ from narwhals.expr import Expr as NwExpr
 from narwhals.functions import _new_series_impl, concat, show_versions
 from narwhals.schema import Schema as NwSchema
 from narwhals.series import Series as NwSeries
-from narwhals.stable.v1 import dtypes
+from narwhals.stable.v1 import dependencies, dtypes, selectors
 from narwhals.stable.v1.dtypes import (
     Array,
     Binary,
@@ -1318,6 +1318,10 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
 def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:
     r"""Compute the bitwise AND horizontally across columns.
 
+    [Kleene Logic](https://en.wikipedia.org/wiki/Three-valued_logic)
+    is followed, except for pandas' classical NumPy types which can't hold null
+    values, see [Boolean columns](../concepts/boolean.md).
+
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
             expression input.
@@ -1331,6 +1335,10 @@ def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
 
 def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:
     r"""Compute the bitwise OR horizontally across columns.
+
+    [Kleene Logic](https://en.wikipedia.org/wiki/Three-valued_logic)
+    is followed, except for pandas' classical NumPy types which can't hold null
+    values, see [Boolean columns](../concepts/boolean.md).
 
     Arguments:
         exprs: Name(s) of the columns to use in the aggregation function. Accepts
