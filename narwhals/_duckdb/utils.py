@@ -299,6 +299,7 @@ def window_expression(
     rows_end: str = "",
     *,
     descending: bool = False,
+    ignore_nulls: bool = False,
 ) -> Expression:
     # TODO(unassigned): Replace with `duckdb.WindowExpression` when they release it.
     # https://github.com/duckdb/duckdb/discussions/14725#discussioncomment-11200348
@@ -316,4 +317,6 @@ def window_expression(
         msg = "Either both `rows_start` and `rows_end` must be specified, or neither."
     else:
         rows = ""
-    return SQLExpression(f"{expr} over ({pb} {ob} {rows})")
+
+    func = f"{str(expr).removesuffix(')')} ignore nulls)" if ignore_nulls else str(expr)
+    return SQLExpression(f"{func} over ({pb} {ob} {rows})")

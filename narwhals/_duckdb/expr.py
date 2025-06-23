@@ -15,7 +15,6 @@ from narwhals._duckdb.expr_str import DuckDBExprStringNamespace
 from narwhals._duckdb.expr_struct import DuckDBExprStructNamespace
 from narwhals._duckdb.utils import (
     col,
-    generate_order_by_sql,
     generate_partition_by_sql,
     lit,
     narwhals_to_native_dtype,
@@ -778,21 +777,24 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             def _fill_with_strategy(
                 df: DuckDBLazyFrame, inputs: DuckDBWindowInputs
             ) -> Sequence[Expression]:
-                order_by_sql = generate_order_by_sql(*inputs.order_by, ascending=True)
-                partition_by_sql = generate_partition_by_sql(*inputs.partition_by)
-
                 fill_func = "last_value" if strategy == "forward" else "first_value"
                 _limit = "unbounded" if limit is None else limit
-                rows_between = (
-                    f"{_limit} preceding and current row"
+                rows_start, rows_end = (
+                    (f"{_limit} preceding", "current row")
                     if strategy == "forward"
-                    else f"current row and {_limit} following"
+                    else ("current row", f"{_limit} following")
                 )
-                sql = (
-                    f"{fill_func}({{expr}} ignore nulls) over "
-                    f"({partition_by_sql} {order_by_sql} rows between {rows_between})"
-                )
-                return [SQLExpression(sql.format(expr=expr)) for expr in self(df)]
+                return [
+                    window_expression(
+                        FunctionExpression(fill_func, expr),
+                        inputs.partition_by,
+                        inputs.order_by,
+                        rows_start=rows_start,
+                        rows_end=rows_end,
+                        ignore_nulls=True,
+                    )
+                    for expr in self(df)
+                ]
 
             return self._with_window_function(_fill_with_strategy)
 
