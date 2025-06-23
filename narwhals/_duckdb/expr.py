@@ -20,6 +20,7 @@ from narwhals._duckdb.utils import (
     lit,
     narwhals_to_native_dtype,
     when,
+    window_expression,
 )
 from narwhals._expression_parsing import ExprKind
 from narwhals._utils import Implementation, not_implemented, requires
@@ -85,9 +86,12 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             df: DuckDBLazyFrame, window_inputs: DuckDBWindowInputs
         ) -> list[Expression]:
             assert not window_inputs.order_by  # noqa: S101
-            partition_by_sql = generate_partition_by_sql(*window_inputs.partition_by)
-            template = f"{{expr}} over ({partition_by_sql})"
-            return [SQLExpression(template.format(expr=expr)) for expr in self(df)]
+            return [
+                window_expression(
+                    expr, window_inputs.partition_by, window_inputs.order_by
+                )
+                for expr in self(df)
+            ]
 
         return self._window_function or default_window_func
 
@@ -111,13 +115,17 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
         func_name: Literal["sum", "max", "min", "count", "product"],
     ) -> DuckDBWindowFunction:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
-            order_by_sql = generate_order_by_sql(*inputs.order_by, ascending=not reverse)
-            partition_by_sql = generate_partition_by_sql(*inputs.partition_by)
-            sql = (
-                f"{func_name} ({{expr}}) over ({partition_by_sql} {order_by_sql} "
-                "rows between unbounded preceding and current row)"
-            )
-            return [SQLExpression(sql.format(expr=expr)) for expr in self(df)]
+            return [
+                window_expression(
+                    FunctionExpression(func_name, expr),
+                    inputs.partition_by,
+                    inputs.order_by,
+                    descending=reverse,
+                    rows_start="unbounded preceding",
+                    rows_end="current row",
+                )
+                for expr in self(df)
+            ]
 
         return func
 

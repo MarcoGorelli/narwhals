@@ -8,6 +8,8 @@ import duckdb
 from narwhals._utils import Version, isinstance_or_issubclass
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from duckdb import DuckDBPyRelation, Expression
     from duckdb.typing import DuckDBPyType
 
@@ -280,8 +282,38 @@ def generate_partition_by_sql(*partition_by: str | Expression) -> str:
 
 
 def generate_order_by_sql(*order_by: str, ascending: bool) -> str:
+    if not order_by:
+        return ""
     if ascending:
         by_sql = ", ".join([f"{col(x)} asc nulls first" for x in order_by])
     else:
         by_sql = ", ".join([f"{col(x)} desc nulls last" for x in order_by])
     return f"order by {by_sql}"
+
+
+def window_expression(
+    expr: Expression,
+    partition_by: Sequence[str | Expression],
+    order_by: Sequence[str],
+    rows_start: str = "",
+    rows_end: str = "",
+    *,
+    descending: bool = False,
+) -> Expression:
+    # TODO(unassigned): Replace with `duckdb.WindowExpression` when they release it.
+    # https://github.com/duckdb/duckdb/discussions/14725#discussioncomment-11200348
+    try:
+        from duckdb import SQLExpression
+    except ModuleNotFoundError as exc:
+        msg = f"DuckDB>=1.3.0 is required for this operation. Found: DuckDB {duckdb.__version__}"
+        raise NotImplementedError(msg) from exc
+    pb = generate_partition_by_sql(*partition_by)
+    ob = generate_order_by_sql(*order_by, ascending=not descending)
+
+    if rows_start and rows_end:
+        rows = f"rows between {rows_start} and {rows_end}"
+    elif rows_start or rows_end:
+        msg = "Either both `rows_start` and `rows_end` must be specified, or neither."
+    else:
+        rows = ""
+    return SQLExpression(f"{expr} over ({pb} {ob} {rows})")
