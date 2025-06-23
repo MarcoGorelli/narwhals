@@ -643,46 +643,44 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
     @requires.backend_version((1, 3))
     def is_first_distinct(self) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> Sequence[Expression]:
-            order_by_sql = generate_order_by_sql(*inputs.order_by, ascending=True)
-            if inputs.partition_by:
-                partition_by_sql = (
-                    generate_partition_by_sql(*inputs.partition_by) + ", {expr}"
+            return [
+                window_expression(
+                    FunctionExpression("row_number"),
+                    (*inputs.partition_by, expr),
+                    inputs.order_by,
                 )
-            else:
-                partition_by_sql = "partition by {expr}"
-            sql = (
-                f"{FunctionExpression('row_number')} "
-                f"over({partition_by_sql} {order_by_sql})"
-            )
-            return [SQLExpression(sql.format(expr=expr)) == lit(1) for expr in self(df)]
+                == lit(1)
+                for expr in self(df)
+            ]
 
         return self._with_window_function(func)
 
     @requires.backend_version((1, 3))
     def is_last_distinct(self) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> Sequence[Expression]:
-            order_by_sql = generate_order_by_sql(*inputs.order_by, ascending=False)
-            if inputs.partition_by:
-                partition_by_sql = (
-                    generate_partition_by_sql(*inputs.partition_by) + ", {expr}"
+            return [
+                window_expression(
+                    FunctionExpression("row_number"),
+                    (*inputs.partition_by, expr),
+                    inputs.order_by,
+                    descending=True,
                 )
-            else:
-                partition_by_sql = "partition by {expr}"
-            sql = (
-                f"{FunctionExpression('row_number')} "
-                f"over({partition_by_sql} {order_by_sql})"
-            )
-            return [SQLExpression(sql.format(expr=expr)) == lit(1) for expr in self(df)]
+                == lit(1)
+                for expr in self(df)
+            ]
 
         return self._with_window_function(func)
 
     @requires.backend_version((1, 3))
     def diff(self) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
-            order_by_sql = generate_order_by_sql(*inputs.order_by, ascending=True)
-            partition_by_sql = generate_partition_by_sql(*inputs.partition_by)
-            sql = f"lag({{expr}}) over ({partition_by_sql} {order_by_sql})"
-            return [expr - SQLExpression(sql.format(expr=expr)) for expr in self(df)]
+            return [
+                expr
+                - window_expression(
+                    FunctionExpression("lag", expr), inputs.partition_by, inputs.order_by
+                )
+                for expr in self(df)
+            ]
 
         return self._with_window_function(func)
 
