@@ -591,7 +591,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             lambda expr: FunctionExpression("sum", expr.isnull().cast("int"))
         )
 
-    @requires.backend_version((1, 3))
     def over(
         self, partition_by: Sequence[str | Expression], order_by: Sequence[str]
     ) -> Self:
@@ -625,7 +624,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             lambda expr: FunctionExpression("round", expr, lit(decimals))
         )
 
-    @requires.backend_version((1, 3))
     def shift(self, n: int) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> Sequence[Expression]:
             return [
@@ -639,7 +637,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
 
         return self._with_window_function(func)
 
-    @requires.backend_version((1, 3))
     def is_first_distinct(self) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> Sequence[Expression]:
             return [
@@ -654,7 +651,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
 
         return self._with_window_function(func)
 
-    @requires.backend_version((1, 3))
     def is_last_distinct(self) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> Sequence[Expression]:
             return [
@@ -670,7 +666,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
 
         return self._with_window_function(func)
 
-    @requires.backend_version((1, 3))
     def diff(self) -> Self:
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
             return [
@@ -683,37 +678,31 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
 
         return self._with_window_function(func)
 
-    @requires.backend_version((1, 3))
     def cum_sum(self, *, reverse: bool) -> Self:
         return self._with_window_function(
             self._cum_window_func(reverse=reverse, func_name="sum")
         )
 
-    @requires.backend_version((1, 3))
     def cum_max(self, *, reverse: bool) -> Self:
         return self._with_window_function(
             self._cum_window_func(reverse=reverse, func_name="max")
         )
 
-    @requires.backend_version((1, 3))
     def cum_min(self, *, reverse: bool) -> Self:
         return self._with_window_function(
             self._cum_window_func(reverse=reverse, func_name="min")
         )
 
-    @requires.backend_version((1, 3))
     def cum_count(self, *, reverse: bool) -> Self:
         return self._with_window_function(
             self._cum_window_func(reverse=reverse, func_name="count")
         )
 
-    @requires.backend_version((1, 3))
     def cum_prod(self, *, reverse: bool) -> Self:
         return self._with_window_function(
             self._cum_window_func(reverse=reverse, func_name="product")
         )
 
-    @requires.backend_version((1, 3))
     def rolling_sum(self, window_size: int, *, min_samples: int, center: bool) -> Self:
         return self._with_window_function(
             self._rolling_window_func(
@@ -724,7 +713,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             )
         )
 
-    @requires.backend_version((1, 3))
     def rolling_mean(self, window_size: int, *, min_samples: int, center: bool) -> Self:
         return self._with_window_function(
             self._rolling_window_func(
@@ -735,7 +723,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             )
         )
 
-    @requires.backend_version((1, 3))
     def rolling_var(
         self, window_size: int, *, min_samples: int, center: bool, ddof: int
     ) -> Self:
@@ -749,7 +736,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             )
         )
 
-    @requires.backend_version((1, 3))
     def rolling_std(
         self, window_size: int, *, min_samples: int, center: bool, ddof: int
     ) -> Self:
@@ -810,12 +796,11 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
 
         return self._with_elementwise(func)
 
-    @requires.backend_version((1, 3))
     def is_unique(self) -> Self:
         def _is_unique(expr: Expression, *partition_by: str | Expression) -> Expression:
-            pb = generate_partition_by_sql(expr, *partition_by)
-            sql = f"{FunctionExpression('count', col('*'))} over ({pb})"
-            return SQLExpression(sql) == lit(1)
+            return window_expression(
+                FunctionExpression("count", StarExpression()), (expr, *partition_by), ()
+            ) == lit(1)
 
         def _unpartitioned_is_unique(expr: Expression) -> Expression:
             return _is_unique(expr)
