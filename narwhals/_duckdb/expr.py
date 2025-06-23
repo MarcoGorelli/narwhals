@@ -149,9 +149,6 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             end = "current row"
 
         def func(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
-            order_by_sql = generate_order_by_sql(*inputs.order_by, ascending=True)
-            partition_by_sql = generate_partition_by_sql(*inputs.partition_by)
-            window = f"({partition_by_sql} {order_by_sql} rows between {start} and {end})"
             if func_name in {"sum", "mean"}:
                 func_: str = func_name
             elif func_name == "var" and ddof == 0:
@@ -168,12 +165,17 @@ class DuckDBExpr(LazyExpr["DuckDBLazyFrame", "Expression"]):
             else:  # pragma: no cover
                 msg = f"Only the following functions are supported: {supported_funcs}.\nGot: {func_name}."
                 raise ValueError(msg)
-            condition_sql = f"count({{expr}}) over {window} >= {min_samples}"
-            value_sql = f"{func_}({{expr}}) over {window}"
+            window_kwargs = {
+                "partition_by": inputs.partition_by,
+                "order_by": inputs.order_by,
+                "rows_start": start,
+                "rows_end": end,
+            }
             return [
                 when(
-                    SQLExpression(condition_sql.format(expr=expr)),
-                    SQLExpression(value_sql.format(expr=expr)),
+                    window_expression(FunctionExpression("count", expr), **window_kwargs)
+                    >= lit(min_samples),
+                    window_expression(FunctionExpression(func_, expr), **window_kwargs),
                 )
                 for expr in self(df)
             ]
