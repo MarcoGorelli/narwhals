@@ -246,44 +246,6 @@ class SparkLikeExpr(SQLExpr["SparkLikeLazyFrame", "Column"]):
         invert = cast("Callable[..., Column]", operator.invert)
         return self._with_elementwise(invert)
 
-    def all(self) -> Self:
-        def f(expr: Column) -> Column:
-            return self._F.coalesce(self._F.bool_and(expr), self._F.lit(True))  # noqa: FBT003
-
-        def window_f(
-            df: SparkLikeLazyFrame, window_inputs: SparkWindowInputs
-        ) -> Sequence[Column]:
-            return [
-                self._F.coalesce(
-                    self._F.bool_and(expr).over(
-                        self.partition_by(*window_inputs.partition_by)
-                    ),
-                    self._F.lit(True),  # noqa: FBT003
-                )
-                for expr in self(df)
-            ]
-
-        return self._with_callable(f)._with_window_function(window_f)
-
-    def any(self) -> Self:
-        def f(expr: Column) -> Column:
-            return self._F.coalesce(self._F.bool_or(expr), self._F.lit(False))  # noqa: FBT003
-
-        def window_f(
-            df: SparkLikeLazyFrame, window_inputs: SparkWindowInputs
-        ) -> Sequence[Column]:
-            return [
-                self._F.coalesce(
-                    self._F.bool_or(expr).over(
-                        self.partition_by(*window_inputs.partition_by)
-                    ),
-                    self._F.lit(False),  # noqa: FBT003
-                )
-                for expr in self(df)
-            ]
-
-        return self._with_callable(f)._with_window_function(window_f)
-
     def cast(self, dtype: IntoDType) -> Self:
         def func(df: SparkLikeLazyFrame) -> Sequence[Column]:
             spark_dtype = narwhals_to_native_dtype(

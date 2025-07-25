@@ -184,36 +184,6 @@ class DuckDBExpr(SQLExpr["DuckDBLazyFrame", "Expression"]):
     def kurtosis(self) -> Self:
         return self._with_callable(lambda expr: F("kurtosis_pop", expr))
 
-    def all(self) -> Self:
-        def f(expr: Expression) -> Expression:
-            return CoalesceOperator(F("bool_and", expr), lit(True))  # noqa: FBT003
-
-        def window_f(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
-            return [
-                CoalesceOperator(
-                    window_expression(F("bool_and", expr), inputs.partition_by),
-                    lit(True),  # noqa: FBT003
-                )
-                for expr in self(df)
-            ]
-
-        return self._with_callable(f)._with_window_function(window_f)
-
-    def any(self) -> Self:
-        def f(expr: Expression) -> Expression:
-            return CoalesceOperator(F("bool_or", expr), lit(False))  # noqa: FBT003
-
-        def window_f(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
-            return [
-                CoalesceOperator(
-                    window_expression(F("bool_or", expr), inputs.partition_by),
-                    lit(False),  # noqa: FBT003
-                )
-                for expr in self(df)
-            ]
-
-        return self._with_callable(f)._with_window_function(window_f)
-
     def quantile(
         self, quantile: float, interpolation: RollingInterpolationMethod
     ) -> Self:

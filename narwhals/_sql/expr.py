@@ -361,6 +361,44 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         return self._with_binary(lambda expr, other: expr.__or__(other), other)
 
     # Aggregations
+    def all(self) -> Self:
+        def f(expr: NativeExprT) -> NativeExprT:
+            return self._coalesce(self._function("bool_and", expr), self._lit(True))  # noqa: FBT003
+
+        def window_f(
+            df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
+        ) -> Sequence[NativeExprT]:
+            return [
+                self._coalesce(
+                    self._window_expression(
+                        self._function("bool_and", expr), inputs.partition_by
+                    ),
+                    self._lit(True),  # noqa: FBT003
+                )
+                for expr in self(df)
+            ]
+
+        return self._with_callable(f)._with_window_function(window_f)
+
+    def any(self) -> Self:
+        def f(expr: NativeExprT) -> NativeExprT:
+            return self._coalesce(self._function("bool_or", expr), self._lit(False))  # noqa: FBT003
+
+        def window_f(
+            df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
+        ) -> Sequence[NativeExprT]:
+            return [
+                self._coalesce(
+                    self._window_expression(
+                        self._function("bool_or", expr), inputs.partition_by
+                    ),
+                    self._lit(False),  # noqa: FBT003
+                )
+                for expr in self(df)
+            ]
+
+        return self._with_callable(f)._with_window_function(window_f)
+
     def max(self) -> Self:
         return self._with_callable(lambda expr: self._function("max", expr))
 
