@@ -39,10 +39,8 @@ if TYPE_CHECKING:
         FillNullStrategy,
         IntoDType,
         NonNestedLiteral,
-        NumericLiteral,
         PythonLiteral,
         RankMethod,
-        TemporalLiteral,
     )
 
     NativeRankMethod: TypeAlias = Literal["rank", "dense_rank", "row_number"]
@@ -317,34 +315,6 @@ class SparkLikeExpr(SQLExpr["SparkLikeLazyFrame", "Column"]):
             return F.var_samp(expr) * (n_rows - 1) / (n_rows - ddof)
 
         return self._with_callable(func)
-
-    def clip(
-        self,
-        lower_bound: Self | NumericLiteral | TemporalLiteral | None = None,
-        upper_bound: Self | NumericLiteral | TemporalLiteral | None = None,
-    ) -> Self:
-        def _clip_lower(expr: Column, lower_bound: Column) -> Column:
-            result = expr
-            return self._F.when(result < lower_bound, lower_bound).otherwise(result)
-
-        def _clip_upper(expr: Column, upper_bound: Column) -> Column:
-            result = expr
-            return self._F.when(result > upper_bound, upper_bound).otherwise(result)
-
-        def _clip_both(expr: Column, lower_bound: Column, upper_bound: Column) -> Column:
-            return (
-                self._F.when(expr < lower_bound, lower_bound)
-                .when(expr > upper_bound, upper_bound)
-                .otherwise(expr)
-            )
-
-        if lower_bound is None:
-            return self._with_elementwise(_clip_upper, upper_bound=upper_bound)
-        if upper_bound is None:
-            return self._with_elementwise(_clip_lower, lower_bound=lower_bound)
-        return self._with_elementwise(
-            _clip_both, lower_bound=lower_bound, upper_bound=upper_bound
-        )
 
     def is_finite(self) -> Self:
         def _is_finite(expr: Column) -> Column:

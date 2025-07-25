@@ -43,9 +43,7 @@ if TYPE_CHECKING:
         FillNullStrategy,
         IntoDType,
         NonNestedLiteral,
-        NumericLiteral,
         RollingInterpolationMethod,
-        TemporalLiteral,
     )
 
     DuckDBWindowFunction = WindowFunction[DuckDBLazyFrame, Expression]
@@ -194,30 +192,6 @@ class DuckDBExpr(SQLExpr["DuckDBLazyFrame", "Expression"]):
             raise NotImplementedError(msg)
 
         return self._with_callable(func)
-
-    def clip(
-        self,
-        lower_bound: Self | NumericLiteral | TemporalLiteral | None,
-        upper_bound: Self | NumericLiteral | TemporalLiteral | None,
-    ) -> Self:
-        def _clip_lower(expr: Expression, lower_bound: Any) -> Expression:
-            return F("greatest", expr, lower_bound)
-
-        def _clip_upper(expr: Expression, upper_bound: Any) -> Expression:
-            return F("least", expr, upper_bound)
-
-        def _clip_both(
-            expr: Expression, lower_bound: Any, upper_bound: Any
-        ) -> Expression:
-            return F("greatest", F("least", expr, upper_bound), lower_bound)
-
-        if lower_bound is None:
-            return self._with_elementwise(_clip_upper, upper_bound=upper_bound)
-        if upper_bound is None:
-            return self._with_elementwise(_clip_lower, lower_bound=lower_bound)
-        return self._with_elementwise(
-            _clip_both, lower_bound=lower_bound, upper_bound=upper_bound
-        )
 
     def n_unique(self) -> Self:
         def func(expr: Expression) -> Expression:

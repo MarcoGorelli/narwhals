@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from narwhals._compliant.typing import AliasNames, WindowFunction
     from narwhals._expression_parsing import ExprMetadata
-    from narwhals.typing import PythonLiteral, RankMethod
+    from narwhals.typing import NumericLiteral, PythonLiteral, RankMethod, TemporalLiteral
 
 
 class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, NativeExprT]):
@@ -433,6 +433,32 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     # Elementwise
     def abs(self) -> Self:
         return self._with_elementwise(lambda expr: self._function("abs", expr))
+
+    def clip(
+        self,
+        lower_bound: Self | NumericLiteral | TemporalLiteral | None,
+        upper_bound: Self | NumericLiteral | TemporalLiteral | None,
+    ) -> Self:
+        def _clip_lower(expr: NativeExprT, lower_bound: Any) -> NativeExprT:
+            return self._function("greatest", expr, lower_bound)
+
+        def _clip_upper(expr: NativeExprT, upper_bound: Any) -> NativeExprT:
+            return self._function("least", expr, upper_bound)
+
+        def _clip_both(
+            expr: NativeExprT, lower_bound: Any, upper_bound: Any
+        ) -> NativeExprT:
+            return self._function(
+                "greatest", self._function("least", expr, upper_bound), lower_bound
+            )
+
+        if lower_bound is None:
+            return self._with_elementwise(_clip_upper, upper_bound=upper_bound)
+        if upper_bound is None:
+            return self._with_elementwise(_clip_lower, lower_bound=lower_bound)
+        return self._with_elementwise(
+            _clip_both, lower_bound=lower_bound, upper_bound=upper_bound
+        )
 
     def is_null(self) -> Self:
         return self._with_elementwise(lambda expr: self._function("isnull", expr))
