@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable
 
-from narwhals._compliant import LazyExprNamespace
 from narwhals._compliant.any_namespace import DateTimeNamespace
 from narwhals._duration import Interval
 from narwhals._ibis.utils import (
@@ -10,6 +9,7 @@ from narwhals._ibis.utils import (
     UNITS_DICT_TRUNCATE,
     timedelta_to_ibis_interval,
 )
+from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._utils import not_implemented
 
 if TYPE_CHECKING:
@@ -20,34 +20,13 @@ if TYPE_CHECKING:
 
 
 class IbisExprDateTimeNamespace(
-    LazyExprNamespace["IbisExpr"], DateTimeNamespace["IbisExpr"]
+    SQLExprDateTimeNamespace["IbisExpr"], DateTimeNamespace["IbisExpr"]
 ):
-    def year(self) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.year())
-
-    def month(self) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.month())
-
-    def day(self) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.day())
-
-    def hour(self) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.hour())
-
-    def minute(self) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.minute())
-
-    def second(self) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.second())
-
     def millisecond(self) -> IbisExpr:
         return self.compliant._with_callable(lambda expr: expr.millisecond())
 
     def microsecond(self) -> IbisExpr:
         return self.compliant._with_callable(lambda expr: expr.microsecond())
-
-    def to_string(self, format: str) -> IbisExpr:
-        return self.compliant._with_callable(lambda expr: expr.strftime(format))
 
     def weekday(self) -> IbisExpr:
         # Ibis uses 0-6 for Monday-Sunday. Add 1 to match polars.

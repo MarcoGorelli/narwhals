@@ -23,7 +23,8 @@ if TYPE_CHECKING:
 
 
 class SparkLikeExprDateTimeNamespace(
-    SQLExprDateTimeNamespace["SparkLikeExpr"], DateTimeNamespace["SparkLikeExpr"]
+    SQLExprDateTimeNamespace["SparkLikeExpr", "Column"],
+    DateTimeNamespace["SparkLikeExpr"],
 ):
     def _weekday(self, expr: Column) -> Column:
         # PySpark's dayofweek returns 1-7 for Sunday-Saturday

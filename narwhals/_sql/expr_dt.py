@@ -4,13 +4,22 @@ from typing import Any, Generic
 
 from narwhals._compliant import LazyExprNamespace
 from narwhals._compliant.any_namespace import DateTimeNamespace
+from narwhals._compliant.typing import NativeExprT
 from narwhals._sql.typing import SQLExprT
 from narwhals._utils import not_implemented
 
 
 class SQLExprDateTimeNamespace(
-    LazyExprNamespace["SQLExprT"], DateTimeNamespace["SQLExprT"], Generic[SQLExprT]
+    LazyExprNamespace["SQLExprT"],
+    DateTimeNamespace["SQLExprT"],
+    Generic[SQLExprT, NativeExprT],
 ):
+    def _lit(self, value: Any) -> NativeExprT:
+        return self.compliant._lit(value)
+
+    def _function(self, name: str, *args: Any) -> NativeExprT:
+        return self.compliant._function(name, *args)
+
     def _with_elementwise(self, name: str, *args: Any) -> SQLExprT:
         comp = self.compliant
         return comp._with_elementwise(lambda expr: comp._function(name, expr, *args))

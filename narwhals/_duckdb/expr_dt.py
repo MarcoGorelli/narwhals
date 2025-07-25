@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class DuckDBExprDateTimeNamespace(
-    SQLExprDateTimeNamespace["DuckDBExpr"], DateTimeNamespace["DuckDBExpr"]
+    SQLExprDateTimeNamespace["DuckDBExpr", "Expression"], DateTimeNamespace["DuckDBExpr"]
 ):
     def millisecond(self) -> DuckDBExpr:
         return self.compliant._with_elementwise(
