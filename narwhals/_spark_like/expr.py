@@ -89,6 +89,9 @@ class SparkLikeExpr(SQLExpr["SparkLikeLazyFrame", "Column"]):
     def _when(self, condition: Column, value: Column) -> Column:
         return self._F.when(condition, value)
 
+    def _coalesce(self, *exprs: Column) -> Column:
+        return self._F.coalesce(*exprs)
+
     def _window_expression(
         self,
         expr: Column,
@@ -326,25 +329,6 @@ class SparkLikeExpr(SQLExpr["SparkLikeLazyFrame", "Column"]):
             return self._F.count_if(self._F.isnull(expr))
 
         return self._with_callable(_null_count)
-
-    def sum(self) -> Self:
-        def f(expr: Column) -> Column:
-            return self._F.coalesce(self._F.sum(expr), self._F.lit(0))
-
-        def window_f(
-            df: SparkLikeLazyFrame, window_inputs: SparkWindowInputs
-        ) -> Sequence[Column]:
-            return [
-                self._F.coalesce(
-                    self._F.sum(expr).over(
-                        self.partition_by(*window_inputs.partition_by)
-                    ),
-                    self._F.lit(0),
-                )
-                for expr in self(df)
-            ]
-
-        return self._with_callable(f)._with_window_function(window_f)
 
     def std(self, ddof: int) -> Self:
         F = self._F  # noqa: N806

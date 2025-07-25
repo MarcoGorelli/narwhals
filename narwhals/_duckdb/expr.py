@@ -86,6 +86,9 @@ class DuckDBExpr(SQLExpr["DuckDBLazyFrame", "Expression"]):
     def _when(self, condition: Expression, value: Expression) -> Expression:
         return when(condition, value)
 
+    def _coalesce(self, *exprs: Expression) -> Expression:
+        return CoalesceOperator(*exprs)
+
     def _window_expression(
         self,
         expr: Expression,
@@ -245,20 +248,6 @@ class DuckDBExpr(SQLExpr["DuckDBLazyFrame", "Expression"]):
         return self._with_elementwise(
             _clip_both, lower_bound=lower_bound, upper_bound=upper_bound
         )
-
-    def sum(self) -> Self:
-        def f(expr: Expression) -> Expression:
-            return CoalesceOperator(F("sum", expr), lit(0))
-
-        def window_f(df: DuckDBLazyFrame, inputs: DuckDBWindowInputs) -> list[Expression]:
-            return [
-                CoalesceOperator(
-                    window_expression(F("sum", expr), inputs.partition_by), lit(0)
-                )
-                for expr in self(df)
-            ]
-
-        return self._with_callable(f)._with_window_function(window_f)
 
     def n_unique(self) -> Self:
         def func(expr: Expression) -> Expression:

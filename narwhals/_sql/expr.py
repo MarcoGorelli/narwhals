@@ -10,12 +10,12 @@ from narwhals._compliant.typing import (
     NativeExprT,
     WindowFunction,
 )
-from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._compliant.window import WindowInputs
 from narwhals._expression_parsing import (
     combine_alias_output_names,
     combine_evaluate_output_names,
 )
+from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._sql.typing import SQLLazyFrameT
 from narwhals._utils import Implementation, Version, not_implemented
 
@@ -167,6 +167,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     def _lit(self, value: Any) -> NativeExprT: ...
     def _count_star(self) -> NativeExprT: ...
     def _when(self, condition: NativeExprT, value: NativeExprT) -> NativeExprT: ...
+    def _coalesce(self, *expr: NativeExprT) -> NativeExprT: ...
     def _window_expression(
         self,
         expr: NativeExprT,
@@ -371,6 +372,25 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     def min(self) -> Self:
         return self._with_callable(lambda expr: self._function("min", expr))
+
+    def sum(self) -> Self:
+        def f(expr: NativeExprT) -> NativeExprT:
+            return self._coalesce(self._function("sum", expr), self._lit(0))
+
+        def window_f(
+            df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
+        ) -> Sequence[NativeExprT]:
+            return [
+                self._coalesce(
+                    self._window_expression(
+                        self._function("sum", expr), inputs.partition_by
+                    ),
+                    self._lit(0),
+                )
+                for expr in self(df)
+            ]
+
+        return self._with_callable(f)._with_window_function(window_f)
 
     # Elementwise
     def abs(self) -> Self:
