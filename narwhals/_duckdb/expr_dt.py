@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from narwhals._compliant import LazyExprNamespace
 from narwhals._compliant.any_namespace import DateTimeNamespace
+from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._constants import (
     MS_PER_MINUTE,
     MS_PER_SECOND,
@@ -26,26 +27,8 @@ if TYPE_CHECKING:
 
 
 class DuckDBExprDateTimeNamespace(
-    LazyExprNamespace["DuckDBExpr"], DateTimeNamespace["DuckDBExpr"]
+    SQLExprDateTimeNamespace["DuckDBExpr"], DateTimeNamespace["DuckDBExpr"]
 ):
-    def year(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("year", expr))
-
-    def month(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("month", expr))
-
-    def day(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("day", expr))
-
-    def hour(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("hour", expr))
-
-    def minute(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("minute", expr))
-
-    def second(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("second", expr))
-
     def millisecond(self) -> DuckDBExpr:
         return self.compliant._with_elementwise(
             lambda expr: F("millisecond", expr) - F("second", expr) * lit(MS_PER_SECOND)
@@ -59,11 +42,6 @@ class DuckDBExprDateTimeNamespace(
     def nanosecond(self) -> DuckDBExpr:
         return self.compliant._with_elementwise(
             lambda expr: F("nanosecond", expr) - F("second", expr) * lit(NS_PER_SECOND)
-        )
-
-    def to_string(self, format: str) -> DuckDBExpr:
-        return self.compliant._with_elementwise(
-            lambda expr: F("strftime", expr, lit(format))
         )
 
     def weekday(self) -> DuckDBExpr:

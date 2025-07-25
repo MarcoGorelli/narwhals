@@ -10,6 +10,7 @@ from narwhals._compliant.typing import (
     NativeExprT,
     WindowFunction,
 )
+from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._compliant.window import WindowInputs
 from narwhals._expression_parsing import (
     combine_alias_output_names,
@@ -619,3 +620,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     # namespaces
     cat: not_implemented = not_implemented()  # type: ignore[assignment]
+
+    @property
+    def dt(self) -> SQLExprDateTimeNamespace:
+        return SQLExprDateTimeNamespace(self)
