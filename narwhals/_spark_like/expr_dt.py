@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from narwhals._compliant import LazyExprNamespace
 from narwhals._compliant.any_namespace import DateTimeNamespace
 from narwhals._constants import US_PER_SECOND
 from narwhals._duration import Interval
@@ -11,6 +10,7 @@ from narwhals._spark_like.utils import (
     fetch_session_time_zone,
     strptime_to_pyspark_format,
 )
+from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._utils import not_implemented
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class SparkLikeExprDateTimeNamespace(
-    LazyExprNamespace["SparkLikeExpr"], DateTimeNamespace["SparkLikeExpr"]
+    SQLExprDateTimeNamespace["SparkLikeExpr"], DateTimeNamespace["SparkLikeExpr"]
 ):
     def _weekday(self, expr: Column) -> Column:
         # PySpark's dayofweek returns 1-7 for Sunday-Saturday
@@ -66,24 +66,6 @@ class SparkLikeExprDateTimeNamespace(
     def date(self) -> SparkLikeExpr:
         return self.compliant._with_elementwise(self.compliant._F.to_date)
 
-    def year(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.year)
-
-    def month(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.month)
-
-    def day(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.day)
-
-    def hour(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.hour)
-
-    def minute(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.minute)
-
-    def second(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.second)
-
     def millisecond(self) -> SparkLikeExpr:
         def _millisecond(expr: Column) -> Column:
             return self.compliant._F.floor(
@@ -103,9 +85,6 @@ class SparkLikeExprDateTimeNamespace(
             return (self.compliant._F.unix_micros(expr) % US_PER_SECOND) * 1000
 
         return self.compliant._with_elementwise(_nanosecond)
-
-    def ordinal_day(self) -> SparkLikeExpr:
-        return self.compliant._with_elementwise(self.compliant._F.dayofyear)
 
     def weekday(self) -> SparkLikeExpr:
         return self.compliant._with_elementwise(self._weekday)

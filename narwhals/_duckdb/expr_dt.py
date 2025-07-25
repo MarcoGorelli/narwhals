@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from narwhals._compliant import LazyExprNamespace
 from narwhals._compliant.any_namespace import DateTimeNamespace
-from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._constants import (
     MS_PER_MINUTE,
     MS_PER_SECOND,
@@ -15,6 +13,7 @@ from narwhals._constants import (
 )
 from narwhals._duckdb.utils import UNITS_DICT, F, fetch_rel_time_zone, lit
 from narwhals._duration import Interval
+from narwhals._sql.expr_dt import SQLExprDateTimeNamespace
 from narwhals._utils import not_implemented
 
 if TYPE_CHECKING:
@@ -46,9 +45,6 @@ class DuckDBExprDateTimeNamespace(
 
     def weekday(self) -> DuckDBExpr:
         return self.compliant._with_elementwise(lambda expr: F("isodow", expr))
-
-    def ordinal_day(self) -> DuckDBExpr:
-        return self.compliant._with_elementwise(lambda expr: F("dayofyear", expr))
 
     def date(self) -> DuckDBExpr:
         return self.compliant._with_elementwise(lambda expr: expr.cast("date"))
