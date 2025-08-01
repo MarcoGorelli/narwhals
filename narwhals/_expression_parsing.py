@@ -213,7 +213,7 @@ class ExpansionKind(Enum):
             # e.g. nw.selectors.all() - nw.selectors.numeric().
             return ExpansionKind.MULTI_UNNAMED
         if self is ExpansionKind.MULTI_NAMED and other is ExpansionKind.MULTI_NAMED:
-            # e.g. nw.selectors.all() - nw.selectors.numeric().
+            # e.g. nw.col('a', 'b') - nw.col('a', 'b').
             return ExpansionKind.MULTI_NAMED
         # Don't attempt anything more complex, keep it simple and raise in the face of ambiguity.
         msg = f"Unsupported ExpansionKind combination, got {self} and {other}, please report a bug."  # pragma: no cover
