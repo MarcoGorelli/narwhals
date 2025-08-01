@@ -20,16 +20,28 @@ if TYPE_CHECKING:
     from narwhals._expression_parsing import ExprKind, ExprMetadata
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
-    from narwhals._utils import Version
     from narwhals.typing import IntoDType
 
 
 class PolarsExpr:
     _implementation = Implementation.POLARS
 
-    def __init__(self, expr: pl.Expr, version: Version) -> None:
-        self._native_expr = expr
-        self._version = version
+    # def __init__(self, call: pl.Expr, *, version: Version, **_kwargs: Any) -> None:
+    #     self._native_expr = call
+    #     self._version = version
+    #     self._metadata: ExprMetadata | None = None
+
+    def __init__(
+        self,
+        call: Any,
+        *,
+        evaluate_output_names: Any = None,
+        alias_output_names: Any = None,
+        implementation: Implementation = Implementation.POLARS,
+        **kwargs: Any,
+    ) -> None:
+        self._native_expr = call
+        self._version = kwargs["version"]
         self._metadata: ExprMetadata | None = None
 
     @property
@@ -44,11 +56,11 @@ class PolarsExpr:
         return "PolarsExpr"
 
     def _with_native(self, expr: pl.Expr) -> Self:
-        return self.__class__(expr, self._version)
+        return self.__class__(expr, version=self._version)
 
     @classmethod
     def _from_series(cls, series: Any) -> Self:
-        return cls(series.native, series._version)
+        return cls(series.native, version=series._version)
 
     def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Let Polars do its thing.

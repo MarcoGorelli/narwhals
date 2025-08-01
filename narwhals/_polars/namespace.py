@@ -121,16 +121,20 @@ class PolarsNamespace:
 
     def len(self) -> PolarsExpr:
         if self._backend_version < (0, 20, 5):
-            return self._expr(pl.count().alias("len"), self._version)
-        return self._expr(pl.len(), self._version)
+            return self._expr(pl.count().alias("len"), version=self._version)
+        return self._expr(pl.len(), version=self._version)
 
     def all_horizontal(self, *exprs: PolarsExpr, ignore_nulls: bool) -> PolarsExpr:
         it = (expr.fill_null(True) for expr in exprs) if ignore_nulls else iter(exprs)  # noqa: FBT003
-        return self._expr(pl.all_horizontal(*(expr.native for expr in it)), self._version)
+        return self._expr(
+            pl.all_horizontal(*(expr.native for expr in it)), version=self._version
+        )
 
     def any_horizontal(self, *exprs: PolarsExpr, ignore_nulls: bool) -> PolarsExpr:
         it = (expr.fill_null(False) for expr in exprs) if ignore_nulls else iter(exprs)  # noqa: FBT003
-        return self._expr(pl.any_horizontal(*(expr.native for expr in it)), self._version)
+        return self._expr(
+            pl.any_horizontal(*(expr.native for expr in it)), version=self._version
+        )
 
     def concat(
         self,

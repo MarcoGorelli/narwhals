@@ -72,6 +72,16 @@ class CompliantExpr(Protocol[CompliantFrameT, CompliantSeriesOrNativeExprT_co]):
     _alias_output_names: AliasNames | None
     _metadata: ExprMetadata | None
 
+    def __init__(
+        self,
+        call: EvalSeries[CompliantFrameT, CompliantSeriesOrNativeExprT_co],
+        *,
+        evaluate_output_names: EvalNames[CompliantFrameT],
+        alias_output_names: AliasNames | None,
+        implementation: Implementation,
+        **kwargs: Any,
+    ) -> None: ...
+
     def __call__(
         self, df: CompliantFrameT
     ) -> Sequence[CompliantSeriesOrNativeExprT_co]: ...
