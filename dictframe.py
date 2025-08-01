@@ -1,3 +1,7 @@
+# ok, well, this isn't easy, but...it should be doable
+# hard to prioritise. sklearn, or this?
+# sklearn?
+
 from __future__ import annotations
 
 from typing import Any
@@ -7,6 +11,7 @@ from typing_extensions import Self
 import narwhals as nw
 from narwhals._compliant.dataframe import CompliantLazyFrame
 from narwhals._compliant.expr import CompliantExpr
+from narwhals._compliant.namespace import CompliantNamespace
 from narwhals.dataframe import LazyFrame
 from narwhals.utils import Implementation, Version
 
@@ -15,7 +20,7 @@ class DictFrame(CompliantLazyFrame["DictExpr", "DictFrame", LazyFrame["DictFrame
     _implementation = Implementation.UNKNOWN
 
     def __init__(self, data, version=Version.MAIN):
-        self.data = data
+        self._native_frame = data
         self._version = version
 
     def __narwhals_lazyframe__(self):
@@ -25,7 +30,26 @@ class DictFrame(CompliantLazyFrame["DictExpr", "DictFrame", LazyFrame["DictFrame
         return DictNamespace(self)
 
     def _with_version(self, version):
-        return DictFrame(self.data, version=version)
+        return DictFrame(self._native_frame, version=version)
+
+    @property
+    def columns(self):
+        return list(self._native_frame.keys())
+
+    def simple_select(self, *column_names: str) -> Self:
+        return DictFrame(
+            {key: val for key, val in self._native_frame.items() if key in column_names},
+            version=self._version,
+        )
+
+    def select(self, *exprs: DictExpr) -> Self:
+        results = []
+        result_names = []
+        for expr in exprs:
+            results.extend(expr(self))
+            result_names.extend(expr._evaluate_output_names(self))
+        data = dict(zip(result_names, results))
+        return DictFrame(data, version=self._version)
 
 
 class DictExpr(CompliantExpr[DictFrame, Any]):
@@ -70,8 +94,20 @@ class DictExpr(CompliantExpr[DictFrame, Any]):
     def __call__(self, df):
         return self._call(df)
 
+    def __mul__(self, value):
+        def func(df):
+            exprs = self(df)
+            return [[x * value for x in expr] for expr in exprs]
 
-class DictNamespace:
+        return DictExpr(
+            func,
+            evaluate_output_names=self._evaluate_output_names,
+            alias_output_names=self._alias_output_names,
+            version=self._version,
+        )
+
+
+class DictNamespace(CompliantNamespace):
     def __init__(self, version: Version):
         self._version = version
 
@@ -80,11 +116,15 @@ class DictNamespace:
 
     def col(self, name: str):
         return DictExpr(
-            lambda df: [self._df[name]],
+            lambda df: [df._native_frame[name]],
             evaluate_output_names=lambda df: [name],
             alias_output_names=None,
             version=self._version,
         )
 
 
-nw.from_native(DictFrame({"a": [1, 2, 3]})).with_columns(b=nw.col("a") * 2)
+print(
+    nw.from_native(DictFrame({"a": [1, 2, 3], "b": [4, 5, 6]})).select(
+        nw.col("b") * 2, nw.col("a")
+    )
+)
