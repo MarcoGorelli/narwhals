@@ -358,7 +358,7 @@ class CompliantLazyFrame(
     def with_columns(self, *exprs: CompliantExprT_contra) -> Self: ...
     def with_row_index(self, name: str, order_by: Sequence[str]) -> Self: ...
     def _evaluate_expr(self, expr: CompliantExprT_contra, /) -> Any:
-        result = expr(self)
+        return expr(self)
         assert len(result) == 1  # debug assertion  # noqa: S101
         return result[0]
 

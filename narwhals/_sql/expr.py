@@ -64,13 +64,24 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
             other_native_series = {
                 key: df._evaluate_expr(value)
                 if self._is_expr(value)
-                else self._lit(value)
+                else [self._lit(value)]
                 for key, value in expressifiable_args.items()
             }
-            return [
-                call(native_series, **other_native_series)
-                for native_series in native_series_list
-            ]
+            res = []
+            for key, val in other_native_series.items():
+                if len(native_series_list) == 1:
+                    for x in val:
+                        res.append(call(native_series_list[0], **{key: x}))
+                elif len(val) == 1:
+                    for y in native_series_list:
+                        res.append(call(y, **{key: val[0]}))
+                elif len(native_series_list) == len(val):
+                    for x, y in zip(val, native_series_list):
+                        res.append(call(y, **{key: x}))
+                else:
+                    msg = "invalid"
+                    raise ValueError(msg)
+            return res
 
         return func
 

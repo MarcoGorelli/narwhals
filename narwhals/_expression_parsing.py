@@ -208,10 +208,13 @@ class ExpansionKind(Enum):
     def is_multi_output(self) -> bool:
         return self in {ExpansionKind.MULTI_NAMED, ExpansionKind.MULTI_UNNAMED}
 
-    def __and__(self, other: ExpansionKind) -> Literal[ExpansionKind.MULTI_UNNAMED]:
+    def __and__(self, other: ExpansionKind) -> ExpansionKind:
         if self is ExpansionKind.MULTI_UNNAMED and other is ExpansionKind.MULTI_UNNAMED:
             # e.g. nw.selectors.all() - nw.selectors.numeric().
             return ExpansionKind.MULTI_UNNAMED
+        if self is ExpansionKind.MULTI_NAMED and other is ExpansionKind.MULTI_NAMED:
+            # e.g. nw.selectors.all() - nw.selectors.numeric().
+            return ExpansionKind.MULTI_NAMED
         # Don't attempt anything more complex, keep it simple and raise in the face of ambiguity.
         msg = f"Unsupported ExpansionKind combination, got {self} and {other}, please report a bug."  # pragma: no cover
         raise AssertionError(msg)  # pragma: no cover
@@ -543,13 +546,13 @@ def combine_metadata(
             metadata = arg._metadata
             if metadata.expansion_kind.is_multi_output():
                 expansion_kind = metadata.expansion_kind
-                if i > 0 and not allow_multi_output:
-                    # Left-most argument is always allowed to be multi-output.
-                    msg = (
-                        "Multi-output expressions (e.g. nw.col('a', 'b'), nw.all()) "
-                        "are not supported in this context."
-                    )
-                    raise MultiOutputExpressionError(msg)
+                # if i > 0 and not allow_multi_output:
+                #     # Left-most argument is always allowed to be multi-output.
+                #     msg = (
+                #         "Multi-output expressions (e.g. nw.col('a', 'b'), nw.all()) "
+                #         "are not supported in this context."
+                #     )
+                #     raise MultiOutputExpressionError(msg)
                 if not to_single_output:
                     result_expansion_kind = (
                         result_expansion_kind & expansion_kind
