@@ -3,19 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable, Literal, Protocol, cast
 
 from narwhals._compliant.expr import LazyExpr
-from narwhals._compliant.typing import (
-    AliasNames,
-    EvalNames,
-    EvalSeries,
-    NativeExprT,
-    WindowFunction,
-)
+from narwhals._compliant.typing import AliasNames, WindowFunction
 from narwhals._compliant.window import WindowInputs
 from narwhals._expression_parsing import (
     combine_alias_output_names,
     combine_evaluate_output_names,
 )
-from narwhals._sql.typing import SQLLazyFrameT, NativeSQLExprT
+from narwhals._sql.typing import NativeSQLExprT, SQLLazyFrameT
 from narwhals._utils import Implementation, Version, not_implemented
 
 if TYPE_CHECKING:
@@ -23,15 +17,24 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self, TypeIs
 
-    from narwhals._compliant.typing import AliasNames, WindowFunction
+    from narwhals._compliant.typing import (
+        AliasNames,
+        EvalNames,
+        EvalSeries,
+        NativeExprT,
+        WindowFunction,
+    )
     from narwhals._expression_parsing import ExprMetadata
     from narwhals._sql.namespace import SQLNamespace
     from narwhals.typing import NumericLiteral, PythonLiteral, RankMethod, TemporalLiteral
 
-# am I right in thinking we need to pass NativeSQLExprT here, not NativeExprT? since NativeSQLExprT 
-# inherits from it, I can use that througout in the code and it will also have its parents functionality. 
+
+# am I right in thinking we need to pass NativeSQLExprT here, not NativeExprT? since NativeSQLExprT
+# inherits from it, I can use that througout in the code and it will also have its parents functionality.
 # though at the moment there are still problems with the class..
-class SQLExpr(LazyExpr[SQLLazyFrameT, NativeSQLExprT], Protocol[SQLLazyFrameT, NativeSQLExprT]):
+class SQLExpr(
+    LazyExpr[SQLLazyFrameT, NativeSQLExprT], Protocol[SQLLazyFrameT, NativeSQLExprT]
+):
     _call: EvalSeries[SQLLazyFrameT, NativeSQLExprT]
     _evaluate_output_names: EvalNames[SQLLazyFrameT]
     _alias_output_names: AliasNames | None
@@ -277,7 +280,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeSQLExprT], Protocol[SQLLazyFrameT, N
             }
             return [
                 self._when(
-                    self._window_expression(  
+                    self._window_expression(
                         self._function("count", expr), **window_kwargs
                     )
                     >= self._lit(min_samples),
@@ -498,13 +501,12 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeSQLExprT], Protocol[SQLLazyFrameT, N
         return self._with_elementwise(
             lambda expr: self._function("round", expr, self._lit(decimals))
         )
-    # WIP: trying new NativeSQLExprT 
+
+    # WIP: trying new NativeSQLExprT
     def sqrt(self) -> Self:
         def _sqrt(expr: NativeSQLExprT) -> NativeSQLExprT:
             return self._when(
-                expr < self._lit(0),  
-                self._lit(float("nan")),
-                self._function("sqrt", expr),
+                expr < self._lit(0), self._lit(float("nan")), self._function("sqrt", expr)
             )
 
         return self._with_elementwise(_sqrt)
@@ -515,12 +517,12 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeSQLExprT], Protocol[SQLLazyFrameT, N
     def log(self, base: float) -> Self:
         def _log(expr: NativeSQLExprT) -> NativeSQLExprT:
             return self._when(
-                expr < self._lit(0),  
+                expr < self._lit(0),
                 self._lit(float("nan")),
                 self._when(
                     cast("NativeSQLExprT", expr == self._lit(0)),
                     self._lit(float("-inf")),
-                    self._function("log", expr) / self._function("log", self._lit(base)),  
+                    self._function("log", expr) / self._function("log", self._lit(base)),
                 ),
             )
 
@@ -668,19 +670,19 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeSQLExprT], Protocol[SQLLazyFrameT, N
             count_window_kwargs: dict[str, Any] = {"partition_by": (*partition_by, expr)}
             if method == "max":
                 rank_expr = (
-                    self._window_expression(func, **window_kwargs)  
+                    self._window_expression(func, **window_kwargs)
                     + self._window_expression(count_expr, **count_window_kwargs)
                     - self._lit(1)
                 )
             elif method == "average":
                 rank_expr = self._window_expression(func, **window_kwargs) + (
-                    self._window_expression(count_expr, **count_window_kwargs)  
+                    self._window_expression(count_expr, **count_window_kwargs)
                     - self._lit(1)
                 ) / self._lit(2.0)
             else:
                 rank_expr = self._window_expression(func, **window_kwargs)
-                # TODO: @mp, thought I added this to NativeSQLExprT but not working? 
-            return self._when(~self._function("isnull", expr), rank_expr)  # type: ignore[operator] 
+                # TODO: @mp, thought I added this to NativeSQLExprT but not working?
+            return self._when(~self._function("isnull", expr), rank_expr)  # type: ignore[operator]
 
         def _unpartitioned_rank(expr: NativeSQLExprT) -> NativeSQLExprT:
             return _rank(expr, descending=[descending], nulls_last=[True])
