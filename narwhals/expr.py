@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import operator as op
 from collections.abc import Iterable, Mapping, Sequence
+from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
@@ -29,6 +30,49 @@ from narwhals.expr_list import ExprListNamespace
 from narwhals.expr_name import ExprNameNamespace
 from narwhals.expr_str import ExprStringNamespace
 from narwhals.expr_struct import ExprStructNamespace
+
+
+def with_tree_node(method_name: str | None = None):
+    """Decorator that automatically creates tree nodes for expression methods."""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # Extract the method name
+            name = method_name or func.__name__
+            
+            # Create the tree node
+            tree_node = self._create_method_tree_node(name, *args, **kwargs)
+            
+            # Store original methods
+            original_with_elementwise = self._with_elementwise
+            original_with_aggregation = self._with_aggregation
+            original_with_orderable_window = self._with_orderable_window
+            
+            def patched_with_elementwise(to_compliant_expr, **kw):
+                return original_with_elementwise(to_compliant_expr, tree_node=tree_node, **kw)
+            
+            def patched_with_aggregation(to_compliant_expr, **kw):
+                return original_with_aggregation(to_compliant_expr, tree_node=tree_node, **kw)
+                
+            def patched_with_orderable_window(to_compliant_expr, **kw):
+                return original_with_orderable_window(to_compliant_expr, tree_node=tree_node, **kw)
+            
+            # Temporarily patch the methods
+            self._with_elementwise = patched_with_elementwise
+            self._with_aggregation = patched_with_aggregation
+            self._with_orderable_window = patched_with_orderable_window
+            
+            try:
+                result = func(self, *args, **kwargs)
+            finally:
+                # Restore original methods
+                self._with_elementwise = original_with_elementwise
+                self._with_aggregation = original_with_aggregation
+                self._with_orderable_window = original_with_orderable_window
+            
+            return result
+        return wrapper
+    return decorator
 from narwhals.translate import to_native
 
 if TYPE_CHECKING:
@@ -646,6 +690,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).all())
 
+    @with_tree_node()
     def ewm_mean(
         self,
         *,
@@ -729,18 +774,6 @@ class Expr:
             │ 2.428571 │
             └──────────┘
         """
-        # Create tree node for ewm_mean method call
-        tree_node = self._create_method_tree_node(
-            "ewm_mean",
-            com=com,
-            span=span,
-            half_life=half_life,
-            alpha=alpha,
-            adjust=adjust,
-            min_samples=min_samples,
-            ignore_nulls=ignore_nulls,
-        )
-
         return self._with_orderable_window(
             lambda plx: self._to_compliant_expr(plx).ewm_mean(
                 com=com,
@@ -750,10 +783,10 @@ class Expr:
                 adjust=adjust,
                 min_samples=min_samples,
                 ignore_nulls=ignore_nulls,
-            ),
-            tree_node=tree_node,
+            )
         )
 
+    @with_tree_node()
     def mean(self) -> Self:
         """Get mean value.
 
@@ -770,11 +803,11 @@ class Expr:
             |   0  0.0  4.0    |
             └──────────────────┘
         """
-        tree_node = self._create_method_tree_node("mean")
         return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).mean(), tree_node=tree_node
+            lambda plx: self._to_compliant_expr(plx).mean()
         )
 
+    @with_tree_node()
     def median(self) -> Self:
         """Get median value.
 
@@ -794,11 +827,11 @@ class Expr:
             |   0  3.0  4.0    |
             └──────────────────┘
         """
-        tree_node = self._create_method_tree_node("median")
         return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).median(), tree_node=tree_node
+            lambda plx: self._to_compliant_expr(plx).median()
         )
 
+    @with_tree_node()
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
 
@@ -819,9 +852,8 @@ class Expr:
             |0  17.79513  1.265789|
             └─────────────────────┘
         """
-        tree_node = self._create_method_tree_node("std", ddof=ddof)
         return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof), tree_node=tree_node
+            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof)
         )
 
     def var(self, *, ddof: int = 1) -> Self:
@@ -930,6 +962,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).kurtosis())
 
+    @with_tree_node()
     def sum(self) -> Expr:
         """Return the sum value.
 
@@ -952,9 +985,8 @@ class Expr:
             |└────────┴────────┘|
             └───────────────────┘
         """
-        tree_node = self._create_method_tree_node("sum")
         return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).sum(), tree_node=tree_node
+            lambda plx: self._to_compliant_expr(plx).sum()
         )
 
     def min(self) -> Self:
@@ -1794,6 +1826,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).quantile(quantile, interpolation)
         )
 
+    @with_tree_node()
     def round(self, decimals: int = 0) -> Self:
         r"""Round underlying floating point data by `decimals` digits.
 
@@ -1824,12 +1857,11 @@ class Expr:
             |2  3.901234        3.9|
             └──────────────────────┘
         """
-        tree_node = self._create_method_tree_node("round", decimals=decimals)
         return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).round(decimals),
-            tree_node=tree_node
+            lambda plx: self._to_compliant_expr(plx).round(decimals)
         )
 
+    @with_tree_node()
     def len(self) -> Self:
         r"""Return the number of elements in the column.
 
