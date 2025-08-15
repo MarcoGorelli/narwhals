@@ -101,6 +101,9 @@ class Expr:
             MethodCallNode,
             NamespaceMethodCallNode,
             UnaryOpNode,
+            WhenNode,
+            WhenThenNode,
+            WhenThenThenNode,
         )
 
         if isinstance(node, ColumnNode):
@@ -180,6 +183,24 @@ class Expr:
             # Handle alias: expr.alias('new_name')
             base_expr = cls._interpret_tree_node(node.expr, plx)
             return base_expr.alias(node.name)
+
+        elif isinstance(node, WhenNode):
+            # Handle when condition: nw.when(condition)
+            condition_expr = cls._interpret_tree_node(node.condition, plx)
+            return plx.when(condition_expr)
+
+        elif isinstance(node, WhenThenNode):
+            # Handle when().then() chain
+            condition_expr = cls._interpret_tree_node(node.condition, plx)
+            value_expr = cls._interpret_tree_node(node.value, plx)
+            return plx.when(condition_expr).then(value_expr)
+
+        elif isinstance(node, WhenThenThenNode):
+            # Handle when().then().otherwise() chain
+            condition_expr = cls._interpret_tree_node(node.condition, plx)
+            then_value_expr = cls._interpret_tree_node(node.then_value, plx)
+            otherwise_value_expr = cls._interpret_tree_node(node.otherwise_value, plx)
+            return plx.when(condition_expr).then(then_value_expr).otherwise(otherwise_value_expr)
 
         else:
             raise ValueError(f"Unknown node type: {type(node)}")
@@ -1803,8 +1824,10 @@ class Expr:
             |2  3.901234        3.9|
             └──────────────────────┘
         """
+        tree_node = self._create_method_tree_node("round", decimals=decimals)
         return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).round(decimals)
+            lambda plx: self._to_compliant_expr(plx).round(decimals),
+            tree_node=tree_node
         )
 
     def len(self) -> Self:

@@ -1372,9 +1372,37 @@ def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
 
 class When:
     def __init__(self, *predicates: IntoExpr | Iterable[IntoExpr]) -> None:
+        from narwhals._expression_tree import WhenNode
+        from narwhals._expression_parsing import is_expr
+        
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
+        
+        # Create a WhenNode if the predicate has a tree
+        flat_predicates = flatten(predicates)
+        if len(flat_predicates) == 1:
+            # Single predicate - convert to Expr if needed
+            predicate_input = flat_predicates[0]
+            if is_expr(predicate_input):
+                predicate_expr = predicate_input
+            elif isinstance(predicate_input, str):
+                from narwhals import col
+                predicate_expr = col(predicate_input)
+            else:
+                # For other types, we can't easily convert, so skip tree creation
+                return
+                
+            if predicate_expr._tree is not None:
+                # Create a new Expr with WhenNode
+                self._predicate = Expr(
+                    self._predicate._to_compliant_expr,
+                    self._predicate._metadata,
+                    tree=WhenNode(predicate_expr._tree)
+                )
 
     def then(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Then:
+        from narwhals._expression_tree import WhenThenNode
+        from narwhals._expression_parsing import is_expr
+        
         kind = ExprKind.from_into_expr(value, str_as_lit=False)
         if self._predicate._metadata.is_scalar_like and not kind.is_scalar_like:
             msg = (
@@ -1382,6 +1410,22 @@ class When:
                 "the `then` value must also be scalar-like."
             )
             raise InvalidOperationError(msg)
+
+        # Create tree node for when().then() if both predicate and value have trees
+        tree_node = None
+        if self._predicate._tree is not None:
+            # Convert value to Expr to get its tree
+            if is_expr(value):
+                value_expr = value
+            elif isinstance(value, str):
+                from narwhals import col
+                value_expr = col(value)
+            else:
+                from narwhals import lit
+                value_expr = lit(value)
+                
+            if value_expr._tree is not None:
+                tree_node = WhenThenNode(self._predicate._tree, value_expr._tree)
 
         return Then(
             lambda plx: apply_n_ary_operation(
@@ -1398,11 +1442,14 @@ class When:
                 allow_multi_output=False,
                 to_single_output=False,
             ),
+            tree=tree_node,
         )
 
 
 class Then(Expr):
     def otherwise(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Expr:
+        from narwhals._expression_tree import WhenThenThenNode, WhenThenNode
+        
         kind = ExprKind.from_into_expr(value, str_as_lit=False)
         if self._metadata.is_scalar_like and not is_scalar_like(kind):
             msg = (
@@ -1422,6 +1469,28 @@ class Then(Expr):
                 compliant_value = compliant_value.broadcast(kind)
             return compliant_expr.otherwise(compliant_value)  # type: ignore[attr-defined, no-any-return]
 
+        # Create tree node for when().then().otherwise() if we have a WhenThenNode
+        tree_node = None
+        if self._tree is not None and isinstance(self._tree, WhenThenNode):
+            from narwhals._expression_parsing import is_expr
+            
+            # Convert value to Expr to get its tree
+            if is_expr(value):
+                value_expr = value
+            elif isinstance(value, str):
+                from narwhals import col
+                value_expr = col(value)
+            else:
+                from narwhals import lit
+                value_expr = lit(value)
+                
+            if value_expr._tree is not None:
+                tree_node = WhenThenThenNode(
+                    self._tree.condition, 
+                    self._tree.value, 
+                    value_expr._tree
+                )
+
         return Expr(
             func,
             combine_metadata(
@@ -1431,6 +1500,7 @@ class Then(Expr):
                 allow_multi_output=False,
                 to_single_output=False,
             ),
+            tree=tree_node,
         )
 
 
