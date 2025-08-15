@@ -14,6 +14,7 @@ from narwhals._expression_parsing import (
     extract_compliant,
     is_scalar_like,
 )
+from narwhals._expression_tree import ColumnNode, LiteralNode
 from narwhals._utils import (
     Implementation,
     Version,
@@ -928,11 +929,15 @@ def col(*names: str | Iterable[str]) -> Expr:
     def func(plx: Any) -> Any:
         return plx.col(*flat_names)
 
+    # Create tree representation
+    tree_node = ColumnNode(tuple(flat_names))
+
     return Expr(
         func,
         ExprMetadata.selector_single()
         if len(flat_names) == 1
         else ExprMetadata.selector_multi_named(),
+        tree=tree_node,
     )
 
 
@@ -1564,7 +1569,10 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
         msg = f"Nested datatypes are not supported yet. Got {value}"
         raise NotImplementedError(msg)
 
-    return Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal())
+    # Create tree representation
+    tree_node = LiteralNode(value)
+
+    return Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal(), tree=tree_node)
 
 
 def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:

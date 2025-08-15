@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -12,6 +12,14 @@ ExprT = TypeVar("ExprT", bound="Expr")
 class ExprListNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
+
+    def _create_namespace_tree_node(
+        self, method_name: str, *args: Any, **kwargs: Any
+    ) -> Any:
+        """Helper to create namespace tree nodes."""
+        return self._expr._create_namespace_tree_node(
+            "list", method_name, *args, **kwargs
+        )
 
     def len(self) -> ExprT:
         """Return the number of elements in each list.
@@ -40,8 +48,9 @@ class ExprListNamespace(Generic[ExprT]):
             |└──────────────┴───────┘|
             └────────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("len")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).list.len()
+            lambda plx: self._expr._to_compliant_expr(plx).list.len(), tree_node=tree_node
         )
 
     def unique(self) -> ExprT:
@@ -145,6 +154,10 @@ class ExprListNamespace(Generic[ExprT]):
             msg = f"Index {index} is out of bounds: should be greater than or equal to 0."
             raise ValueError(msg)
 
+        # Create tree node for list method call
+        tree_node = self._create_namespace_tree_node("get", index)
+
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).list.get(index)
+            lambda plx: self._expr._to_compliant_expr(plx).list.get(index),
+            tree_node=tree_node,
         )

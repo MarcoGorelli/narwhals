@@ -11,6 +11,15 @@ from narwhals._expression_parsing import (
     combine_metadata,
     extract_compliant,
 )
+from narwhals._expression_tree import (
+    AliasNode,
+    BinaryOpNode,
+    ExpressionTree,
+    ExprNode,
+    LiteralNode,
+    MethodCallNode,
+    NamespaceMethodCallNode,
+)
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import ComputeError, InvalidOperationError
@@ -49,7 +58,13 @@ if TYPE_CHECKING:
 
 
 class Expr:
-    def __init__(self, to_compliant_expr: _ToCompliant, metadata: ExprMetadata) -> None:
+    def __init__(
+        self,
+        to_compliant_expr: _ToCompliant,
+        metadata: ExprMetadata,
+        *,
+        tree: ExprNode | None = None,
+    ) -> None:
         # callable from CompliantNamespace to CompliantExpr
         def func(plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
             result = to_compliant_expr(plx)
@@ -58,36 +73,201 @@ class Expr:
 
         self._to_compliant_expr: _ToCompliant = func
         self._metadata = metadata
+        self._tree = tree  # Optional tree representation for serialization
 
-    def _with_elementwise(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_elementwise_op())
+    @classmethod
+    def _from_tree(cls, tree: ExprNode, metadata: ExprMetadata) -> Self:
+        """Create an Expr from a tree representation."""
 
-    def _with_aggregation(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_aggregation())
+        # Convert tree back to callable (this would be a complex interpreter)
+        # For now, we'll create a placeholder callable
+        def to_compliant_expr(
+            plx: CompliantNamespace[Any, Any],
+        ) -> CompliantExpr[Any, Any]:
+            # This would need to interpret the tree and call the appropriate methods
+            # This is a complex operation that would require a full interpreter
+            raise NotImplementedError("Tree-to-callable conversion not yet implemented")
+
+        expr = cls(to_compliant_expr, metadata, tree=tree)
+        return expr
+
+    def to_tree(self) -> ExpressionTree:
+        """Convert expression to serializable tree representation."""
+        if self._tree is None:
+            raise ValueError("This expression was not created with tree representation")
+
+        # Convert metadata to dict
+        metadata_dict = {
+            "expansion_kind": self._metadata.expansion_kind.name,
+            "last_node": self._metadata.last_node.name,
+            "has_windows": self._metadata.has_windows,
+            "n_orderable_ops": self._metadata.n_orderable_ops,
+            "preserves_length": self._metadata.preserves_length,
+            "is_elementwise": self._metadata.is_elementwise,
+            "is_scalar_like": self._metadata.is_scalar_like,
+            "is_literal": self._metadata.is_literal,
+        }
+
+        return ExpressionTree(root=self._tree, metadata=metadata_dict)
+
+    def to_json(self) -> str:
+        """Serialize expression to JSON string."""
+        return self.to_tree().to_json()
+
+    @classmethod
+    def from_json(cls, json_str: str) -> Self:
+        """Deserialize expression from JSON string."""
+        tree = ExpressionTree.from_json(json_str)
+
+        # Reconstruct metadata from dict
+        from narwhals._expression_parsing import ExpansionKind, ExprKind
+
+        metadata = ExprMetadata(
+            expansion_kind=ExpansionKind[tree.metadata["expansion_kind"]],
+            last_node=ExprKind[tree.metadata["last_node"]],
+            has_windows=tree.metadata["has_windows"],
+            n_orderable_ops=tree.metadata["n_orderable_ops"],
+            preserves_length=tree.metadata["preserves_length"],
+            is_elementwise=tree.metadata["is_elementwise"],
+            is_scalar_like=tree.metadata["is_scalar_like"],
+            is_literal=tree.metadata["is_literal"],
+        )
+
+        return cls._from_tree(tree.root, metadata)
+
+    def pretty_repr(self) -> str:
+        """Return a pretty string representation of the expression tree."""
+        if self._tree is None:
+            return "Expression (no tree representation available)"
+        return self._tree.pretty_repr()
+
+    def _with_elementwise(
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
+    ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "elementwise_op", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
+        )
+        return self.__class__(
+            to_compliant_expr, self._metadata.with_elementwise_op(), tree=new_tree
+        )
+
+    def _with_aggregation(
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
+    ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "aggregation", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
+        )
+        return self.__class__(
+            to_compliant_expr, self._metadata.with_aggregation(), tree=new_tree
+        )
 
     def _with_orderable_aggregation(
-        self, to_compliant_expr: Callable[[Any], Any]
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
     ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "orderable_aggregation", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
+        )
         return self.__class__(
-            to_compliant_expr, self._metadata.with_orderable_aggregation()
+            to_compliant_expr, self._metadata.with_orderable_aggregation(), tree=new_tree
         )
 
-    def _with_orderable_window(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_orderable_window())
-
-    def _with_window(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_window())
-
-    def _with_filtration(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_filtration())
-
-    def _with_orderable_filtration(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(
-            to_compliant_expr, self._metadata.with_orderable_filtration()
+    def _with_orderable_window(
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
+    ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "orderable_window", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
         )
+        return self.__class__(
+            to_compliant_expr, self._metadata.with_orderable_window(), tree=new_tree
+        )
+
+    def _with_window(
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
+    ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "window", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
+        )
+        return self.__class__(
+            to_compliant_expr, self._metadata.with_window(), tree=new_tree
+        )
+
+    def _with_filtration(
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
+    ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "filtration", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
+        )
+        return self.__class__(
+            to_compliant_expr, self._metadata.with_filtration(), tree=new_tree
+        )
+
+    def _with_orderable_filtration(
+        self,
+        to_compliant_expr: Callable[[Any], Any],
+        *,
+        tree_node: ExprNode | None = None,
+    ) -> Self:
+        new_tree = (
+            MethodCallNode(self._tree, "orderable_filtration", (), {})
+            if self._tree is not None and tree_node is None
+            else tree_node
+        )
+        return self.__class__(
+            to_compliant_expr, self._metadata.with_orderable_filtration(), tree=new_tree
+        )
+
+    def _create_method_tree_node(
+        self, method_name: str, *args: Any, **kwargs: Any
+    ) -> ExprNode | None:
+        """Helper method to create tree nodes for direct method calls."""
+        if self._tree is not None:
+            return MethodCallNode(self._tree, method_name, args, kwargs)
+        return None
+
+    def _create_namespace_tree_node(
+        self, namespace: str, method_name: str, *args: Any, **kwargs: Any
+    ) -> ExprNode | None:
+        """Helper method to create tree nodes for namespace method calls."""
+        if self._tree is not None:
+            return NamespaceMethodCallNode(
+                self._tree, namespace, method_name, args, kwargs
+            )
+        return None
 
     def __repr__(self) -> str:
-        return f"Narwhals Expr\nmetadata: {self._metadata}\n"
+        if self._tree is not None:
+            return self.pretty_repr()
+        return "Narwhals Expr"
 
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
@@ -118,8 +298,11 @@ class Expr:
             └──────────────────┘
         """
         # Don't use `_with_elementwise` so that `_metadata.last_node` is preserved.
+        new_tree = AliasNode(self._tree, name) if self._tree is not None else None
         return self.__class__(
-            lambda plx: self._to_compliant_expr(plx).alias(name), self._metadata
+            lambda plx: self._to_compliant_expr(plx).alias(name),
+            self._metadata,
+            tree=new_tree,
         )
 
     def pipe(
@@ -187,11 +370,48 @@ class Expr:
         *,
         str_as_lit: bool = True,
     ) -> Self:
+        # Create tree node for binary operation
+        new_tree = None
+        if self._tree is not None:
+            # Determine the operation name
+            op_name = getattr(function, "__name__", str(function))
+            if hasattr(function, "__name__"):
+                # Map operator functions to their dunder method names
+                op_map = {
+                    "add": "__add__",
+                    "sub": "__sub__",
+                    "mul": "__mul__",
+                    "truediv": "__truediv__",
+                    "floordiv": "__floordiv__",
+                    "mod": "__mod__",
+                    "pow": "__pow__",
+                    "eq": "__eq__",
+                    "ne": "__ne__",
+                    "lt": "__lt__",
+                    "le": "__le__",
+                    "gt": "__gt__",
+                    "ge": "__ge__",
+                    "and_": "__and__",
+                    "or_": "__or__",
+                    "xor": "__xor__",
+                }
+                op_name = op_map.get(op_name, op_name)
+
+            # Create right operand node
+            if isinstance(other, Expr) and other._tree is not None:
+                right_node = other._tree
+            else:
+                # Create literal node for non-expression values
+                right_node = LiteralNode(other)
+
+            new_tree = BinaryOpNode(op_name, self._tree, right_node)
+
         return self.__class__(
             lambda plx: apply_n_ary_operation(
                 plx, function, self, other, str_as_lit=str_as_lit
             ),
             ExprMetadata.from_binary_op(self, other),
+            tree=new_tree,
         )
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]
@@ -395,6 +615,18 @@ class Expr:
             │ 2.428571 │
             └──────────┘
         """
+        # Create tree node for ewm_mean method call
+        tree_node = self._create_method_tree_node(
+            "ewm_mean",
+            com=com,
+            span=span,
+            half_life=half_life,
+            alpha=alpha,
+            adjust=adjust,
+            min_samples=min_samples,
+            ignore_nulls=ignore_nulls,
+        )
+
         return self._with_orderable_window(
             lambda plx: self._to_compliant_expr(plx).ewm_mean(
                 com=com,
@@ -404,7 +636,8 @@ class Expr:
                 adjust=adjust,
                 min_samples=min_samples,
                 ignore_nulls=ignore_nulls,
-            )
+            ),
+            tree_node=tree_node,
         )
 
     def mean(self) -> Self:
@@ -423,7 +656,10 @@ class Expr:
             |   0  0.0  4.0    |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).mean())
+        tree_node = self._create_method_tree_node("mean")
+        return self._with_aggregation(
+            lambda plx: self._to_compliant_expr(plx).mean(), tree_node=tree_node
+        )
 
     def median(self) -> Self:
         """Get median value.
@@ -444,7 +680,10 @@ class Expr:
             |   0  3.0  4.0    |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).median())
+        tree_node = self._create_method_tree_node("median")
+        return self._with_aggregation(
+            lambda plx: self._to_compliant_expr(plx).median(), tree_node=tree_node
+        )
 
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
@@ -466,8 +705,9 @@ class Expr:
             |0  17.79513  1.265789|
             └─────────────────────┘
         """
+        tree_node = self._create_method_tree_node("std", ddof=ddof)
         return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof)
+            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof), tree_node=tree_node
         )
 
     def var(self, *, ddof: int = 1) -> Self:
@@ -598,7 +838,10 @@ class Expr:
             |└────────┴────────┘|
             └───────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).sum())
+        tree_node = self._create_method_tree_node("sum")
+        return self._with_aggregation(
+            lambda plx: self._to_compliant_expr(plx).sum(), tree_node=tree_node
+        )
 
     def min(self) -> Self:
         """Returns the minimum value(s) from a column(s).

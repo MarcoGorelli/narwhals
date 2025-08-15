@@ -34,6 +34,16 @@ class ExprCatNamespace(Generic[ExprT]):
             │ mango  │
             └────────┘
         """
+        # Create tree node for cat method call
+        tree_node = None
+        if self._expr._tree is not None:
+            from narwhals._expression_tree import NamespaceMethodCallNode
+
+            tree_node = NamespaceMethodCallNode(
+                self._expr._tree, "cat", "get_categories", (), {}
+            )
+
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).cat.get_categories()
+            lambda plx: self._expr._to_compliant_expr(plx).cat.get_categories(),
+            tree_node=tree_node,
         )

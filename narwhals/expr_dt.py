@@ -569,8 +569,22 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |└─────────────────────┘|
             └───────────────────────┘
         """
+        # Create tree node for namespace method call
+        from narwhals._expression_tree import NamespaceMethodCallNode
+
+        new_tree = None
+        if hasattr(self._expr, "_tree") and self._expr._tree is not None:
+            new_tree = NamespaceMethodCallNode(
+                expr=self._expr._tree,
+                namespace="dt",
+                method="to_string",
+                args=(format,),
+                kwargs={},
+            )
+
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.to_string(format)
+            lambda plx: self._expr._to_compliant_expr(plx).dt.to_string(format),
+            tree_node=new_tree,
         )
 
     def replace_time_zone(self, time_zone: str | None) -> ExprT:

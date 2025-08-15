@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -11,6 +11,14 @@ ExprT = TypeVar("ExprT", bound="Expr")
 class ExprNameNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
+
+    def _create_namespace_tree_node(
+        self, method_name: str, *args: Any, **kwargs: Any
+    ) -> Any:
+        """Helper to create namespace tree nodes."""
+        return self._expr._create_namespace_tree_node(
+            "name", method_name, *args, **kwargs
+        )
 
     def keep(self) -> ExprT:
         r"""Keep the original root name of the expression.
@@ -90,8 +98,10 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.suffix("_with_suffix")).columns
             ['foo_with_suffix', 'BAR_with_suffix']
         """
+        tree_node = self._create_namespace_tree_node("suffix", suffix)
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).name.suffix(suffix)
+            lambda plx: self._expr._to_compliant_expr(plx).name.suffix(suffix),
+            tree_node=tree_node,
         )
 
     def to_lowercase(self) -> ExprT:

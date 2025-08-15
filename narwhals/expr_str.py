@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -11,6 +11,12 @@ ExprT = TypeVar("ExprT", bound="Expr")
 class ExprStringNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
+
+    def _create_namespace_tree_node(
+        self, method_name: str, *args: Any, **kwargs: Any
+    ) -> Any:
+        """Helper to create namespace tree nodes."""
+        return self._expr._create_namespace_tree_node("str", method_name, *args, **kwargs)
 
     def len_chars(self) -> ExprT:
         r"""Return the length of each string as the number of characters.
@@ -36,8 +42,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |└───────┴───────────┘|
             └─────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("len_chars")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.len_chars()
+            lambda plx: self._expr._to_compliant_expr(plx).str.len_chars(),
+            tree_node=tree_node,
         )
 
     def replace(
@@ -65,10 +73,14 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123   abc123|
             └──────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node(
+            "replace", pattern, value, literal=literal, n=n
+        )
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.replace(
                 pattern, value, literal=literal, n=n
-            )
+            ),
+            tree_node=tree_node,
         )
 
     def replace_all(self, pattern: str, value: str, *, literal: bool = False) -> ExprT:
@@ -93,10 +105,14 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123      123|
             └──────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node(
+            "replace_all", pattern, value, literal=literal
+        )
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.replace_all(
                 pattern, value, literal=literal
-            )
+            ),
+            tree_node=tree_node,
         )
 
     def strip_chars(self, characters: str | None = None) -> ExprT:
@@ -143,8 +159,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("starts_with", prefix)
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.starts_with(prefix)
+            lambda plx: self._expr._to_compliant_expr(plx).str.starts_with(prefix),
+            tree_node=tree_node,
         )
 
     def ends_with(self, suffix: str) -> ExprT:
@@ -198,10 +216,12 @@ class ExprStringNamespace(Generic[ExprT]):
             default_match: [[true,false,true]]
             case_insensitive_match: [[true,false,true]]
         """
+        tree_node = self._create_namespace_tree_node("contains", pattern, literal=literal)
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.contains(
                 pattern, literal=literal
-            )
+            ),
+            tree_node=tree_node,
         )
 
     def slice(self, offset: int, length: int | None = None) -> ExprT:
@@ -410,8 +430,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |1   None      None|
             └──────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("to_uppercase")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_uppercase()
+            lambda plx: self._expr._to_compliant_expr(plx).str.to_uppercase(),
+            tree_node=tree_node,
         )
 
     def to_lowercase(self) -> ExprT:
@@ -431,8 +453,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |1   None      None|
             └──────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("to_lowercase")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_lowercase()
+            lambda plx: self._expr._to_compliant_expr(plx).str.to_lowercase(),
+            tree_node=tree_node,
         )
 
     def zfill(self, width: int) -> ExprT:
