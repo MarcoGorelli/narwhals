@@ -79,17 +79,110 @@ class Expr:
     def _from_tree(cls, tree: ExprNode, metadata: ExprMetadata) -> Self:
         """Create an Expr from a tree representation."""
 
-        # Convert tree back to callable (this would be a complex interpreter)
-        # For now, we'll create a placeholder callable
         def to_compliant_expr(
             plx: CompliantNamespace[Any, Any],
         ) -> CompliantExpr[Any, Any]:
-            # This would need to interpret the tree and call the appropriate methods
-            # This is a complex operation that would require a full interpreter
-            raise NotImplementedError("Tree-to-callable conversion not yet implemented")
+            # Interpret the tree and call the appropriate methods
+            return cls._interpret_tree_node(tree, plx)
 
         expr = cls(to_compliant_expr, metadata, tree=tree)
         return expr
+
+    @classmethod
+    def _interpret_tree_node(
+        cls, node: ExprNode, plx: CompliantNamespace[Any, Any]
+    ) -> CompliantExpr[Any, Any]:
+        """Interpret a tree node and return the corresponding CompliantExpr."""
+        from narwhals._expression_tree import (
+            AliasNode,
+            BinaryOpNode,
+            ColumnNode,
+            LiteralNode,
+            MethodCallNode,
+            NamespaceMethodCallNode,
+            UnaryOpNode,
+        )
+
+        if isinstance(node, ColumnNode):
+            # Handle column reference: nw.col('a') or nw.col('a', 'b')
+            if len(node.names) == 1:
+                return plx.col(node.names[0])
+            else:
+                return plx.col(*node.names)
+
+        elif isinstance(node, LiteralNode):
+            # Handle literal values: nw.lit(5)
+            return plx.lit(node.value, dtype=None)
+
+        elif isinstance(node, BinaryOpNode):
+            # Handle binary operations: a + b, a == b, etc.
+            left_expr = cls._interpret_tree_node(node.left, plx)
+            right_expr = cls._interpret_tree_node(node.right, plx)
+            
+            # Map operation name to actual operation
+            op_map = {
+                "__add__": lambda l, r: l + r,
+                "__sub__": lambda l, r: l - r,
+                "__mul__": lambda l, r: l * r,
+                "__truediv__": lambda l, r: l / r,
+                "__floordiv__": lambda l, r: l // r,
+                "__mod__": lambda l, r: l % r,
+                "__pow__": lambda l, r: l ** r,
+                "__eq__": lambda l, r: l == r,
+                "__ne__": lambda l, r: l != r,
+                "__lt__": lambda l, r: l < r,
+                "__le__": lambda l, r: l <= r,
+                "__gt__": lambda l, r: l > r,
+                "__ge__": lambda l, r: l >= r,
+                "__and__": lambda l, r: l & r,
+                "__or__": lambda l, r: l | r,
+                "__xor__": lambda l, r: l ^ r,
+            }
+            
+            if node.op in op_map:
+                return op_map[node.op](left_expr, right_expr)
+            else:
+                raise ValueError(f"Unknown binary operation: {node.op}")
+
+        elif isinstance(node, UnaryOpNode):
+            # Handle unary operations: -a, ~a
+            operand_expr = cls._interpret_tree_node(node.operand, plx)
+            
+            op_map = {
+                "__neg__": lambda x: -x,
+                "__invert__": lambda x: ~x,
+                "__pos__": lambda x: +x,
+            }
+            
+            if node.op in op_map:
+                return op_map[node.op](operand_expr)
+            else:
+                raise ValueError(f"Unknown unary operation: {node.op}")
+
+        elif isinstance(node, MethodCallNode):
+            # Handle method calls: expr.sum(), expr.mean(), etc.
+            base_expr = cls._interpret_tree_node(node.expr, plx)
+            
+            # Get the method from the base expression and call it
+            method = getattr(base_expr, node.method)
+            return method(*node.args, **node.kwargs)
+
+        elif isinstance(node, NamespaceMethodCallNode):
+            # Handle namespace method calls: expr.str.upper(), expr.dt.year(), etc.
+            base_expr = cls._interpret_tree_node(node.expr, plx)
+            
+            # Get the namespace and then the method
+            namespace = getattr(base_expr, node.namespace)
+            method = getattr(namespace, node.method)
+            return method(*node.args, **node.kwargs)
+
+        elif isinstance(node, AliasNode):
+            # Handle alias: expr.alias('new_name')
+            base_expr = cls._interpret_tree_node(node.expr, plx)
+            return base_expr.alias(node.name)
+
+        else:
+            raise ValueError(f"Unknown node type: {type(node)}")
 
     def to_tree(self) -> ExpressionTree:
         """Convert expression to serializable tree representation."""

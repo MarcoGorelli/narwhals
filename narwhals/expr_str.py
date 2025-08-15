@@ -73,9 +73,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123   abc123|
             └──────────────────────┘
         """
-        tree_node = self._create_namespace_tree_node(
-            "replace", pattern, value, literal=literal, n=n
-        )
+        tree_node = self._create_namespace_tree_node("replace", pattern, value, literal=literal, n=n)
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.replace(
                 pattern, value, literal=literal, n=n
@@ -105,9 +103,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123      123|
             └──────────────────────┘
         """
-        tree_node = self._create_namespace_tree_node(
-            "replace_all", pattern, value, literal=literal
-        )
+        tree_node = self._create_namespace_tree_node("replace_all", pattern, value, literal=literal)
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.replace_all(
                 pattern, value, literal=literal
@@ -134,8 +130,10 @@ class ExprStringNamespace(Generic[ExprT]):
             ... )
             {'fruits': ['apple', '\nmango'], 'stripped': ['apple', 'mango']}
         """
+        tree_node = self._create_namespace_tree_node("strip_chars", characters)
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.strip_chars(characters)
+            lambda plx: self._expr._to_compliant_expr(plx).str.strip_chars(characters),
+            tree_node=tree_node,
         )
 
     def starts_with(self, prefix: str) -> ExprT:
@@ -159,7 +157,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
-        tree_node = self._create_namespace_tree_node("starts_with", prefix)
+        tree_node = self._create_namespace_tree_node("starts_with")
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.starts_with(prefix),
             tree_node=tree_node,
@@ -186,8 +184,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("ends_with")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.ends_with(suffix)
+            lambda plx: self._expr._to_compliant_expr(plx).str.ends_with(suffix),
+            tree_node=tree_node,
         )
 
     def contains(self, pattern: str, *, literal: bool = False) -> ExprT:
@@ -216,7 +216,7 @@ class ExprStringNamespace(Generic[ExprT]):
             default_match: [[true,false,true]]
             case_insensitive_match: [[true,false,true]]
         """
-        tree_node = self._create_namespace_tree_node("contains", pattern, literal=literal)
+        tree_node = self._create_namespace_tree_node("contains")
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.contains(
                 pattern, literal=literal
@@ -247,10 +247,12 @@ class ExprStringNamespace(Generic[ExprT]):
             |2  papaya       ya|
             └──────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("slice")
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.slice(
                 offset=offset, length=length
-            )
+            ),
+            tree_node=tree_node,
         )
 
     def split(self, by: str) -> ExprT:
@@ -279,8 +281,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |└─────────┴────────────────┘|
             └────────────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("split")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.split(by=by)
+            lambda plx: self._expr._to_compliant_expr(plx).str.split(by=by),
+            tree_node=tree_node,
         )
 
     def head(self, n: int = 5) -> ExprT:
@@ -305,8 +309,10 @@ class ExprStringNamespace(Generic[ExprT]):
             lyrics: [["taata","taatatata","zukkyun"]]
             lyrics_head: [["taata","taata","zukky"]]
         """
+        tree_node = self._create_namespace_tree_node("head")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.slice(0, n)
+            lambda plx: self._expr._to_compliant_expr(plx).str.slice(0, n),
+            tree_node=tree_node,
         )
 
     def tail(self, n: int = 5) -> ExprT:
@@ -331,10 +337,12 @@ class ExprStringNamespace(Generic[ExprT]):
             lyrics: [["taata","taatatata","zukkyun"]]
             lyrics_tail: [["taata","atata","kkyun"]]
         """
+        tree_node = self._create_namespace_tree_node("tail")
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.slice(
                 offset=-n, length=None
-            )
+            ),
+            tree_node=tree_node,
         )
 
     def to_datetime(self, format: str | None = None) -> ExprT:
@@ -375,8 +383,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |└─────────────────────┘|
             └───────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("to_datetime", format=format)
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_datetime(format=format)
+            lambda plx: self._expr._to_compliant_expr(plx).str.to_datetime(format=format),
+            tree_node=tree_node,
         )
 
     def to_date(self, format: str | None = None) -> ExprT:
@@ -404,8 +414,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |a: [[2020-01-01,2020-01-02]]|
             └────────────────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("to_date")
         return self._expr._with_elementwise(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_date(format=format)
+            lambda plx: self._expr._to_compliant_expr(plx).str.to_date(format=format),
+            tree_node=tree_node,
         )
 
     def to_uppercase(self) -> ExprT:
@@ -483,6 +495,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |3   None      None|
             └──────────────────┘
         """
+        tree_node = self._create_namespace_tree_node("zfill")
         return self._expr._with_elementwise(
             lambda plx: self._expr._to_compliant_expr(plx).str.zfill(width)
         )
