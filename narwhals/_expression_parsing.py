@@ -243,13 +243,15 @@ class ExprMetadata:
         "last_node",
         "n_orderable_ops",
         "preserves_length",
+        "func_name",
+        "args",
+        "kwargs",
     )
 
     def __init__(
         self,
         expansion_kind: ExpansionKind,
         last_node: ExprKind,
-        *,
         has_windows: bool = False,
         n_orderable_ops: int = 0,
         preserves_length: bool = True,
@@ -269,6 +271,11 @@ class ExprMetadata:
         self.preserves_length: bool = preserves_length
         self.is_scalar_like: bool = is_scalar_like
         self.is_literal: bool = is_literal
+
+        # Can only be set by decorator
+        self.func_name: str | None = None
+        self.args: tuple[Any, ...] | None = None
+        self.kwargs: dict[str, Any] | None = None
 
     def __init_subclass__(cls, /, *args: Any, **kwds: Any) -> Never:  # pragma: no cover
         msg = f"Cannot subclass {cls.__name__!r}"

@@ -47,6 +47,28 @@ if TYPE_CHECKING:
         [CompliantNamespace[Any, Any]], CompliantExpr[Any, Any]
     ]
 
+from functools import wraps
+
+def with_tree_node():
+    """Decorator that automatically creates tree nodes for expression methods."""
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            # Extract the method name
+            name = func.__name__
+
+            result = func(self, *args, **kwargs)
+            md = result._metadata
+            md.func_name = func.__name__
+            md.args = args
+            md.kwargs = kwargs
+            return result
+
+        return wrapper
+
+    return decorator
+
 
 class Expr:
     def __init__(self, to_compliant_expr: _ToCompliant, metadata: ExprMetadata) -> None:
@@ -87,7 +109,18 @@ class Expr:
         )
 
     def __repr__(self) -> str:
-        return f"Narwhals Expr\nmetadata: {self._metadata}\n"
+        md = self._metadata
+        assert md.args is not None
+        assert md.kwargs is not None
+        args_repr = ", ".join(md.args)
+        kwargs_repr = ", ".join(f'{k}={v}' for k, v in md.kwargs.items())
+        if args_repr and kwargs_repr:
+            repr = ', '.join([args_repr, kwargs_repr])
+        elif args_repr:
+            repr = args_repr
+        elif kwargs_repr:
+            repr = kwargs_repr
+        return f'{md.func_name}({repr})'
 
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
@@ -106,7 +139,7 @@ class Expr:
         Examples:
             >>> import pandas as pd
             >>> import narwhals as nw
-            >>> df_native = pd.DataFrame({"a": [1, 2], "b": [4, 5]})
+            >>> df_native = pd.DataFrame({"a": [], "b": [4, 5]})
             >>> df = nw.from_native(df_native)
             >>> df.select((nw.col("b") + 10).alias("c"))
             ┌──────────────────┐
@@ -446,6 +479,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).median())
 
+    @with_tree_node()
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
 
