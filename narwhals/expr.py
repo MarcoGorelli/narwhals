@@ -610,6 +610,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).std(ddof=ddof)
         )
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def var(self, *, ddof: int = 1) -> Self:
         """Get variance.
 
@@ -677,6 +678,7 @@ class Expr:
             )
         )
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def skew(self) -> Self:
         """Calculate the sample skewness of a column.
 
@@ -695,6 +697,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).skew())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def kurtosis(self) -> Self:
         """Compute the kurtosis (Fisher's definition) without bias correction.
 
@@ -797,6 +800,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).count())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def n_unique(self) -> Self:
         """Returns count of unique values.
 
@@ -1462,6 +1466,7 @@ class Expr:
         """
         return self._with_window(lambda plx: self._to_compliant_expr(plx).is_unique())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def null_count(self) -> Self:
         r"""Count null values.
 
@@ -1547,6 +1552,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).is_last_distinct()
         )
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def quantile(
         self, quantile: float, interpolation: RollingInterpolationMethod
     ) -> Self:
@@ -1616,6 +1622,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).round(decimals)
         )
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def len(self) -> Self:
         r"""Return the number of elements in the column.
 
