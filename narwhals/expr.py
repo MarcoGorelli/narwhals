@@ -89,6 +89,16 @@ class Expr:
         self._to_compliant_expr: _ToCompliant = func
         self._metadata = metadata
 
+    @property
+    def _depth(self) -> int:
+        assert self._metadata is not None  # noqa: S101
+        return len(self._metadata.nodes)
+
+    @property
+    def _leaf_name(self) -> str:
+        assert self._metadata is not None  # noqa: S101
+        return self._metadata.nodes[-1].name
+
     def _with_elementwise(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
         return self.__class__(to_compliant_expr, self._metadata.with_elementwise_op())
 

@@ -103,20 +103,16 @@ class DepthTrackingNamespace(
     Protocol[CompliantFrameT, DepthTrackingExprT],
 ):
     def all(self) -> DepthTrackingExprT:
-        return self._expr.from_column_names(
-            get_column_names, function_name="all", context=self
-        )
+        return self._expr.from_column_names(get_column_names, context=self)
 
     def col(self, *column_names: str) -> DepthTrackingExprT:
         return self._expr.from_column_names(
-            passthrough_column_names(column_names), function_name="col", context=self
+            passthrough_column_names(column_names), context=self
         )
 
     def exclude(self, excluded_names: Container[str]) -> DepthTrackingExprT:
         return self._expr.from_column_names(
-            partial(exclude_column_names, names=excluded_names),
-            function_name="exclude",
-            context=self,
+            partial(exclude_column_names, names=excluded_names), context=self
         )
 
 
