@@ -52,7 +52,9 @@ if TYPE_CHECKING:
 from functools import wraps
 
 
-def with_tree_node() -> Callable[
+def with_tree_node(
+    kind: ExprKind,
+) -> Callable[
     [Callable[Concatenate[Expr, PS], Expr]], Callable[Concatenate[Expr, PS], Expr]
 ]:
     """Decorator that automatically creates tree nodes for expression methods."""
@@ -67,7 +69,7 @@ def with_tree_node() -> Callable[
 
             result = func(self, *args, **kwargs)
             md = result._metadata
-            node = ExprNode(ExprKind.AGGREGATION, name, *args, **kwargs)
+            node = ExprNode(kind, name, *args, **kwargs)
             md.nodes = [*self._metadata.nodes, node]
             return result
 
@@ -336,43 +338,51 @@ class Expr:
     def __ror__(self, other: Any) -> Self:
         return (self | other).alias("literal")  # type: ignore[no-any-return]
 
-    @with_tree_node()
+    @with_tree_node(ExprKind.NARY)
     def __add__(self, other: Any) -> Self:
         return self._with_binary(op.add, other)
 
     def __radd__(self, other: Any) -> Self:
         return (self + other).alias("literal")  # type: ignore[no-any-return]
 
+    @with_tree_node(ExprKind.NARY)
     def __sub__(self, other: Any) -> Self:
         return self._with_binary(op.sub, other)
 
     def __rsub__(self, other: Any) -> Self:
         return self._with_binary(lambda x, y: x.__rsub__(y), other)
 
+    @with_tree_node(ExprKind.NARY)
     def __truediv__(self, other: Any) -> Self:
         return self._with_binary(op.truediv, other)
 
     def __rtruediv__(self, other: Any) -> Self:
         return self._with_binary(lambda x, y: x.__rtruediv__(y), other)
 
+    @with_tree_node(ExprKind.NARY)
     def __mul__(self, other: Any) -> Self:
         return self._with_binary(op.mul, other)
 
     def __rmul__(self, other: Any) -> Self:
         return (self * other).alias("literal")  # type: ignore[no-any-return]
 
+    @with_tree_node(ExprKind.NARY)
     def __le__(self, other: Any) -> Self:
         return self._with_binary(op.le, other)
 
+    @with_tree_node(ExprKind.NARY)
     def __lt__(self, other: Any) -> Self:
         return self._with_binary(op.lt, other)
 
+    @with_tree_node(ExprKind.NARY)
     def __gt__(self, other: Any) -> Self:
         return self._with_binary(op.gt, other)
 
+    @with_tree_node(ExprKind.NARY)
     def __ge__(self, other: Any) -> Self:
         return self._with_binary(op.ge, other)
 
+    @with_tree_node(ExprKind.NARY)
     def __pow__(self, other: Any) -> Self:
         return self._with_binary(op.pow, other)
 
@@ -397,6 +407,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).__invert__()
         )
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def any(self) -> Self:
         """Return whether any of the values in the column are `True`.
 
@@ -417,6 +428,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).any())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def all(self) -> Self:
         """Return whether all values in the column are `True`.
 
@@ -532,6 +544,7 @@ class Expr:
             )
         )
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def mean(self) -> Self:
         """Get mean value.
 
@@ -550,6 +563,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).mean())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def median(self) -> Self:
         """Get median value.
 
@@ -571,7 +585,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).median())
 
-    @with_tree_node()
+    @with_tree_node(ExprKind.AGGREGATION)
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
 
@@ -702,6 +716,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).kurtosis())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def sum(self) -> Expr:
         """Return the sum value.
 
@@ -726,6 +741,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).sum())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def min(self) -> Self:
         """Returns the minimum value(s) from a column(s).
 
@@ -744,6 +760,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).min())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def max(self) -> Self:
         """Returns the maximum value(s) from a column(s).
 
@@ -816,7 +833,7 @@ class Expr:
         """
         return self._with_filtration(lambda plx: self._to_compliant_expr(plx).unique())
 
-    @with_tree_node()
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def abs(self) -> Self:
         """Return absolute value of each element.
 
@@ -1141,6 +1158,7 @@ class Expr:
             metadata,
         )
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def is_null(self) -> Self:
         """Returns a boolean Series indicating which values are null.
 
