@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Protocol, TypeVar
 
@@ -31,9 +30,6 @@ __all__ = ["CompliantGroupBy", "DepthTrackingGroupBy", "EagerGroupBy"]
 NativeAggregationT_co = TypeVar(
     "NativeAggregationT_co", bound="str | Callable[..., Any]", covariant=True
 )
-
-
-_RE_LEAF_NAME: re.Pattern[str] = re.compile(r"(\w+->)")
 
 
 def _evaluate_aliases(
