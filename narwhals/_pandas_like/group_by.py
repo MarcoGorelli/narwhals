@@ -133,10 +133,6 @@ class AggExpr:
         return len(self.expr._metadata.nodes) == 1
 
     @property
-    def kwargs(self) -> ScalarKwargs:
-        return self.expr._scalar_kwargs
-
-    @property
     def leaf_name(self) -> NarwhalsAggregation | Any:
         if name := self._leaf_name:
             return name

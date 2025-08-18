@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from narwhals._compliant.typing import AliasNames, EvalNames, EvalSeries, ScalarKwargs
+    from narwhals._compliant.typing import AliasNames, EvalNames, EvalSeries
     from narwhals._expression_parsing import ExprMetadata
     from narwhals._pandas_like.dataframe import PandasLikeDataFrame
     from narwhals._pandas_like.namespace import PandasLikeNamespace
@@ -115,7 +115,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         alias_output_names: AliasNames | None,
         implementation: Implementation,
         version: Version,
-        scalar_kwargs: ScalarKwargs | None = None,
     ) -> None:
         self._call = call
         self._evaluate_output_names = evaluate_output_names

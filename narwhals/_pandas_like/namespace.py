@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
     from typing_extensions import TypeAlias
 
-    from narwhals._compliant.typing import ScalarKwargs
     from narwhals._utils import Implementation, Version
     from narwhals.typing import IntoDType, NonNestedLiteral
 
@@ -412,7 +411,4 @@ class PandasWhen(
 class PandasThen(
     CompliantThen[PandasLikeDataFrame, PandasLikeSeries, PandasLikeExpr, PandasWhen],
     PandasLikeExpr,
-):
-    _depth: int = 0
-    _scalar_kwargs: ScalarKwargs = {}  # noqa: RUF012
-    _function_name: str = "whenthen"
+): ...

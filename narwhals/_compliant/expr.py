@@ -165,9 +165,6 @@ class DepthTrackingExpr(
     CompliantExpr[CompliantFrameT, CompliantSeriesOrNativeExprT_co],
     Protocol[CompliantFrameT, CompliantSeriesOrNativeExprT_co],
 ):
-    _depth: int
-    _function_name: str
-
     @classmethod
     def from_column_names(
         cls: type[Self],
@@ -195,9 +192,6 @@ class DepthTrackingExpr(
         """
         assert self._metadata is not None  # noqa: S101
         return len(self._metadata.nodes) <= 2
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"{type(self).__name__}(depth={self._depth}, function_name={self._function_name})"
 
 
 class EagerExpr(
