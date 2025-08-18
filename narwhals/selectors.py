@@ -94,10 +94,12 @@ def by_dtype(*dtypes: DType | type[DType] | Iterable[DType | type[DType]]) -> Se
         c: [[8.2,4.6]]
     """
     flattened = flatten(dtypes)
-    return Selector(
+    result = Selector(
         lambda plx: plx.selectors.by_dtype(flattened),
         ExprMetadata.selector_multi_unnamed(),
     )
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "by_dtype", flattened)]
+    return result
 
 
 def matches(pattern: str) -> Selector:

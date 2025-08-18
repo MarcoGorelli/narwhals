@@ -784,6 +784,7 @@ class Expr:
         """
         return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).max())
 
+    @with_tree_node(ExprKind.AGGREGATION)
     def count(self) -> Self:
         """Returns the number of non-null elements in the column.
 

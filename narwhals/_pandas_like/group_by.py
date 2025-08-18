@@ -124,7 +124,8 @@ class AggExpr:
         return result
 
     def is_len(self) -> bool:
-        return self.leaf_name == "len"
+        assert self.expr._metadata is not None  # noqa: S101
+        return self.expr._metadata.nodes[-1].name == "len"
 
     def is_top_level_function(self) -> bool:
         # e.g. `nw.len()`.
