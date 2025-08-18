@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from functools import wraps
-from typing import TYPE_CHECKING, Callable, Concatenate, Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
-from narwhals._expression_parsing import ExprKind, ExprNode
+from narwhals._expression_parsing import elementwise_namespace_method
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -11,32 +10,6 @@ if TYPE_CHECKING:
     PS = ParamSpec("PS")
 
 ExprT = TypeVar("ExprT", bound="Expr")
-
-
-def with_tree_node(
-    kind: ExprKind,
-) -> Callable[
-    [Callable[Concatenate[Expr, PS], Expr]], Callable[Concatenate[Expr, PS], Expr]
-]:
-    """Decorator that automatically creates tree nodes for expression methods."""
-
-    def decorator(
-        func: Callable[Concatenate[Expr, PS], Expr], /
-    ) -> Callable[Concatenate[Expr, PS], Expr]:
-        @wraps(func)
-        def wrapper(self: Expr, *args: PS.args, **kwargs: PS.kwargs) -> Expr:
-            # Extract the method name
-            name = func.__name__
-
-            result = func(self, *args, **kwargs)
-            md = result._metadata
-            node = ExprNode(kind, name, *args, **kwargs)
-            md.nodes = [*self._expr._metadata.nodes, node]
-            return result
-
-        return wrapper
-
-    return decorator
 
 
 class ExprStringNamespace(Generic[ExprT]):
@@ -419,7 +392,7 @@ class ExprStringNamespace(Generic[ExprT]):
             lambda plx: self._expr._to_compliant_expr(plx).str.to_date(format=format)
         )
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @elementwise_namespace_method
     def to_uppercase(self) -> ExprT:
         r"""Transform string to uppercase variant.
 

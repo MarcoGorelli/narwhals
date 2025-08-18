@@ -5,8 +5,19 @@
 from __future__ import annotations
 
 from enum import Enum, auto
+from functools import wraps
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Concatenate,
+    Literal,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+    cast,
+)
 
 from narwhals._utils import is_compliant_expr
 from narwhals.dependencies import is_narwhals_series, is_numpy_array
@@ -31,6 +42,15 @@ if TYPE_CHECKING:
     from narwhals.typing import IntoExpr, NonNestedLiteral, _1DArray
 
     T = TypeVar("T")
+    PS = ParamSpec("PS")
+    R = TypeVar("R")
+
+    ExprT_co = TypeVar("ExprT_co", bound="Expr", covariant=True)
+
+    class ExprNamespace(Protocol[ExprT_co]):
+        _expr: ExprT_co
+
+    ExprNamespaceT = TypeVar("ExprNamespaceT", bound=ExprNamespace[Any])
 
 
 def is_expr(obj: Any) -> TypeIs[Expr]:
@@ -320,7 +340,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.ORDERABLE_AGGREGATION,
             has_windows=self.has_windows,
             n_orderable_ops=self.n_orderable_ops + 1,
             preserves_length=False,
@@ -625,3 +644,35 @@ def apply_n_ary_operation(
         for compliant_expr, kind in zip(compliant_exprs, kinds)
     )
     return function(*compliant_exprs)
+
+
+def namespace_method_with_node(
+    kind: ExprKind,
+) -> Callable[
+    [Callable[Concatenate[ExprNamespaceT, PS], ExprT_co]],
+    Callable[Concatenate[ExprNamespaceT, PS], ExprT_co],
+]:
+    """Decorator that automatically creates tree nodes for expression methods."""
+
+    def decorator(
+        func: Callable[Concatenate[ExprNamespaceT, PS], ExprT_co], /
+    ) -> Callable[Concatenate[ExprNamespaceT, PS], ExprT_co]:
+        @wraps(func)
+        def wrapper(
+            self: ExprNamespaceT, *args: PS.args, **kwargs: PS.kwargs
+        ) -> ExprT_co:
+            # Extract the method name
+            name = func.__name__
+
+            result = func(self, *args, **kwargs)
+            md = result._metadata
+            node = ExprNode(kind, name, *args, **kwargs)
+            md.nodes = [*self._expr._metadata.nodes, node]
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+elementwise_namespace_method = namespace_method_with_node(ExprKind.ELEMENTWISE)
