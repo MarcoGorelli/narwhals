@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
+    ExprNode,
     apply_n_ary_operation,
     combine_metadata,
     extract_compliant,
@@ -928,12 +929,14 @@ def col(*names: str | Iterable[str]) -> Expr:
     def func(plx: Any) -> Any:
         return plx.col(*flat_names)
 
-    return Expr(
+    result = Expr(
         func,
         ExprMetadata.selector_single()
         if len(flat_names) == 1
         else ExprMetadata.selector_multi_named(),
     )
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "col", *flat_names)]
+    return result
 
 
 def exclude(*names: str | Iterable[str]) -> Expr:

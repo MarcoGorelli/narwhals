@@ -6,7 +6,9 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
+    ExprKind,
     ExprMetadata,
+    ExprNode,
     apply_n_ary_operation,
     combine_metadata,
     extract_compliant,
@@ -49,20 +51,24 @@ if TYPE_CHECKING:
 
 from functools import wraps
 
-def with_tree_node():
+
+def with_tree_node() -> Callable[
+    [Callable[Concatenate[Expr, PS], Expr]], Callable[Concatenate[Expr, PS], Expr]
+]:
     """Decorator that automatically creates tree nodes for expression methods."""
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(
+        func: Callable[Concatenate[Expr, PS], Expr], /
+    ) -> Callable[Concatenate[Expr, PS], Expr]:
         @wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(self: Expr, *args: PS.args, **kwargs: PS.kwargs) -> Expr:
             # Extract the method name
             name = func.__name__
 
             result = func(self, *args, **kwargs)
             md = result._metadata
-            md.func_name = func.__name__
-            md.args = args
-            md.kwargs = kwargs
+            node = ExprNode(ExprKind.AGGREGATION, name, *args, **kwargs)
+            md.nodes = [*self._metadata.nodes, node]
             return result
 
         return wrapper
@@ -108,19 +114,104 @@ class Expr:
             to_compliant_expr, self._metadata.with_orderable_filtration()
         )
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # noqa: PLR0912
+        """Pretty-print the expression by combining all nodes in the metadata."""
         md = self._metadata
-        assert md.args is not None
-        assert md.kwargs is not None
-        args_repr = ", ".join(md.args)
-        kwargs_repr = ", ".join(f'{k}={v}' for k, v in md.kwargs.items())
-        if args_repr and kwargs_repr:
-            repr = ', '.join([args_repr, kwargs_repr])
-        elif args_repr:
-            repr = args_repr
-        elif kwargs_repr:
-            repr = kwargs_repr
-        return f'{md.func_name}({repr})'
+
+        if not hasattr(md, "nodes") or not md.nodes:
+            return "Expr"
+
+        nodes = md.nodes
+
+        if not nodes:
+            return "Expr"
+
+        # Start with the first node (usually a column reference)
+        first_node = nodes[0]
+
+        # Handle the first node (typically col(...))
+        if hasattr(first_node, "args") and first_node.args:
+            args_str = ", ".join(repr(arg) for arg in first_node.args)
+            result = f"{first_node.name}({args_str})"
+        else:
+            result = first_node.name
+
+        # Chain the remaining operations
+        for node in nodes[1:]:
+            # Check if this is a binary operation
+            if self._is_binary_op(node.name):
+                # Format as infix operation with parentheses
+                if hasattr(node, "args") and node.args:
+                    op_symbol = self._get_op_symbol(node.name)
+                    right_operand = repr(node.args[0])
+                    result = f"({result}{op_symbol}{right_operand})"
+                else:
+                    # Fallback to method call if no args
+                    result = f"{result}.{node.name}()"
+            else:
+                # Regular method call
+                args_parts = []
+
+                # Add positional arguments
+                if hasattr(node, "args") and node.args:
+                    args_parts.extend(repr(arg) for arg in node.args)
+
+                # Add keyword arguments
+                if hasattr(node, "kwargs") and node.kwargs:
+                    args_parts.extend(f"{k}={v!r}" for k, v in node.kwargs.items())
+
+                # Format the method call
+                if args_parts:
+                    args_str = ", ".join(args_parts)
+                    result = f"{result}.{node.name}({args_str})"
+                else:
+                    result = f"{result}.{node.name}()"
+
+        return result
+
+    def _is_binary_op(self, name: str) -> bool:
+        """Check if a method name represents a binary operation."""
+        binary_ops = {
+            "__add__",
+            "__sub__",
+            "__mul__",
+            "__truediv__",
+            "__floordiv__",
+            "__mod__",
+            "__pow__",
+            "__eq__",
+            "__ne__",
+            "__lt__",
+            "__le__",
+            "__gt__",
+            "__ge__",
+            "__and__",
+            "__or__",
+            "__xor__",
+        }
+        return name in binary_ops
+
+    def _get_op_symbol(self, name: str) -> str:
+        """Get the symbol representation for a binary operation."""
+        op_symbols = {
+            "__add__": "+",
+            "__sub__": "-",
+            "__mul__": "*",
+            "__truediv__": "/",
+            "__floordiv__": "//",
+            "__mod__": "%",
+            "__pow__": "**",
+            "__eq__": "==",
+            "__ne__": "!=",
+            "__lt__": "<",
+            "__le__": "<=",
+            "__gt__": ">",
+            "__ge__": ">=",
+            "__and__": "&",
+            "__or__": "|",
+            "__xor__": "^",
+        }
+        return op_symbols.get(name, f".{name}()")
 
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
@@ -245,6 +336,7 @@ class Expr:
     def __ror__(self, other: Any) -> Self:
         return (self | other).alias("literal")  # type: ignore[no-any-return]
 
+    @with_tree_node()
     def __add__(self, other: Any) -> Self:
         return self._with_binary(op.add, other)
 
@@ -724,6 +816,7 @@ class Expr:
         """
         return self._with_filtration(lambda plx: self._to_compliant_expr(plx).unique())
 
+    @with_tree_node()
     def abs(self) -> Self:
         """Return absolute value of each element.
 

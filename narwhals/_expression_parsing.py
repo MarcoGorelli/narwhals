@@ -217,6 +217,16 @@ class ExpansionKind(Enum):
         raise AssertionError(msg)  # pragma: no cover
 
 
+class ExprNode:
+    def __init__(
+        self, kind: ExprKind, name: str, *args: tuple[Any, ...], **kwargs: dict[str, Any]
+    ) -> None:
+        self.kind = kind
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+
 class ExprMetadata:
     """Expression metadata.
 
@@ -242,16 +252,15 @@ class ExprMetadata:
         "is_scalar_like",
         "last_node",
         "n_orderable_ops",
+        "nodes",
         "preserves_length",
-        "func_name",
-        "args",
-        "kwargs",
     )
 
     def __init__(
         self,
         expansion_kind: ExpansionKind,
         last_node: ExprKind,
+        *,
         has_windows: bool = False,
         n_orderable_ops: int = 0,
         preserves_length: bool = True,
@@ -272,10 +281,7 @@ class ExprMetadata:
         self.is_scalar_like: bool = is_scalar_like
         self.is_literal: bool = is_literal
 
-        # Can only be set by decorator
-        self.func_name: str | None = None
-        self.args: tuple[Any, ...] | None = None
-        self.kwargs: dict[str, Any] | None = None
+        self.nodes: list[ExprNode] = []
 
     def __init_subclass__(cls, /, *args: Any, **kwds: Any) -> Never:  # pragma: no cover
         msg = f"Cannot subclass {cls.__name__!r}"
