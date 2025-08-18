@@ -293,7 +293,6 @@ Here's a brief description of each piece of metadata:
     - `ExpansionKind.MULTI_UNNAMED`: Produces multiple outputs whose names depend
       on the input dataframe. For example, `nw.nth(0, 1)` or `nw.selectors.numeric()`.
 
-- `last_node`: Kind of the last operation in the expression. See
   `narwhals._expression_parsing.ExprKind` for the various options.
 - `has_windows`: Whether the expression already contains an `over(...)` statement.
 - `n_orderable_ops`: How many order-dependent operations the expression contains.
@@ -311,6 +310,7 @@ Here's a brief description of each piece of metadata:
 - `is_scalar_like`: Whether the output of the expression is always length-1.
 - `is_literal`: Whether the expression doesn't depend on any column but instead
   only on literal values, like `nw.lit(1)`.
+- `nodes`: List of operations which this expression applies when evaluated.
 
 #### Chaining
 

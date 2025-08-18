@@ -235,7 +235,6 @@ class ExprMetadata:
             of the other rows around it.
         is_literal: Whether it is just a literal wrapped in an expression.
         is_scalar_like: Whether it is a literal or an aggregation.
-        last_node: The ExprKind of the last node.
         n_orderable_ops: The number of order-dependent operations. In the
             lazy case, this number must be `0` by the time the expression
             is evaluated.
@@ -248,7 +247,6 @@ class ExprMetadata:
         "is_elementwise",
         "is_literal",
         "is_scalar_like",
-        "last_node",
         "n_orderable_ops",
         "nodes",
         "preserves_length",
@@ -257,7 +255,6 @@ class ExprMetadata:
     def __init__(
         self,
         expansion_kind: ExpansionKind,
-        last_node: ExprKind,
         *,
         has_windows: bool = False,
         n_orderable_ops: int = 0,
@@ -271,7 +268,6 @@ class ExprMetadata:
         if is_elementwise:
             assert preserves_length  # noqa: S101  # debug assertion
         self.expansion_kind: ExpansionKind = expansion_kind
-        self.last_node: ExprKind = last_node
         self.has_windows: bool = has_windows
         self.n_orderable_ops: int = n_orderable_ops
         self.is_elementwise: bool = is_elementwise
@@ -289,13 +285,13 @@ class ExprMetadata:
         return (
             f"ExprMetadata(\n"
             f"  expansion_kind: {self.expansion_kind},\n"
-            f"  last_node: {self.last_node},\n"
             f"  has_windows: {self.has_windows},\n"
             f"  n_orderable_ops: {self.n_orderable_ops},\n"
             f"  is_elementwise: {self.is_elementwise},\n"
             f"  preserves_length: {self.preserves_length},\n"
             f"  is_scalar_like: {self.is_scalar_like},\n"
             f"  is_literal: {self.is_literal},\n"
+            f"  nodes: {self.nodes},\n"
             ")"
         )
 
@@ -309,7 +305,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.AGGREGATION,
             has_windows=self.has_windows,
             n_orderable_ops=self.n_orderable_ops,
             preserves_length=False,
@@ -337,7 +332,6 @@ class ExprMetadata:
     def with_elementwise_op(self) -> ExprMetadata:
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.ELEMENTWISE,
             has_windows=self.has_windows,
             n_orderable_ops=self.n_orderable_ops,
             preserves_length=self.preserves_length,
@@ -353,7 +347,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.WINDOW,
             has_windows=self.has_windows,
             # The function isn't order-dependent (but, users can still use `order_by` if they wish!),
             # so we don't increment `n_orderable_ops`.
@@ -371,7 +364,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.ORDERABLE_WINDOW,
             has_windows=self.has_windows,
             n_orderable_ops=self.n_orderable_ops + 1,
             preserves_length=self.preserves_length,
@@ -391,7 +383,7 @@ class ExprMetadata:
             )
             raise InvalidOperationError(msg)
         n_orderable_ops = self.n_orderable_ops
-        if not n_orderable_ops and self.last_node is not ExprKind.WINDOW:
+        if not n_orderable_ops and self.nodes[-1].kind is not ExprKind.WINDOW:
             msg = (
                 "Cannot use `order_by` in `over` on expression which isn't orderable.\n"
                 "If your expression is orderable, then make sure that `over(order_by=...)`\n"
@@ -402,11 +394,10 @@ class ExprMetadata:
                 "  + `nw.col('price').diff().over(order_by='date') + 1`\n"
             )
             raise InvalidOperationError(msg)
-        if self.last_node.is_orderable_window:
+        if self.nodes[-1].kind.is_orderable_window:
             n_orderable_ops -= 1
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.OVER,
             has_windows=True,
             n_orderable_ops=n_orderable_ops,
             preserves_length=True,
@@ -427,7 +418,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.OVER,
             has_windows=True,
             n_orderable_ops=self.n_orderable_ops,
             preserves_length=True,
@@ -442,7 +432,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.FILTRATION,
             has_windows=self.has_windows,
             n_orderable_ops=self.n_orderable_ops,
             preserves_length=False,
@@ -457,7 +446,6 @@ class ExprMetadata:
             raise InvalidOperationError(msg)
         return ExprMetadata(
             self.expansion_kind,
-            ExprKind.ORDERABLE_FILTRATION,
             has_windows=self.has_windows,
             n_orderable_ops=self.n_orderable_ops + 1,
             preserves_length=False,
@@ -470,7 +458,6 @@ class ExprMetadata:
     def aggregation() -> ExprMetadata:
         return ExprMetadata(
             ExpansionKind.SINGLE,
-            ExprKind.AGGREGATION,
             is_elementwise=False,
             preserves_length=False,
             is_scalar_like=True,
@@ -480,7 +467,6 @@ class ExprMetadata:
     def literal() -> ExprMetadata:
         return ExprMetadata(
             ExpansionKind.SINGLE,
-            ExprKind.LITERAL,
             is_elementwise=False,
             preserves_length=False,
             is_literal=True,
@@ -490,17 +476,17 @@ class ExprMetadata:
     @staticmethod
     def selector_single() -> ExprMetadata:
         # e.g. `nw.col('a')`, `nw.nth(0)`
-        return ExprMetadata(ExpansionKind.SINGLE, ExprKind.ELEMENTWISE)
+        return ExprMetadata(ExpansionKind.SINGLE)
 
     @staticmethod
     def selector_multi_named() -> ExprMetadata:
         # e.g. `nw.col('a', 'b')`
-        return ExprMetadata(ExpansionKind.MULTI_NAMED, ExprKind.ELEMENTWISE)
+        return ExprMetadata(ExpansionKind.MULTI_NAMED)
 
     @staticmethod
     def selector_multi_unnamed() -> ExprMetadata:
         # e.g. `nw.all()`
-        return ExprMetadata(ExpansionKind.MULTI_UNNAMED, ExprKind.ELEMENTWISE)
+        return ExprMetadata(ExpansionKind.MULTI_UNNAMED)
 
     @classmethod
     def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, /) -> ExprMetadata:
@@ -585,7 +571,6 @@ def combine_metadata(
 
     return ExprMetadata(
         result_expansion_kind,
-        ExprKind.NARY,
         has_windows=result_has_windows,
         n_orderable_ops=result_n_orderable_ops,
         preserves_length=result_preserves_length,
