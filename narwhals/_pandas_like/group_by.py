@@ -128,7 +128,8 @@ class AggExpr:
 
     def is_top_level_function(self) -> bool:
         # e.g. `nw.len()`.
-        return self.expr._depth == 0
+        assert self.expr._metadata is not None  # noqa: S101
+        return len(self.expr._metadata.nodes) == 1
 
     @property
     def kwargs(self) -> ScalarKwargs:
