@@ -279,6 +279,7 @@ class Expr:
         """
         return function(self, *args, **kwargs)
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def cast(self, dtype: IntoDType) -> Self:
         """Redefine an object's data type.
 
@@ -402,6 +403,7 @@ class Expr:
         return self._with_binary(lambda x, y: x.__rmod__(y), other)
 
     # --- unary ---
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def __invert__(self) -> Self:
         return self._with_elementwise(
             lambda plx: self._to_compliant_expr(plx).__invert__()
@@ -979,6 +981,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).shift(n)
         )
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def replace_strict(
         self,
         old: Sequence[Any] | Mapping[Any, Any],
@@ -1086,6 +1089,7 @@ class Expr:
             metadata,
         )
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def is_in(self, other: Any) -> Self:
         """Check if elements of this expression are present in the other iterable.
 
@@ -1195,6 +1199,7 @@ class Expr:
         """
         return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).is_null())
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def is_nan(self) -> Self:
         """Indicate which values are NaN.
 
@@ -1588,6 +1593,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).quantile(quantile, interpolation)
         )
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def round(self, decimals: int = 0) -> Self:
         r"""Round underlying floating point data by `decimals` digits.
 
@@ -1714,6 +1720,7 @@ class Expr:
         """
         return self._with_filtration(lambda plx: self._to_compliant_expr(plx).mode())
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def is_finite(self) -> Self:
         """Returns boolean values indicating which original values are finite.
 
@@ -2163,6 +2170,7 @@ class Expr:
             )
         )
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def log(self, base: float = math.e) -> Self:
         r"""Compute the logarithm to a given base.
 
@@ -2195,6 +2203,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).log(base=base)
         )
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def exp(self) -> Self:
         r"""Compute the exponent.
 
@@ -2218,6 +2227,7 @@ class Expr:
         """
         return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).exp())
 
+    @with_tree_node(ExprKind.ELEMENTWISE)
     def sqrt(self) -> Self:
         r"""Compute the square root.
 

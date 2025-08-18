@@ -1040,7 +1040,9 @@ def all_() -> Expr:
         |   1  4  0.246    |
         └──────────────────┘
     """
-    return Expr(lambda plx: plx.all(), ExprMetadata.selector_multi_unnamed())
+    result = Expr(lambda plx: plx.all(), ExprMetadata.selector_multi_unnamed())
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "all")]
+    return result
 
 
 # Add underscore so it doesn't conflict with builtin `len`
@@ -1073,7 +1075,9 @@ def len_() -> Expr:
     def func(plx: Any) -> Any:
         return plx.len()
 
-    return Expr(func, ExprMetadata.aggregation())
+    result = Expr(func, ExprMetadata.aggregation())
+    result._metadata.nodes = [ExprNode(ExprKind.AGGREGATION, "len")]
+    return result
 
 
 def sum(*columns: str) -> Expr:

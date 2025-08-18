@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, NoReturn
 
-from narwhals._expression_parsing import ExprMetadata, combine_metadata
+from narwhals._expression_parsing import (
+    ExprKind,
+    ExprMetadata,
+    ExprNode,
+    combine_metadata,
+)
 from narwhals._utils import flatten
 from narwhals.expr import Expr
 
@@ -120,9 +125,11 @@ def matches(pattern: str) -> Selector:
         0  123  2.0
         1  456  5.5
     """
-    return Selector(
+    result = Selector(
         lambda plx: plx.selectors.matches(pattern), ExprMetadata.selector_multi_unnamed()
     )
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "matches", pattern)]
+    return result
 
 
 def numeric() -> Selector:
@@ -151,9 +158,11 @@ def numeric() -> Selector:
         │ 4   ┆ 4.6 │
         └─────┴─────┘
     """
-    return Selector(
+    result = Selector(
         lambda plx: plx.selectors.numeric(), ExprMetadata.selector_multi_unnamed()
     )
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "numeric")]
+    return result
 
 
 def boolean() -> Selector:

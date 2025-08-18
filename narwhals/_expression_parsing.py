@@ -218,9 +218,7 @@ class ExpansionKind(Enum):
 
 
 class ExprNode:
-    def __init__(
-        self, kind: ExprKind, name: str, *args: tuple[Any, ...], **kwargs: dict[str, Any]
-    ) -> None:
+    def __init__(self, kind: ExprKind, name: str, *args: Any, **kwargs: Any) -> None:
         self.kind = kind
         self.name = name
         self.args = args
