@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from narwhals._compliant import EagerExpr
 from narwhals._expression_parsing import evaluate_output_names_and_aliases
@@ -43,7 +43,7 @@ WINDOW_FUNCTIONS_TO_PANDAS_EQUIVALENT = {
 
 
 def window_kwargs_to_pandas_equivalent(
-    function_name: str, kwargs: ScalarKwargs
+    function_name: str, kwargs: dict[str, Any]
 ) -> dict[str, PythonLiteral]:
     if function_name == "shift":
         assert "n" in kwargs  # noqa: S101
@@ -122,7 +122,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         self._alias_output_names = alias_output_names
         self._implementation = implementation
         self._version = version
-        self._scalar_kwargs = scalar_kwargs or {}
         self._metadata: ExprMetadata | None = None
 
     def __narwhals_namespace__(self) -> PandasLikeNamespace:
@@ -193,15 +192,13 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
     ) -> Self:
         return self._reuse_series(
             "ewm_mean",
-            scalar_kwargs={
-                "com": com,
-                "span": span,
-                "half_life": half_life,
-                "alpha": alpha,
-                "adjust": adjust,
-                "min_samples": min_samples,
-                "ignore_nulls": ignore_nulls,
-            },
+            com=com,
+            span=span,
+            half_life=half_life,
+            alpha=alpha,
+            adjust=adjust,
+            min_samples=min_samples,
+            ignore_nulls=ignore_nulls,
         )
 
     def over(  # noqa: C901, PLR0915
@@ -241,8 +238,10 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                     f"and {', '.join(PandasLikeGroupBy._REMAP_AGGS)}."
                 )
                 raise NotImplementedError(msg)
+            assert self._metadata is not None  # noqa: S101
+            scalar_kwargs = self._metadata.nodes[-1].kwargs
             pandas_kwargs = window_kwargs_to_pandas_equivalent(
-                function_name, self._scalar_kwargs
+                function_name, scalar_kwargs
             )
 
             def func(df: PandasLikeDataFrame) -> Sequence[PandasLikeSeries]:  # noqa: C901, PLR0912, PLR0914, PLR0915
@@ -252,10 +251,10 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                     df = df.with_columns(~plx.col(*output_names).is_null())
 
                 if function_name.startswith("cum_"):
-                    assert "reverse" in self._scalar_kwargs  # noqa: S101
-                    reverse = self._scalar_kwargs["reverse"]
+                    assert "reverse" in scalar_kwargs  # noqa: S101
+                    reverse = scalar_kwargs["reverse"]
                 else:
-                    assert "reverse" not in self._scalar_kwargs  # noqa: S101
+                    assert "reverse" not in scalar_kwargs  # noqa: S101
                     reverse = False
 
                 if order_by:
@@ -275,9 +274,9 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                     rolling = grouped[list(output_names)].rolling(**pandas_kwargs)
                     assert pandas_function_name is not None  # help mypy  # noqa: S101
                     if pandas_function_name in {"std", "var"}:
-                        assert "ddof" in self._scalar_kwargs  # noqa: S101
+                        assert "ddof" in scalar_kwargs  # noqa: S101
                         res_native = getattr(rolling, pandas_function_name)(
-                            ddof=self._scalar_kwargs["ddof"]
+                            ddof=scalar_kwargs["ddof"]
                         )
                     else:
                         res_native = getattr(rolling, pandas_function_name)()
@@ -294,13 +293,13 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                     assert pandas_function_name is not None  # help mypy  # noqa: S101
                     res_native = getattr(ewm, pandas_function_name)()
                 elif function_name == "fill_null":
-                    assert "strategy" in self._scalar_kwargs  # noqa: S101
-                    assert "limit" in self._scalar_kwargs  # noqa: S101
+                    assert "strategy" in scalar_kwargs  # noqa: S101
+                    assert "limit" in scalar_kwargs  # noqa: S101
                     df_grouped = grouped[list(output_names)]
-                    if self._scalar_kwargs["strategy"] == "forward":
-                        res_native = df_grouped.ffill(limit=self._scalar_kwargs["limit"])
-                    elif self._scalar_kwargs["strategy"] == "backward":
-                        res_native = df_grouped.bfill(limit=self._scalar_kwargs["limit"])
+                    if scalar_kwargs["strategy"] == "forward":
+                        res_native = df_grouped.ffill(limit=scalar_kwargs["limit"])
+                    elif scalar_kwargs["strategy"] == "backward":
+                        res_native = df_grouped.bfill(limit=scalar_kwargs["limit"])
                     else:  # pragma: no cover
                         # This is deprecated in pandas. Indeed, `nw.col('a').fill_null(3).over('b')`
                         # does not seem very useful, and DuckDB doesn't support it either.
@@ -329,8 +328,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
 
         return self.__class__(
             func,
-            depth=self._depth + 1,
-            function_name=self._function_name + "->over",
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             implementation=self._implementation,
