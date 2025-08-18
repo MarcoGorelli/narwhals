@@ -661,7 +661,6 @@ def namespace_method_with_node(
         def wrapper(
             self: ExprNamespaceT, *args: PS.args, **kwargs: PS.kwargs
         ) -> ExprT_co:
-            # Extract the method name
             name = func.__name__
 
             result = func(self, *args, **kwargs)
