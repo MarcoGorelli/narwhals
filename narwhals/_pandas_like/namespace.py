@@ -79,8 +79,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="coalesce",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -100,8 +98,6 @@ class PandasLikeNamespace(
 
         return PandasLikeExpr(
             lambda df: [_lit_pandas_series(df)],
-            depth=0,
-            function_name="lit",
             evaluate_output_names=lambda _df: ["literal"],
             alias_output_names=None,
             implementation=self._implementation,
@@ -115,8 +111,6 @@ class PandasLikeNamespace(
                     [len(df._native_frame)], name="len", index=[0], context=self
                 )
             ],
-            depth=0,
-            function_name="len",
             evaluate_output_names=lambda _df: ["len"],
             alias_output_names=None,
             implementation=self._implementation,
@@ -134,8 +128,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="sum_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -167,8 +159,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="all_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -200,8 +190,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="any_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -219,8 +207,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="mean_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -244,8 +230,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="min_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -269,8 +253,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="max_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -363,8 +345,6 @@ class PandasLikeNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="concat_str",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,

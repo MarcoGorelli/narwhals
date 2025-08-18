@@ -111,8 +111,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         self,
         call: EvalSeries[PandasLikeDataFrame, PandasLikeSeries],
         *,
-        depth: int,
-        function_name: str,
         evaluate_output_names: EvalNames[PandasLikeDataFrame],
         alias_output_names: AliasNames | None,
         implementation: Implementation,
@@ -120,8 +118,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         scalar_kwargs: ScalarKwargs | None = None,
     ) -> None:
         self._call = call
-        self._depth = depth
-        self._function_name = function_name
         self._evaluate_output_names = evaluate_output_names
         self._alias_output_names = alias_output_names
         self._implementation = implementation
@@ -143,7 +139,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         /,
         *,
         context: _LimitedContext,
-        function_name: str = "",
     ) -> Self:
         def func(df: PandasLikeDataFrame) -> list[PandasLikeSeries]:
             try:
@@ -162,8 +157,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
 
         return cls(
             func,
-            depth=0,
-            function_name=function_name,
             evaluate_output_names=evaluate_column_names,
             alias_output_names=None,
             implementation=context._implementation,
@@ -181,8 +174,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
 
         return cls(
             func,
-            depth=0,
-            function_name="nth",
             evaluate_output_names=cls._eval_names_indices(column_indices),
             alias_output_names=None,
             implementation=context._implementation,

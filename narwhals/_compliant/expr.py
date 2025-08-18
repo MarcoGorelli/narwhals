@@ -193,7 +193,8 @@ class DepthTrackingExpr(
         Elementary expressions are the only ones supported properly in
         pandas, PyArrow, and Dask.
         """
-        return self._depth < 2
+        assert self._metadata is not None  # noqa: S101
+        return len(self._metadata.nodes) <= 2
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"{type(self).__name__}(depth={self._depth}, function_name={self._function_name})"
@@ -232,8 +233,6 @@ class EagerExpr(
         cls,
         func: EvalSeries[EagerDataFrameT, EagerSeriesT],
         *,
-        depth: int,
-        function_name: str,
         evaluate_output_names: EvalNames[EagerDataFrameT],
         alias_output_names: AliasNames | None,
         context: _LimitedContext,
@@ -241,8 +240,6 @@ class EagerExpr(
     ) -> Self:
         return cls(
             func,
-            depth=depth,
-            function_name=function_name,
             evaluate_output_names=evaluate_output_names,
             alias_output_names=alias_output_names,
             implementation=context._implementation,
@@ -254,8 +251,6 @@ class EagerExpr(
     def _from_series(cls, series: EagerSeriesT) -> Self:
         return cls(
             lambda _df: [series],
-            depth=0,
-            function_name="series",
             evaluate_output_names=lambda _df: [series.name],
             alias_output_names=None,
             implementation=series._implementation,
@@ -291,8 +286,6 @@ class EagerExpr(
 
         return self.__class__(
             func,
-            depth=self._depth,
-            function_name=self._function_name,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=alias_output_names,
             implementation=self._implementation,
@@ -331,8 +324,6 @@ class EagerExpr(
         )
         return self._from_callable(
             func,
-            depth=self._depth + 1,
-            function_name=f"{self._function_name}->{method_name}",
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             scalar_kwargs=scalar_kwargs,
@@ -415,8 +406,6 @@ class EagerExpr(
 
         return self._from_callable(
             inner,
-            depth=self._depth + 1,
-            function_name=f"{self._function_name}->{series_namespace}.{method_name}",
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             scalar_kwargs=self._scalar_kwargs,
@@ -436,8 +425,6 @@ class EagerExpr(
 
         return type(self)(
             func,
-            depth=self._depth,
-            function_name=self._function_name,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             implementation=self._implementation,
@@ -658,8 +645,6 @@ class EagerExpr(
         # override `output_names` and not increase depth
         return type(self)(
             lambda df: [series.alias(name) for series in self(df)],
-            depth=self._depth,
-            function_name=self._function_name,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=alias_output_names,
             implementation=self._implementation,
@@ -775,8 +760,6 @@ class EagerExpr(
 
         return self._from_callable(
             func,
-            depth=self._depth + 1,
-            function_name=self._function_name + "->map_batches",
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             context=self,

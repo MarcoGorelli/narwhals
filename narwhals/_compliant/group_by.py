@@ -173,7 +173,8 @@ class DepthTrackingGroupBy(
     @classmethod
     def _leaf_name(cls, expr: DepthTrackingExprAny, /) -> NarwhalsAggregation | Any:
         """Return the last function name in the chain defined by `expr`."""
-        return _RE_LEAF_NAME.sub("", expr._function_name)
+        assert expr._metadata is not None  # noqa: S101
+        return expr._metadata.nodes[-1].name
 
 
 class EagerGroupBy(
