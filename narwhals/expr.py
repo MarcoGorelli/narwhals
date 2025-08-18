@@ -116,7 +116,7 @@ class Expr:
             to_compliant_expr, self._metadata.with_orderable_filtration()
         )
 
-    def __repr__(self) -> str:  # noqa: PLR0912
+    def __repr__(self) -> str:  # noqa: PLR0912,C901
         """Pretty-print the expression by combining all nodes in the metadata."""
         md = self._metadata
 
@@ -133,8 +133,21 @@ class Expr:
 
         # Handle the first node (typically col(...))
         if hasattr(first_node, "args") and first_node.args:
-            args_str = ", ".join(repr(arg) for arg in first_node.args)
-            result = f"{first_node.name}({args_str})"
+            args_parts = []
+
+            # Add positional arguments
+            if hasattr(first_node, "args") and first_node.args:
+                args_parts.extend(repr(arg) for arg in first_node.args)
+
+            # Add keyword arguments
+            if hasattr(first_node, "kwargs") and first_node.kwargs:
+                args_parts.extend(f"{k}={v!r}" for k, v in first_node.kwargs.items())
+
+            if args_parts:
+                args_str = ", ".join(args_parts)
+                result = f"{first_node.name}({args_str})"
+            else:
+                result = f"{first_node.name}()"
         else:
             result = first_node.name
 

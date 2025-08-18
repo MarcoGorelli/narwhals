@@ -1571,7 +1571,9 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
         msg = f"Nested datatypes are not supported yet. Got {value}"
         raise NotImplementedError(msg)
 
-    return Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal())
+    result = Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal())
+    result._metadata.nodes = [ExprNode(ExprKind.LITERAL, "lit", value, dtype=dtype)]
+    return result
 
 
 def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:
