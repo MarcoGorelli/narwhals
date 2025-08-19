@@ -63,7 +63,16 @@ class Expr:
             return result
 
         self._to_compliant_expr: _ToCompliant = func
-        self._metadata = metadata
+        self._opt_metadata = metadata
+
+    @property
+    def _metadata(self) -> ExprMetadata:
+        assert self._opt_metadata is not None  # noqa: S101
+        return self._opt_metadata
+
+    @_metadata.setter
+    def _metadata(self, value: ExprMetadata, /) -> None:
+        self._opt_metadata = value
 
     @property
     def _depth(self) -> int:
@@ -74,12 +83,6 @@ class Expr:
     def _leaf_name(self) -> str:
         assert self._metadata is not None  # noqa: S101
         return self._metadata.nodes[-1].name
-
-    def _with_elementwise(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_elementwise_op())
-
-    def _with_aggregation(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_aggregation())
 
     def _with_orderable_aggregation(
         self, to_compliant_expr: Callable[[Any], Any]
