@@ -646,6 +646,41 @@ def apply_n_ary_operation(
     return function(*compliant_exprs)
 
 
+def with_node(
+    kind: ExprKind,
+) -> Callable[
+    [Callable[Concatenate[Expr, PS], Expr]], Callable[Concatenate[Expr, PS], Expr]
+]:
+    """Decorator that automatically creates tree nodes for expression methods."""
+
+    def decorator(
+        func: Callable[Concatenate[Expr, PS], Expr], /
+    ) -> Callable[Concatenate[Expr, PS], Expr]:
+        @wraps(func)
+        def wrapper(self: Expr, *args: PS.args, **kwargs: PS.kwargs) -> Expr:
+            # Extract the method name
+            name = func.__name__
+
+            result = func(self, *args, **kwargs)
+
+            if kind is ExprKind.ELEMENTWISE:
+                md = self._metadata.with_elementwise_op()
+            elif kind is ExprKind.AGGREGATION:
+                md = self._metadata.with_aggregation()
+            else:
+                # Assume for now that metadata has already been set.
+                md = result._metadata
+            result._metadata = md
+            node = ExprNode(kind, name, *args, **kwargs)
+            md.nodes = [*self._metadata.nodes, node]
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
 def namespace_method_with_node(
     kind: ExprKind,
 ) -> Callable[
@@ -673,5 +708,8 @@ def namespace_method_with_node(
 
     return decorator
 
+
+with_elementwise = with_node(ExprKind.ELEMENTWISE)
+with_aggregation = with_node(ExprKind.AGGREGATION)
 
 elementwise_namespace_method = namespace_method_with_node(ExprKind.ELEMENTWISE)

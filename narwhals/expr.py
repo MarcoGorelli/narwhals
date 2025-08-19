@@ -8,10 +8,12 @@ from typing import TYPE_CHECKING, Any, Callable
 from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
-    ExprNode,
     apply_n_ary_operation,
     combine_metadata,
     extract_compliant,
+    with_aggregation,
+    with_elementwise,
+    with_node,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
@@ -49,37 +51,11 @@ if TYPE_CHECKING:
         [CompliantNamespace[Any, Any]], CompliantExpr[Any, Any]
     ]
 
-from functools import wraps
-
-
-def with_tree_node(
-    kind: ExprKind,
-) -> Callable[
-    [Callable[Concatenate[Expr, PS], Expr]], Callable[Concatenate[Expr, PS], Expr]
-]:
-    """Decorator that automatically creates tree nodes for expression methods."""
-
-    def decorator(
-        func: Callable[Concatenate[Expr, PS], Expr], /
-    ) -> Callable[Concatenate[Expr, PS], Expr]:
-        @wraps(func)
-        def wrapper(self: Expr, *args: PS.args, **kwargs: PS.kwargs) -> Expr:
-            # Extract the method name
-            name = func.__name__
-
-            result = func(self, *args, **kwargs)
-            md = result._metadata
-            node = ExprNode(kind, name, *args, **kwargs)
-            md.nodes = [*self._metadata.nodes, node]
-            return result
-
-        return wrapper
-
-    return decorator
-
 
 class Expr:
-    def __init__(self, to_compliant_expr: _ToCompliant, metadata: ExprMetadata) -> None:
+    def __init__(
+        self, to_compliant_expr: _ToCompliant, metadata: ExprMetadata | None = None
+    ) -> None:
         # callable from CompliantNamespace to CompliantExpr
         def func(plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
             result = to_compliant_expr(plx)
@@ -241,9 +217,7 @@ class Expr:
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
         # It's not intended to be used.
-        return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).abs().sum()
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).abs().sum())
 
     # --- convert ---
     def alias(self, name: str) -> Self:
@@ -302,7 +276,7 @@ class Expr:
         """
         return function(self, *args, **kwargs)
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def cast(self, dtype: IntoDType) -> Self:
         """Redefine an object's data type.
 
@@ -325,9 +299,7 @@ class Expr:
             └──────────────────┘
         """
         _validate_dtype(dtype)
-        return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).cast(dtype)
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).cast(dtype))
 
     # --- binary ---
     def _with_binary(
@@ -362,51 +334,51 @@ class Expr:
     def __ror__(self, other: Any) -> Self:
         return (self | other).alias("literal")  # type: ignore[no-any-return]
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __add__(self, other: Any) -> Self:
         return self._with_binary(op.add, other)
 
     def __radd__(self, other: Any) -> Self:
         return (self + other).alias("literal")  # type: ignore[no-any-return]
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __sub__(self, other: Any) -> Self:
         return self._with_binary(op.sub, other)
 
     def __rsub__(self, other: Any) -> Self:
         return self._with_binary(lambda x, y: x.__rsub__(y), other)
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __truediv__(self, other: Any) -> Self:
         return self._with_binary(op.truediv, other)
 
     def __rtruediv__(self, other: Any) -> Self:
         return self._with_binary(lambda x, y: x.__rtruediv__(y), other)
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __mul__(self, other: Any) -> Self:
         return self._with_binary(op.mul, other)
 
     def __rmul__(self, other: Any) -> Self:
         return (self * other).alias("literal")  # type: ignore[no-any-return]
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __le__(self, other: Any) -> Self:
         return self._with_binary(op.le, other)
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __lt__(self, other: Any) -> Self:
         return self._with_binary(op.lt, other)
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __gt__(self, other: Any) -> Self:
         return self._with_binary(op.gt, other)
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __ge__(self, other: Any) -> Self:
         return self._with_binary(op.ge, other)
 
-    @with_tree_node(ExprKind.NARY)
+    @with_node(ExprKind.NARY)
     def __pow__(self, other: Any) -> Self:
         return self._with_binary(op.pow, other)
 
@@ -426,13 +398,11 @@ class Expr:
         return self._with_binary(lambda x, y: x.__rmod__(y), other)
 
     # --- unary ---
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def __invert__(self) -> Self:
-        return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).__invert__()
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).__invert__())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def any(self) -> Self:
         """Return whether any of the values in the column are `True`.
 
@@ -451,9 +421,9 @@ class Expr:
             |  0  True  True   |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).any())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).any())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def all(self) -> Self:
         """Return whether all values in the column are `True`.
 
@@ -472,7 +442,7 @@ class Expr:
             |  0  False  True  |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).all())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).all())
 
     def ewm_mean(
         self,
@@ -569,7 +539,7 @@ class Expr:
             )
         )
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def mean(self) -> Self:
         """Get mean value.
 
@@ -586,9 +556,9 @@ class Expr:
             |   0  0.0  4.0    |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).mean())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).mean())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def median(self) -> Self:
         """Get median value.
 
@@ -608,9 +578,9 @@ class Expr:
             |   0  3.0  4.0    |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).median())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).median())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
 
@@ -631,11 +601,9 @@ class Expr:
             |0  17.79513  1.265789|
             └─────────────────────┘
         """
-        return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof)
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).std(ddof=ddof))
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def var(self, *, ddof: int = 1) -> Self:
         """Get variance.
 
@@ -656,9 +624,7 @@ class Expr:
             |0  316.666667  1.602222|
             └───────────────────────┘
         """
-        return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).var(ddof=ddof)
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).var(ddof=ddof))
 
     def map_batches(
         self,
@@ -703,7 +669,7 @@ class Expr:
             )
         )
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def skew(self) -> Self:
         """Calculate the sample skewness of a column.
 
@@ -720,9 +686,9 @@ class Expr:
             | 0  0.0  1.472427 |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).skew())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).skew())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def kurtosis(self) -> Self:
         """Compute the kurtosis (Fisher's definition) without bias correction.
 
@@ -742,9 +708,9 @@ class Expr:
             | 0 -1.3  0.210657 |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).kurtosis())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).kurtosis())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def sum(self) -> Expr:
         """Return the sum value.
 
@@ -767,9 +733,9 @@ class Expr:
             |└────────┴────────┘|
             └───────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).sum())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).sum())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def min(self) -> Self:
         """Returns the minimum value(s) from a column(s).
 
@@ -786,9 +752,9 @@ class Expr:
             |     0  1  3      |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).min())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).min())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def max(self) -> Self:
         """Returns the maximum value(s) from a column(s).
 
@@ -805,9 +771,9 @@ class Expr:
             |    0  20  100    |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).max())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).max())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def count(self) -> Self:
         """Returns the number of non-null elements in the column.
 
@@ -824,9 +790,9 @@ class Expr:
             |     0  3  2      |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).count())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).count())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def n_unique(self) -> Self:
         """Returns count of unique values.
 
@@ -843,7 +809,7 @@ class Expr:
             |     0  5  3      |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).n_unique())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).n_unique())
 
     def unique(self) -> Self:
         """Return unique values of this expression.
@@ -863,7 +829,7 @@ class Expr:
         """
         return self._with_filtration(lambda plx: self._to_compliant_expr(plx).unique())
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def abs(self) -> Self:
         """Return absolute value of each element.
 
@@ -881,7 +847,7 @@ class Expr:
             |1 -2  4      2      4|
             └─────────────────────┘
         """
-        return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).abs())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).abs())
 
     def cum_sum(self, *, reverse: bool = False) -> Self:
         """Return cumulative sum.
@@ -1005,7 +971,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).shift(n)
         )
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def replace_strict(
         self,
         old: Sequence[Any] | Mapping[Any, Any],
@@ -1056,7 +1022,7 @@ class Expr:
             new = list(old.values())
             old = list(old.keys())
 
-        return self._with_elementwise(
+        return self.__class__(
             lambda plx: self._to_compliant_expr(plx).replace_strict(
                 old, new, return_dtype=return_dtype
             )
@@ -1113,7 +1079,7 @@ class Expr:
             metadata,
         )
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def is_in(self, other: Any) -> Self:
         """Check if elements of this expression are present in the other iterable.
 
@@ -1137,7 +1103,7 @@ class Expr:
             └──────────────────┘
         """
         if isinstance(other, Iterable) and not isinstance(other, (str, bytes)):
-            return self._with_elementwise(
+            return self.__class__(
                 lambda plx: self._to_compliant_expr(plx).is_in(
                     to_native(other, pass_through=True)
                 )
@@ -1190,7 +1156,7 @@ class Expr:
             metadata,
         )
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def is_null(self) -> Self:
         """Returns a boolean Series indicating which values are null.
 
@@ -1221,9 +1187,9 @@ class Expr:
             |└───────┴────────┴───────────┴───────────┘|
             └──────────────────────────────────────────┘
         """
-        return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).is_null())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_null())
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def is_nan(self) -> Self:
         """Indicate which values are NaN.
 
@@ -1254,7 +1220,7 @@ class Expr:
             |└───────┴────────┴──────────┴──────────┘|
             └────────────────────────────────────────┘
         """
-        return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).is_nan())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_nan())
 
     def fill_null(
         self,
@@ -1495,7 +1461,7 @@ class Expr:
         """
         return self._with_window(lambda plx: self._to_compliant_expr(plx).is_unique())
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def null_count(self) -> Self:
         r"""Count null values.
 
@@ -1519,9 +1485,7 @@ class Expr:
             |     0  1  2      |
             └──────────────────┘
         """
-        return self._with_aggregation(
-            lambda plx: self._to_compliant_expr(plx).null_count()
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).null_count())
 
     def is_first_distinct(self) -> Self:
         r"""Return a boolean mask indicating the first occurrence of each distinct value.
@@ -1581,7 +1545,7 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).is_last_distinct()
         )
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def quantile(
         self, quantile: float, interpolation: RollingInterpolationMethod
     ) -> Self:
@@ -1613,11 +1577,11 @@ class Expr:
             |  0  24.5  74.5   |
             └──────────────────┘
         """
-        return self._with_aggregation(
+        return self.__class__(
             lambda plx: self._to_compliant_expr(plx).quantile(quantile, interpolation)
         )
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def round(self, decimals: int = 0) -> Self:
         r"""Round underlying floating point data by `decimals` digits.
 
@@ -1648,11 +1612,9 @@ class Expr:
             |2  3.901234        3.9|
             └──────────────────────┘
         """
-        return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).round(decimals)
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).round(decimals))
 
-    @with_tree_node(ExprKind.AGGREGATION)
+    @with_aggregation
     def len(self) -> Self:
         r"""Return the number of elements in the column.
 
@@ -1674,7 +1636,7 @@ class Expr:
             |    0   2   1     |
             └──────────────────┘
         """
-        return self._with_aggregation(lambda plx: self._to_compliant_expr(plx).len())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).len())
 
     def clip(
         self,
@@ -1744,7 +1706,7 @@ class Expr:
         """
         return self._with_filtration(lambda plx: self._to_compliant_expr(plx).mode())
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def is_finite(self) -> Self:
         """Returns boolean values indicating which original values are finite.
 
@@ -1778,9 +1740,7 @@ class Expr:
             |└──────┴─────────────┘|
             └──────────────────────┘
         """
-        return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).is_finite()
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_finite())
 
     def cum_count(self, *, reverse: bool = False) -> Self:
         r"""Return the cumulative count of the non-null values in the column.
@@ -2194,7 +2154,7 @@ class Expr:
             )
         )
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def log(self, base: float = math.e) -> Self:
         r"""Compute the logarithm to a given base.
 
@@ -2223,11 +2183,9 @@ class Expr:
             |log_2: [[0,1,2]]                                |
             └────────────────────────────────────────────────┘
         """
-        return self._with_elementwise(
-            lambda plx: self._to_compliant_expr(plx).log(base=base)
-        )
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).log(base=base))
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def exp(self) -> Self:
         r"""Compute the exponent.
 
@@ -2249,9 +2207,9 @@ class Expr:
             |exp: [[0.36787944117144233,1,2.718281828459045]]|
             └────────────────────────────────────────────────┘
         """
-        return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).exp())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).exp())
 
-    @with_tree_node(ExprKind.ELEMENTWISE)
+    @with_elementwise
     def sqrt(self) -> Self:
         r"""Compute the square root.
 
@@ -2273,7 +2231,7 @@ class Expr:
             |sqrt: [[1,2,3]]   |
             └──────────────────┘
         """
-        return self._with_elementwise(lambda plx: self._to_compliant_expr(plx).sqrt())
+        return self.__class__(lambda plx: self._to_compliant_expr(plx).sqrt())
 
     def is_close(
         self,
