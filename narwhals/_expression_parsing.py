@@ -667,6 +667,8 @@ def with_node(
                 md = self._metadata.with_elementwise_op()
             elif kind is ExprKind.AGGREGATION:
                 md = self._metadata.with_aggregation()
+            elif kind is ExprKind.ORDERABLE_WINDOW:
+                md = self._metadata.with_orderable_window()
             else:
                 # Assume for now that metadata has already been set.
                 md = result._metadata
@@ -711,5 +713,6 @@ def namespace_method_with_node(
 
 with_elementwise = with_node(ExprKind.ELEMENTWISE)
 with_aggregation = with_node(ExprKind.AGGREGATION)
+with_orderable_window = with_node(ExprKind.ORDERABLE_WINDOW)
 
 elementwise_namespace_method = namespace_method_with_node(ExprKind.ELEMENTWISE)
