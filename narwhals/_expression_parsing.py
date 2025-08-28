@@ -161,9 +161,6 @@ class ExprKind(Enum):
     ORDERABLE_FILTRATION = auto()
     """Changes length, affected by row order, e.g. `tail`."""
 
-    NARY = auto()
-    """Results from the combination of multiple expressions."""
-
     OVER = auto()
     """Results from calling `.over` on expression."""
 
