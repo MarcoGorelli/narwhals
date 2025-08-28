@@ -940,7 +940,7 @@ def col(*names: str | Iterable[str]) -> Expr:
         if len(flat_names) == 1
         else ExprMetadata.selector_multi_named(),
     )
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "col", *flat_names)]
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "col", names=flat_names)]
     return result
 
 

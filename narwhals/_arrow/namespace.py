@@ -250,8 +250,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="concat_str",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,

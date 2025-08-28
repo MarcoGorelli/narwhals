@@ -4,6 +4,7 @@
 # ! Any change to this module will trigger the pyspark and pyspark-connect tests in CI
 from __future__ import annotations
 
+import inspect
 from enum import Enum, auto
 from functools import wraps
 from itertools import chain
@@ -235,14 +236,13 @@ class ExpansionKind(Enum):
 
 
 class ExprNode:
-    def __init__(self, kind: ExprKind, name: str, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, kind: ExprKind, name: str, **kwargs: Any) -> None:
         self.kind = kind
         self.name = name
-        self.args = args
         self.kwargs = kwargs
 
     def __repr__(self) -> str:
-        return f"{self.name}({self.args}, {self.kwargs})"
+        return f"{self.name}({self.kwargs})"
 
 
 class ExprMetadata:
@@ -673,7 +673,18 @@ def with_node(
                 # Assume for now that metadata has already been set.
                 md = result._metadata
             result._metadata = md
-            node = ExprNode(kind, name, *args, **kwargs)
+
+            # Convert positional args to kwargs using function signature
+            sig = inspect.signature(func)
+            param_names = list(sig.parameters.keys())[1:]  # Skip 'self' parameter
+
+            # Merge args into kwargs with their parameter names
+            merged_kwargs = kwargs.copy()
+            for i, arg in enumerate(args):
+                if i < len(param_names):
+                    merged_kwargs[param_names[i]] = arg
+
+            node = ExprNode(kind, name, **merged_kwargs)
             md.nodes = [*self._metadata.nodes, node]
 
             return result
@@ -702,7 +713,18 @@ def namespace_method_with_node(
 
             result = func(self, *args, **kwargs)
             md = result._metadata
-            node = ExprNode(kind, name, *args, **kwargs)
+
+            # Convert positional args to kwargs using function signature
+            sig = inspect.signature(func)
+            param_names = list(sig.parameters.keys())[1:]  # Skip 'self' parameter
+
+            # Merge args into kwargs with their parameter names
+            merged_kwargs = kwargs.copy()
+            for i, arg in enumerate(args):
+                if i < len(param_names):
+                    merged_kwargs[param_names[i]] = arg
+
+            node = ExprNode(kind, name, **merged_kwargs)
             md.nodes = [*self._expr._metadata.nodes, node]
             return result
 

@@ -108,7 +108,7 @@ class Expr:
             to_compliant_expr, self._metadata.with_orderable_filtration()
         )
 
-    def __repr__(self) -> str:  # noqa: PLR0912,C901
+    def __repr__(self) -> str:
         """Pretty-print the expression by combining all nodes in the metadata."""
         md = self._metadata
 
@@ -124,44 +124,18 @@ class Expr:
         first_node = nodes[0]
 
         # Handle the first node (typically col(...))
-        if hasattr(first_node, "args") and first_node.args:
-            args_parts = []
-
-            # Add positional arguments
-            if hasattr(first_node, "args") and first_node.args:
-                args_parts.extend(repr(arg) for arg in first_node.args)
-
-            # Add keyword arguments
-            if hasattr(first_node, "kwargs") and first_node.kwargs:
-                args_parts.extend(f"{k}={v!r}" for k, v in first_node.kwargs.items())
-
-            if args_parts:
-                args_str = ", ".join(args_parts)
-                result = f"{first_node.name}({args_str})"
-            else:
-                result = f"{first_node.name}()"
-        else:
-            result = first_node.name
+        result = first_node.name
 
         # Chain the remaining operations
         for node in nodes[1:]:
             # Check if this is a binary operation
             if self._is_binary_op(node.name):
                 # Format as infix operation with parentheses
-                if hasattr(node, "args") and node.args:
-                    op_symbol = self._get_op_symbol(node.name)
-                    right_operand = repr(node.args[0])
-                    result = f"({result}{op_symbol}{right_operand})"
-                else:
-                    # Fallback to method call if no args
-                    result = f"{result}.{node.name}()"
+                # Fallback to method call if no args
+                result = f"{result}.{node.name}()"
             else:
                 # Regular method call
                 args_parts = []
-
-                # Add positional arguments
-                if hasattr(node, "args") and node.args:
-                    args_parts.extend(repr(arg) for arg in node.args)
 
                 # Add keyword arguments
                 if hasattr(node, "kwargs") and node.kwargs:
@@ -1197,16 +1171,17 @@ class Expr:
             allow_multi_output=True,
             to_single_output=False,
         ).with_filtration()
-        return self._with_callable(
+        result = self._with_callable(
             lambda plx: apply_n_ary_operation(
                 plx,
                 lambda *exprs: exprs[0].filter(*exprs[1:]),
                 self,
                 *flat_predicates,
                 str_as_lit=False,
-            ),
-            metadata,
+            )
         )
+        result._metadata = metadata
+        return result
 
     @with_elementwise
     def is_null(self) -> Self:
@@ -1357,16 +1332,16 @@ class Expr:
             msg = f"strategy not supported: {strategy}"
             raise ValueError(msg)
 
-        return self._with_callable(
+        result = self._with_callable(
             lambda plx: self._to_compliant_expr(plx).fill_null(
                 value=extract_compliant(plx, value, str_as_lit=True),
                 strategy=strategy,
                 limit=limit,
-            ),
-            self._metadata.with_orderable_window()
-            if strategy is not None
-            else self._metadata,
+            )
         )
+        if strategy is not None:
+            result._metadata = self._metadata.with_orderable_window()
+        return result
 
     def fill_nan(self, value: float | None) -> Self:
         """Fill floating point NaN values with given value.
