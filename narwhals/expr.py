@@ -1496,11 +1496,11 @@ class Expr:
         else:
             next_meta = current_meta.with_partitioned_over()
 
-        node = ExprNode(ExprKind.WINDOW, 'over', *partition_by, order_by=order_by)
+        node = ExprNode(ExprKind.WINDOW, "over", *partition_by, order_by=order_by)
         result = self._with_callable(
             lambda plx: self._to_compliant_expr(plx).over(
                 flat_partition_by, flat_order_by
-            ),
+            )
         )
         next_meta.nodes.append(node)
         result._metadata = next_meta
