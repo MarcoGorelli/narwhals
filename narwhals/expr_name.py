@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Generic, TypeVar
 
+from narwhals._expression_parsing import elementwise_namespace_method
+
 if TYPE_CHECKING:
     from narwhals.expr import Expr
 
@@ -12,6 +14,7 @@ class ExprNameNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 
+    @elementwise_namespace_method
     def keep(self) -> ExprT:
         r"""Keep the original root name of the expression.
 
@@ -26,10 +29,11 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo").alias("alias_for_foo").name.keep()).columns
             ['foo']
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).name.keep()
         )
 
+    @elementwise_namespace_method
     def map(self, function: Callable[[str], str]) -> ExprT:
         r"""Rename the output of an expression by mapping a function over the root name.
 
@@ -48,10 +52,11 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.map(renaming_func)).columns
             ['oof', 'RAB']
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).name.map(function)
         )
 
+    @elementwise_namespace_method
     def prefix(self, prefix: str) -> ExprT:
         r"""Add a prefix to the root column name of the expression.
 
@@ -69,10 +74,11 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.prefix("with_prefix")).columns
             ['with_prefixfoo', 'with_prefixBAR']
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).name.prefix(prefix)
         )
 
+    @elementwise_namespace_method
     def suffix(self, suffix: str) -> ExprT:
         r"""Add a suffix to the root column name of the expression.
 
@@ -90,10 +96,11 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.suffix("_with_suffix")).columns
             ['foo_with_suffix', 'BAR_with_suffix']
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).name.suffix(suffix)
         )
 
+    @elementwise_namespace_method
     def to_lowercase(self) -> ExprT:
         r"""Make the root column name lowercase.
 
@@ -108,10 +115,11 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.to_lowercase()).columns
             ['foo', 'bar']
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).name.to_lowercase()
         )
 
+    @elementwise_namespace_method
     def to_uppercase(self) -> ExprT:
         r"""Make the root column name uppercase.
 
@@ -126,6 +134,6 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.to_uppercase()).columns
             ['FOO', 'BAR']
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).name.to_uppercase()
         )

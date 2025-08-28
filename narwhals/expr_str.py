@@ -19,6 +19,7 @@ class ExprStringNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 
+    @elementwise_namespace_method
     def len_chars(self) -> ExprT:
         r"""Return the length of each string as the number of characters.
 
@@ -43,10 +44,11 @@ class ExprStringNamespace(Generic[ExprT]):
             |└───────┴───────────┘|
             └─────────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.len_chars()
         )
 
+    @elementwise_namespace_method
     def replace(
         self, pattern: str, value: str | ExprT, *, literal: bool = False, n: int = 1
     ) -> ExprT:
@@ -72,7 +74,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123   abc123|
             └──────────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: (
                 apply_n_ary_operation(
                     plx,
@@ -86,6 +88,7 @@ class ExprStringNamespace(Generic[ExprT]):
             )
         )
 
+    @elementwise_namespace_method
     def replace_all(
         self, pattern: str, value: str | ExprT, *, literal: bool = False
     ) -> ExprT:
@@ -110,7 +113,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123      123|
             └──────────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: (
                 apply_n_ary_operation(
                     plx,
@@ -124,6 +127,7 @@ class ExprStringNamespace(Generic[ExprT]):
             )
         )
 
+    @elementwise_namespace_method
     def strip_chars(self, characters: str | None = None) -> ExprT:
         r"""Remove leading and trailing characters.
 
@@ -143,10 +147,11 @@ class ExprStringNamespace(Generic[ExprT]):
             ... )
             {'fruits': ['apple', '\nmango'], 'stripped': ['apple', 'mango']}
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.strip_chars(characters)
         )
 
+    @elementwise_namespace_method
     def starts_with(self, prefix: str) -> ExprT:
         r"""Check if string values start with a substring.
 
@@ -168,10 +173,11 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.starts_with(prefix)
         )
 
+    @elementwise_namespace_method
     def ends_with(self, suffix: str) -> ExprT:
         r"""Check if string values end with a substring.
 
@@ -193,10 +199,11 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.ends_with(suffix)
         )
 
+    @elementwise_namespace_method
     def contains(self, pattern: str, *, literal: bool = False) -> ExprT:
         r"""Check if string contains a substring that matches a pattern.
 
@@ -223,12 +230,13 @@ class ExprStringNamespace(Generic[ExprT]):
             default_match: [[true,false,true]]
             case_insensitive_match: [[true,false,true]]
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.contains(
                 pattern, literal=literal
             )
         )
 
+    @elementwise_namespace_method
     def slice(self, offset: int, length: int | None = None) -> ExprT:
         r"""Create subslices of the string values of an expression.
 
@@ -252,12 +260,13 @@ class ExprStringNamespace(Generic[ExprT]):
             |2  papaya       ya|
             └──────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.slice(
                 offset=offset, length=length
             )
         )
 
+    @elementwise_namespace_method
     def split(self, by: str) -> ExprT:
         r"""Split the string values of an expression by a substring.
 
@@ -284,10 +293,11 @@ class ExprStringNamespace(Generic[ExprT]):
             |└─────────┴────────────────┘|
             └────────────────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.split(by=by)
         )
 
+    @elementwise_namespace_method
     def head(self, n: int = 5) -> ExprT:
         r"""Take the first n elements of each string.
 
@@ -310,10 +320,11 @@ class ExprStringNamespace(Generic[ExprT]):
             lyrics: [["taata","taatatata","zukkyun"]]
             lyrics_head: [["taata","taata","zukky"]]
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.slice(0, n)
         )
 
+    @elementwise_namespace_method
     def tail(self, n: int = 5) -> ExprT:
         r"""Take the last n elements of each string.
 
@@ -336,12 +347,13 @@ class ExprStringNamespace(Generic[ExprT]):
             lyrics: [["taata","taatatata","zukkyun"]]
             lyrics_tail: [["taata","atata","kkyun"]]
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.slice(
                 offset=-n, length=None
             )
         )
 
+    @elementwise_namespace_method
     def to_datetime(self, format: str | None = None) -> ExprT:
         """Convert to Datetime dtype.
 
@@ -380,10 +392,11 @@ class ExprStringNamespace(Generic[ExprT]):
             |└─────────────────────┘|
             └───────────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.to_datetime(format=format)
         )
 
+    @elementwise_namespace_method
     def to_date(self, format: str | None = None) -> ExprT:
         """Convert to date dtype.
 
@@ -409,7 +422,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |a: [[2020-01-01,2020-01-02]]|
             └────────────────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.to_date(format=format)
         )
 
@@ -436,7 +449,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1   None      None|
             └──────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.to_uppercase()
         )
 
@@ -457,7 +470,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1   None      None|
             └──────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.to_lowercase()
         )
 
@@ -485,6 +498,6 @@ class ExprStringNamespace(Generic[ExprT]):
             |3   None      None|
             └──────────────────┘
         """
-        return self._expr._with_elementwise(
+        return self._expr._with_callable(
             lambda plx: self._expr._to_compliant_expr(plx).str.zfill(width)
         )
