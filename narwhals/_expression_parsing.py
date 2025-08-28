@@ -676,17 +676,16 @@ def with_node(
                 md = result._metadata
             result._metadata = md
 
-            # Convert positional args to kwargs using function signature
+            # Get function signature and build complete kwargs including defaults
             sig = inspect.signature(func)
-            param_names = list(sig.parameters.keys())[1:]  # Skip 'self' parameter
+            bound_args = sig.bind(self, *args, **kwargs)
+            bound_args.apply_defaults()  # This fills in default values
 
-            # Merge args into kwargs with their parameter names
-            merged_kwargs = kwargs.copy()
-            for i, arg in enumerate(args):
-                if i < len(param_names):
-                    merged_kwargs[param_names[i]] = arg
+            # Remove 'self' from the arguments and get the rest as kwargs
+            all_kwargs = dict(bound_args.arguments)
+            all_kwargs.pop("self", None)  # Remove self parameter
 
-            node = ExprNode(kind, name, **merged_kwargs)
+            node = ExprNode(kind, name, **all_kwargs)
             md.nodes = [*self._metadata.nodes, node]
 
             return result
@@ -716,17 +715,16 @@ def namespace_method_with_node(
             result = func(self, *args, **kwargs)
             md = result._metadata
 
-            # Convert positional args to kwargs using function signature
+            # Get function signature and build complete kwargs including defaults
             sig = inspect.signature(func)
-            param_names = list(sig.parameters.keys())[1:]  # Skip 'self' parameter
+            bound_args = sig.bind(self, *args, **kwargs)
+            bound_args.apply_defaults()  # This fills in default values
 
-            # Merge args into kwargs with their parameter names
-            merged_kwargs = kwargs.copy()
-            for i, arg in enumerate(args):
-                if i < len(param_names):
-                    merged_kwargs[param_names[i]] = arg
+            # Remove 'self' from the arguments and get the rest as kwargs
+            all_kwargs = dict(bound_args.arguments)
+            all_kwargs.pop("self", None)  # Remove self parameter
 
-            node = ExprNode(kind, name, **merged_kwargs)
+            node = ExprNode(kind, name, **all_kwargs)
             md.nodes = [*self._expr._metadata.nodes, node]
             return result
 
