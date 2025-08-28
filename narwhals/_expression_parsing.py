@@ -244,6 +244,9 @@ class ExprNode:
         self.args = args
         self.kwargs = kwargs
 
+    def __repr__(self) -> str:
+        return f"{self.name}({self.args}, {self.kwargs})"
+
 
 class ExprMetadata:
     """Expression metadata.

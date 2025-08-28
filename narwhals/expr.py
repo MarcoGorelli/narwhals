@@ -87,6 +87,9 @@ class Expr:
         assert self._metadata is not None  # noqa: S101
         return self._metadata.nodes[-1].name
 
+    def _with_callable(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
+        return self.__class__(to_compliant_expr, self._metadata)
+
     def _with_orderable_aggregation(
         self, to_compliant_expr: Callable[[Any], Any]
     ) -> Self:
@@ -251,7 +254,7 @@ class Expr:
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
         # It's not intended to be used.
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).abs().sum())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).abs().sum())
 
     # --- convert ---
     def alias(self, name: str) -> Self:
@@ -275,9 +278,7 @@ class Expr:
             └──────────────────┘
         """
         # Don't use `_with_elementwise` so that `_metadata.last_node` is preserved.
-        return self.__class__(
-            lambda plx: self._to_compliant_expr(plx).alias(name), self._metadata
-        )
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).alias(name))
 
     def pipe(
         self,
@@ -333,7 +334,7 @@ class Expr:
             └──────────────────┘
         """
         _validate_dtype(dtype)
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).cast(dtype))
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).cast(dtype))
 
     # --- binary ---
     def _with_binary(
@@ -434,7 +435,7 @@ class Expr:
     # --- unary ---
     @with_elementwise
     def __invert__(self) -> Self:
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).__invert__())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).__invert__())
 
     @with_aggregation
     def any(self) -> Self:
@@ -455,7 +456,7 @@ class Expr:
             |  0  True  True   |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).any())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).any())
 
     @with_aggregation
     def all(self) -> Self:
@@ -476,7 +477,7 @@ class Expr:
             |  0  False  True  |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).all())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).all())
 
     @with_orderable_window
     def ewm_mean(
@@ -562,7 +563,7 @@ class Expr:
             │ 2.428571 │
             └──────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).ewm_mean(
                 com=com,
                 span=span,
@@ -591,7 +592,7 @@ class Expr:
             |   0  0.0  4.0    |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).mean())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).mean())
 
     @with_aggregation
     def median(self) -> Self:
@@ -613,7 +614,7 @@ class Expr:
             |   0  3.0  4.0    |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).median())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).median())
 
     @with_aggregation
     def std(self, *, ddof: int = 1) -> Self:
@@ -636,7 +637,9 @@ class Expr:
             |0  17.79513  1.265789|
             └─────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).std(ddof=ddof))
+        return self._with_callable(
+            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof)
+        )
 
     @with_aggregation
     def var(self, *, ddof: int = 1) -> Self:
@@ -659,7 +662,9 @@ class Expr:
             |0  316.666667  1.602222|
             └───────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).var(ddof=ddof))
+        return self._with_callable(
+            lambda plx: self._to_compliant_expr(plx).var(ddof=ddof)
+        )
 
     def map_batches(
         self,
@@ -733,7 +738,7 @@ class Expr:
             | 0  0.0  1.472427 |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).skew())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).skew())
 
     @with_aggregation
     def kurtosis(self) -> Self:
@@ -755,7 +760,7 @@ class Expr:
             | 0 -1.3  0.210657 |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).kurtosis())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).kurtosis())
 
     @with_aggregation
     def sum(self) -> Expr:
@@ -780,7 +785,7 @@ class Expr:
             |└────────┴────────┘|
             └───────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).sum())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).sum())
 
     @with_aggregation
     def min(self) -> Self:
@@ -799,7 +804,7 @@ class Expr:
             |     0  1  3      |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).min())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).min())
 
     @with_aggregation
     def max(self) -> Self:
@@ -818,7 +823,7 @@ class Expr:
             |    0  20  100    |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).max())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).max())
 
     @with_aggregation
     def count(self) -> Self:
@@ -837,7 +842,7 @@ class Expr:
             |     0  3  2      |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).count())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).count())
 
     @with_aggregation
     def n_unique(self) -> Self:
@@ -856,7 +861,7 @@ class Expr:
             |     0  5  3      |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).n_unique())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).n_unique())
 
     def unique(self) -> Self:
         """Return unique values of this expression.
@@ -894,7 +899,7 @@ class Expr:
             |1 -2  4      2      4|
             └─────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).abs())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).abs())
 
     @with_orderable_window
     def cum_sum(self, *, reverse: bool = False) -> Self:
@@ -924,7 +929,7 @@ class Expr:
             |4  5  6         15|
             └──────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).cum_sum(reverse=reverse)
         )
 
@@ -968,7 +973,7 @@ class Expr:
             | └─────┴────────┘ |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).diff())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).diff())
 
     @with_orderable_window
     def shift(self, n: int) -> Self:
@@ -1015,7 +1020,7 @@ class Expr:
         """
         ensure_type(n, int, param_name="n")
 
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).shift(n))
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).shift(n))
 
     @with_elementwise
     def replace_strict(
@@ -1068,7 +1073,7 @@ class Expr:
             new = list(old.values())
             old = list(old.keys())
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).replace_strict(
                 old, new, return_dtype=return_dtype
             )
@@ -1135,7 +1140,7 @@ class Expr:
             └──────────────────┘
         """
         if isinstance(other, Iterable) and not isinstance(other, (str, bytes)):
-            return self.__class__(
+            return self._with_callable(
                 lambda plx: self._to_compliant_expr(plx).is_in(
                     to_native(other, pass_through=True)
                 )
@@ -1177,7 +1182,7 @@ class Expr:
             allow_multi_output=True,
             to_single_output=False,
         ).with_filtration()
-        return self.__class__(
+        return self._with_callable(
             lambda plx: apply_n_ary_operation(
                 plx,
                 lambda *exprs: exprs[0].filter(*exprs[1:]),
@@ -1218,7 +1223,7 @@ class Expr:
             |└───────┴────────┴───────────┴───────────┘|
             └──────────────────────────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_null())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).is_null())
 
     @with_elementwise
     def is_nan(self) -> Self:
@@ -1250,7 +1255,7 @@ class Expr:
             |└───────┴────────┴──────────┴──────────┘|
             └────────────────────────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_nan())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).is_nan())
 
     def fill_null(
         self,
@@ -1337,7 +1342,7 @@ class Expr:
             msg = f"strategy not supported: {strategy}"
             raise ValueError(msg)
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).fill_null(
                 value=extract_compliant(plx, value, str_as_lit=True),
                 strategy=strategy,
@@ -1379,7 +1384,7 @@ class Expr:
             |└────────┴────────┴───────────────┴───────────────┘|
             └───────────────────────────────────────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).fill_nan(value), self._metadata
         )
 
@@ -1476,7 +1481,7 @@ class Expr:
         else:
             next_meta = current_meta.with_partitioned_over()
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).over(
                 flat_partition_by, flat_order_by
             ),
@@ -1548,7 +1553,7 @@ class Expr:
             |     0  1  2      |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).null_count())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).null_count())
 
     @with_orderable_window
     def is_first_distinct(self) -> Self:
@@ -1576,7 +1581,7 @@ class Expr:
             |3  1  c                False                 True|
             └─────────────────────────────────────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).is_first_distinct()
         )
 
@@ -1606,7 +1611,9 @@ class Expr:
             |3  1  c                True                True|
             └───────────────────────────────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_last_distinct())
+        return self._with_callable(
+            lambda plx: self._to_compliant_expr(plx).is_last_distinct()
+        )
 
     @with_aggregation
     def quantile(
@@ -1640,7 +1647,7 @@ class Expr:
             |  0  24.5  74.5   |
             └──────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).quantile(quantile, interpolation)
         )
 
@@ -1675,7 +1682,9 @@ class Expr:
             |2  3.901234        3.9|
             └──────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).round(decimals))
+        return self._with_callable(
+            lambda plx: self._to_compliant_expr(plx).round(decimals)
+        )
 
     @with_aggregation
     def len(self) -> Self:
@@ -1699,7 +1708,7 @@ class Expr:
             |    0   2   1     |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).len())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).len())
 
     def clip(
         self,
@@ -1803,7 +1812,7 @@ class Expr:
             |└──────┴─────────────┘|
             └──────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).is_finite())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).is_finite())
 
     @with_orderable_window
     def cum_count(self, *, reverse: bool = False) -> Self:
@@ -1835,7 +1844,7 @@ class Expr:
             |3     d            3                    1|
             └─────────────────────────────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).cum_count(reverse=reverse)
         )
 
@@ -1869,7 +1878,7 @@ class Expr:
             |3  2.0        1.0                2.0|
             └────────────────────────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).cum_min(reverse=reverse)
         )
 
@@ -1903,7 +1912,7 @@ class Expr:
             |3  2.0        3.0                2.0|
             └────────────────────────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).cum_max(reverse=reverse)
         )
 
@@ -1937,7 +1946,7 @@ class Expr:
             |3  2.0         6.0                 2.0|
             └──────────────────────────────────────┘
         """
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).cum_prod(reverse=reverse)
         )
 
@@ -1988,7 +1997,7 @@ class Expr:
             window_size=window_size, min_samples=min_samples
         )
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).rolling_sum(
                 window_size=window_size, min_samples=min_samples_int, center=center
             )
@@ -2041,7 +2050,7 @@ class Expr:
             window_size=window_size, min_samples=min_samples
         )
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).rolling_mean(
                 window_size=window_size, min_samples=min_samples, center=center
             )
@@ -2100,7 +2109,7 @@ class Expr:
             window_size=window_size, min_samples=min_samples
         )
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).rolling_var(
                 window_size=window_size, min_samples=min_samples, center=center, ddof=ddof
             )
@@ -2159,7 +2168,7 @@ class Expr:
             window_size=window_size, min_samples=min_samples
         )
 
-        return self.__class__(
+        return self._with_callable(
             lambda plx: self._to_compliant_expr(plx).rolling_std(
                 window_size=window_size, min_samples=min_samples, center=center, ddof=ddof
             )
@@ -2254,7 +2263,9 @@ class Expr:
             |log_2: [[0,1,2]]                                |
             └────────────────────────────────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).log(base=base))
+        return self._with_callable(
+            lambda plx: self._to_compliant_expr(plx).log(base=base)
+        )
 
     @with_elementwise
     def exp(self) -> Self:
@@ -2278,7 +2289,7 @@ class Expr:
             |exp: [[0.36787944117144233,1,2.718281828459045]]|
             └────────────────────────────────────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).exp())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).exp())
 
     @with_elementwise
     def sqrt(self) -> Self:
@@ -2302,7 +2313,7 @@ class Expr:
             |sqrt: [[1,2,3]]   |
             └──────────────────┘
         """
-        return self.__class__(lambda plx: self._to_compliant_expr(plx).sqrt())
+        return self._with_callable(lambda plx: self._to_compliant_expr(plx).sqrt())
 
     def is_close(
         self,
