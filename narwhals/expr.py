@@ -15,6 +15,7 @@ from narwhals._expression_parsing import (
     with_aggregation,
     with_elementwise,
     with_orderable_window,
+    with_window,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
@@ -1471,7 +1472,9 @@ class Expr:
         else:
             next_meta = current_meta.with_partitioned_over()
 
-        node = ExprNode(ExprKind.WINDOW, "over", *partition_by, order_by=order_by)
+        node = ExprNode(
+            ExprKind.WINDOW, "over", partition_by=partition_by, order_by=order_by
+        )
         result = self._with_callable(
             lambda plx: self._to_compliant_expr(plx).over(
                 flat_partition_by, flat_order_by
@@ -2174,6 +2177,7 @@ class Expr:
             )
         )
 
+    @with_window
     def rank(self, method: RankMethod = "average", *, descending: bool = False) -> Self:
         """Assign ranks to data, dealing with ties appropriately.
 

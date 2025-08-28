@@ -1566,7 +1566,7 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
         raise NotImplementedError(msg)
 
     result = Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal())
-    result._metadata.nodes = [ExprNode(ExprKind.LITERAL, "lit", value, dtype=dtype)]
+    result._metadata.nodes = [ExprNode(ExprKind.LITERAL, "lit", value=value, dtype=dtype)]
     return result
 
 

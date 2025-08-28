@@ -236,7 +236,7 @@ class ExpansionKind(Enum):
 
 
 class ExprNode:
-    def __init__(self, kind: ExprKind, name: str, **kwargs: Any) -> None:
+    def __init__(self, kind: ExprKind, name: str, /, **kwargs: Any) -> None:
         self.kind = kind
         self.name = name
         self.kwargs = kwargs
@@ -669,6 +669,8 @@ def with_node(
                 md = self._metadata.with_aggregation()
             elif kind is ExprKind.ORDERABLE_WINDOW:
                 md = self._metadata.with_orderable_window()
+            elif kind is ExprKind.WINDOW:
+                md = self._metadata.with_window()
             else:
                 # Assume for now that metadata has already been set.
                 md = result._metadata
@@ -736,5 +738,6 @@ def namespace_method_with_node(
 with_elementwise = with_node(ExprKind.ELEMENTWISE)
 with_aggregation = with_node(ExprKind.AGGREGATION)
 with_orderable_window = with_node(ExprKind.ORDERABLE_WINDOW)
+with_window = with_node(ExprKind.WINDOW)
 
 elementwise_namespace_method = namespace_method_with_node(ExprKind.ELEMENTWISE)
