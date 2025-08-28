@@ -118,7 +118,8 @@ class AggExpr:
             )
         elif self.is_mode():
             compliant = group_by.compliant
-            if (keep := self.kwargs.get("keep")) != "any":  # pragma: no cover
+            kwargs = self.expr._metadata.nodes[-1].kwargs
+            if (keep := kwargs.get("keep")) != "any":  # pragma: no cover
                 msg = (
                     f"`Expr.mode(keep='{keep}')` is not implemented in group by context for "
                     f"backend {compliant._implementation}\n\n"

@@ -666,7 +666,7 @@ class EagerExpr(
         return self._reuse_series("gather_every", n=n, offset=offset)
 
     def mode(self, *, keep: ModeKeepStrategy) -> Self:
-        return self._reuse_series("mode", scalar_kwargs={"keep": keep})
+        return self._reuse_series("mode", keep=keep)
 
     def is_finite(self) -> Self:
         return self._reuse_series("is_finite")

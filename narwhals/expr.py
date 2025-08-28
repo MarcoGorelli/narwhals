@@ -6,7 +6,9 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
+    ExprKind,
     ExprMetadata,
+    ExprNode,
     apply_n_ary_operation,
     combine_metadata,
     extract_compliant,
@@ -1788,9 +1790,16 @@ class Expr:
         def compliant_expr(plx: Any) -> Any:
             return self._to_compliant_expr(plx).mode(keep=keep)
 
+        result = self._with_callable(compliant_expr)
         if keep == "any":
-            return self._with_aggregation(compliant_expr)
-        return self._with_filtration(compliant_expr)
+            kind = ExprKind.AGGREGATION
+            result._metadata = result._metadata.with_aggregation()
+        else:
+            kind = ExprKind.FILTRATION
+            result._metadata = result._metadata.with_filtration()
+        node = ExprNode(kind, "mode", keep=keep)
+        result._metadata.nodes.append(node)
+        return result
 
     @with_elementwise
     def is_finite(self) -> Self:
