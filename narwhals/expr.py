@@ -1400,7 +1400,7 @@ class Expr:
             └───────────────────────────────────────────────────┘
         """
         return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).fill_nan(value), self._metadata
+            lambda plx: self._to_compliant_expr(plx).fill_nan(value)
         )
 
     # --- partial reduction ---
@@ -1496,12 +1496,15 @@ class Expr:
         else:
             next_meta = current_meta.with_partitioned_over()
 
-        return self._with_callable(
+        node = ExprNode(ExprKind.WINDOW, 'over', *partition_by, order_by=order_by)
+        result = self._with_callable(
             lambda plx: self._to_compliant_expr(plx).over(
                 flat_partition_by, flat_order_by
             ),
-            next_meta,
         )
+        next_meta.nodes.append(node)
+        result._metadata = next_meta
+        return result
 
     def is_duplicated(self) -> Self:
         r"""Return a boolean mask indicating duplicated values.
