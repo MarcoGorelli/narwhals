@@ -5,9 +5,10 @@ import re
 from collections.abc import Collection, Container, Iterable, Iterator, Mapping, Sequence
 from datetime import timezone
 from enum import Enum, auto
-from functools import cache, lru_cache, wraps
+from functools import cache, lru_cache, partial, wraps
 from importlib.util import find_spec
 from inspect import getattr_static, getdoc
+from itertools import chain
 from operator import attrgetter
 from secrets import token_hex
 from typing import (
@@ -72,9 +73,16 @@ if TYPE_CHECKING:
         NativeFrameT_co,
         NativeSeriesT_co,
     )
-    from narwhals._compliant.typing import EvalNames
-    from narwhals._namespace import EagerAllowedImplementation, Namespace
+    from narwhals._compliant.typing import EvalNames, NativeLazyFrameT
+    from narwhals._namespace import Namespace
     from narwhals._translate import ArrowStreamExportable, IntoArrowTable, ToNarwhalsT_co
+    from narwhals._typing import (
+        Backend,
+        IntoBackend,
+        _EagerAllowedImpl,
+        _LazyAllowedImpl,
+        _LazyFrameCollectImpl,
+    )
     from narwhals.dataframe import DataFrame, LazyFrame
     from narwhals.dtypes import DType
     from narwhals.series import Series
@@ -82,7 +90,6 @@ if TYPE_CHECKING:
         CompliantDataFrame,
         CompliantLazyFrame,
         CompliantSeries,
-        DataFrameLike,
         DTypes,
         IntoSeriesT,
         MultiIndexSelector,
@@ -96,6 +103,8 @@ if TYPE_CHECKING:
         _SliceName,
         _SliceNone,
     )
+
+    UnknownBackendName: TypeAlias = str
 
     FrameOrSeriesT = TypeVar(
         "FrameOrSeriesT", bound=Union[LazyFrame[Any], DataFrame[Any], Series[Any]]
@@ -341,9 +350,7 @@ class Implementation(NoAutoEnum):
         return mapping.get(native_namespace, Implementation.UNKNOWN)
 
     @classmethod
-    def from_string(
-        cls: type[Self], backend_name: str
-    ) -> Implementation:  # pragma: no cover
+    def from_string(cls: type[Self], backend_name: str) -> Implementation:
         """Instantiate Implementation object from a native namespace module.
 
         Arguments:
@@ -356,7 +363,7 @@ class Implementation(NoAutoEnum):
 
     @classmethod
     def from_backend(
-        cls: type[Self], backend: str | Implementation | ModuleType
+        cls: type[Self], backend: IntoBackend[Backend] | UnknownBackendName
     ) -> Implementation:
         """Instantiate from native namespace module, string, or Implementation.
 
@@ -1075,6 +1082,46 @@ def maybe_reset_index(obj: FrameOrSeriesT) -> FrameOrSeriesT:
     return obj_any
 
 
+if TYPE_CHECKING:
+    zip_strict = partial(zip, strict=True)
+else:
+    import sys
+
+    if sys.version_info >= (3, 10):
+        zip_strict = partial(zip, strict=True)
+    else:  # pragma: no cover
+        # https://stackoverflow.com/questions/32954486/zip-iterators-asserting-for-equal-length-in-python/69485272#69485272
+
+        def zip_strict(*iterables: Iterable[Any]) -> Iterable[tuple[Any, ...]]:
+            # For trivial cases, use pure zip.
+            if len(iterables) < 2:
+                return zip(*iterables)
+            # Tail for the first iterable
+            first_stopped = False
+
+            def first_tail() -> Any:
+                nonlocal first_stopped
+                first_stopped = True
+                return
+                yield
+
+            # Tail for the zip
+            def zip_tail() -> Any:
+                if not first_stopped:  # pragma: no cover
+                    msg = "zip_strict: first iterable is longer"
+                    raise ValueError(msg)
+                for _ in chain.from_iterable(rest):  # pragma: no cover
+                    msg = "zip_strict: first iterable is shorter"
+                    raise ValueError(msg)
+                    yield
+
+            # Put the pieces together
+            iterables_it = iter(iterables)
+            first = chain(next(iterables_it), first_tail())
+            rest = list(map(iter, iterables_it))
+            return chain(zip(first, *rest), zip_tail())
+
+
 def _is_range_index(obj: Any, native_namespace: Any) -> TypeIs[pd.RangeIndex]:
     return isinstance(obj, native_namespace.RangeIndex)
 
@@ -1575,8 +1622,8 @@ def is_compliant_dataframe(
 
 
 def is_compliant_lazyframe(
-    obj: CompliantLazyFrame[CompliantExprT, NativeFrameT_co, ToNarwhalsT_co] | Any,
-) -> TypeIs[CompliantLazyFrame[CompliantExprT, NativeFrameT_co, ToNarwhalsT_co]]:
+    obj: CompliantLazyFrame[CompliantExprT, NativeLazyFrameT, ToNarwhalsT_co] | Any,
+) -> TypeIs[CompliantLazyFrame[CompliantExprT, NativeLazyFrameT, ToNarwhalsT_co]]:
     return _hasattr_static(obj, "__narwhals_lazyframe__")
 
 
@@ -1598,22 +1645,37 @@ def is_compliant_expr(
     return hasattr(obj, "__narwhals_expr__")
 
 
-def is_eager_allowed(obj: Implementation) -> TypeIs[EagerAllowedImplementation]:
-    return obj in {
-        Implementation.PANDAS,
-        Implementation.MODIN,
+def is_eager_allowed(impl: Implementation, /) -> TypeIs[_EagerAllowedImpl]:
+    """Return True if `impl` allows eager operations."""
+    return impl in {
         Implementation.CUDF,
+        Implementation.MODIN,
+        Implementation.PANDAS,
         Implementation.POLARS,
         Implementation.PYARROW,
     }
 
 
+def can_lazyframe_collect(impl: Implementation, /) -> TypeIs[_LazyFrameCollectImpl]:
+    """Return True if `LazyFrame.collect(impl)` is allowed."""
+    return impl in {Implementation.PANDAS, Implementation.POLARS, Implementation.PYARROW}
+
+
+def is_lazy_allowed(impl: Implementation, /) -> TypeIs[_LazyAllowedImpl]:
+    """Return True if `DataFrame.lazy(impl)` is allowed."""
+    return impl in {
+        Implementation.DASK,
+        Implementation.DUCKDB,
+        Implementation.IBIS,
+        Implementation.POLARS,
+        Implementation.PYSPARK,
+        Implementation.PYSPARK_CONNECT,
+        Implementation.SQLFRAME,
+    }
+
+
 def has_native_namespace(obj: Any) -> TypeIs[SupportsNativeNamespace]:
     return _hasattr_static(obj, "__native_namespace__")
-
-
-def _supports_dataframe_interchange(obj: Any) -> TypeIs[DataFrameLike]:
-    return hasattr(obj, "__dataframe__")
 
 
 def supports_arrow_c_stream(obj: Any) -> TypeIs[ArrowStreamExportable]:

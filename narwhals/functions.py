@@ -4,7 +4,7 @@ import platform
 import sys
 from collections.abc import Iterable, Mapping, Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
     ExprKind,
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
     from narwhals._compliant import CompliantExpr, CompliantNamespace
     from narwhals._translate import IntoArrowTable
+    from narwhals._typing import Backend, EagerAllowed, IntoBackend
     from narwhals.dataframe import DataFrame, LazyFrame
     from narwhals.typing import (
         ConcatMethod,
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
         IntoDType,
         IntoExpr,
         IntoSchema,
-        NativeFrame,
+        NativeDataFrame,
         NativeLazyFrame,
         NativeSeries,
         NonNestedLiteral,
@@ -172,7 +173,7 @@ def new_series(
     values: Any,
     dtype: IntoDType | None = None,
     *,
-    backend: ModuleType | Implementation | str,
+    backend: IntoBackend[EagerAllowed],
 ) -> Series[Any]:
     """Instantiate Narwhals Series from iterable (e.g. list or array).
 
@@ -217,7 +218,7 @@ def _new_series_impl(
     values: Any,
     dtype: IntoDType | None = None,
     *,
-    backend: ModuleType | Implementation | str,
+    backend: IntoBackend[EagerAllowed],
 ) -> Series[Any]:
     implementation = Implementation.from_backend(backend)
     if is_eager_allowed(implementation):
@@ -247,7 +248,7 @@ def from_dict(
     data: Mapping[str, Any],
     schema: IntoSchema | None = None,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
 ) -> DataFrame[Any]:
     """Instantiate DataFrame from dictionary.
@@ -301,7 +302,9 @@ def from_dict(
         try:
             # implementation is UNKNOWN, Narwhals extension using this feature should
             # implement `from_dict` function in the top-level namespace.
-            native_frame: NativeFrame = _native_namespace.from_dict(data, schema=schema)
+            native_frame: NativeDataFrame = _native_namespace.from_dict(
+                data, schema=schema
+            )
         except AttributeError as e:
             msg = "Unknown namespace is expected to implement `from_dict` function."
             raise AttributeError(msg) from e
@@ -332,7 +335,7 @@ def from_numpy(
     data: _2DArray,
     schema: IntoSchema | Sequence[str] | None = None,
     *,
-    backend: ModuleType | Implementation | str,
+    backend: IntoBackend[EagerAllowed],
 ) -> DataFrame[Any]:
     """Construct a DataFrame from a NumPy ndarray.
 
@@ -397,7 +400,9 @@ def from_numpy(
         try:
             # implementation is UNKNOWN, Narwhals extension using this feature should
             # implement `from_numpy` function in the top-level namespace.
-            native_frame: NativeFrame = _native_namespace.from_numpy(data, schema=schema)
+            native_frame: NativeDataFrame = _native_namespace.from_numpy(
+                data, schema=schema
+            )
         except AttributeError as e:
             msg = "Unknown namespace is expected to implement `from_numpy` function."
             raise AttributeError(msg) from e
@@ -419,7 +424,7 @@ def _is_into_schema(obj: Any) -> TypeIs[_IntoSchema]:
 
 
 def from_arrow(
-    native_frame: IntoArrowTable, *, backend: ModuleType | Implementation | str
+    native_frame: IntoArrowTable, *, backend: IntoBackend[EagerAllowed]
 ) -> DataFrame[Any]:  # pragma: no cover
     """Construct a DataFrame from an object which supports the PyCapsule Interface.
 
@@ -470,7 +475,7 @@ def from_arrow(
         try:
             # implementation is UNKNOWN, Narwhals extension using this feature should
             # implement PyCapsule support
-            native: NativeFrame = _native_namespace.DataFrame(native_frame)
+            native: NativeDataFrame = _native_namespace.DataFrame(native_frame)
         except AttributeError as e:
             msg = "Unknown namespace is expected to implement `DataFrame` class which accepts object which supports PyCapsule Interface."
             raise AttributeError(msg) from e
@@ -561,7 +566,7 @@ def show_versions() -> None:
 
 
 def read_csv(
-    source: str, *, backend: ModuleType | Implementation | str, **kwargs: Any
+    source: str, *, backend: IntoBackend[EagerAllowed], **kwargs: Any
 ) -> DataFrame[Any]:
     """Read a CSV file into a DataFrame.
 
@@ -594,7 +599,7 @@ def read_csv(
     """
     impl = Implementation.from_backend(backend)
     native_namespace = impl.to_native_namespace()
-    native_frame: NativeFrame
+    native_frame: NativeDataFrame
     if impl in {
         Implementation.POLARS,
         Implementation.PANDAS,
@@ -631,7 +636,7 @@ def read_csv(
 
 
 def scan_csv(
-    source: str, *, backend: ModuleType | Implementation | str, **kwargs: Any
+    source: str, *, backend: IntoBackend[Backend], **kwargs: Any
 ) -> LazyFrame[Any]:
     """Lazily read from a CSV file.
 
@@ -670,7 +675,7 @@ def scan_csv(
     """
     implementation = Implementation.from_backend(backend)
     native_namespace = implementation.to_native_namespace()
-    native_frame: NativeFrame | NativeLazyFrame
+    native_frame: NativeDataFrame | NativeLazyFrame
     if implementation is Implementation.POLARS:
         native_frame = native_namespace.scan_csv(source, **kwargs)
     elif implementation in {
@@ -712,7 +717,7 @@ def scan_csv(
 
 
 def read_parquet(
-    source: str, *, backend: ModuleType | Implementation | str, **kwargs: Any
+    source: str, *, backend: IntoBackend[EagerAllowed], **kwargs: Any
 ) -> DataFrame[Any]:
     """Read into a DataFrame from a parquet file.
 
@@ -750,7 +755,7 @@ def read_parquet(
     """
     impl = Implementation.from_backend(backend)
     native_namespace = impl.to_native_namespace()
-    native_frame: NativeFrame
+    native_frame: NativeDataFrame
     if impl in {
         Implementation.POLARS,
         Implementation.PANDAS,
@@ -787,7 +792,7 @@ def read_parquet(
 
 
 def scan_parquet(
-    source: str, *, backend: ModuleType | Implementation | str, **kwargs: Any
+    source: str, *, backend: IntoBackend[Backend], **kwargs: Any
 ) -> LazyFrame[Any]:
     """Lazily read from a parquet file.
 
@@ -853,7 +858,7 @@ def scan_parquet(
     """
     implementation = Implementation.from_backend(backend)
     native_namespace = implementation.to_native_namespace()
-    native_frame: NativeFrame | NativeLazyFrame
+    native_frame: NativeDataFrame | NativeLazyFrame
     if implementation is Implementation.POLARS:
         native_frame = native_namespace.scan_parquet(source, **kwargs)
     elif implementation in {
@@ -1236,6 +1241,24 @@ def max(*columns: str) -> Expr:
     return col(*columns).max()
 
 
+def _expr_with_n_ary_op(
+    func_name: str,
+    operation_factory: Callable[
+        [CompliantNamespace[Any, Any]], Callable[..., CompliantExpr[Any, Any]]
+    ],
+    *exprs: IntoExpr,
+) -> Expr:
+    if not exprs:
+        msg = f"At least one expression must be passed to `{func_name}`"
+        raise ValueError(msg)
+    return Expr(
+        lambda plx: apply_n_ary_operation(
+            plx, operation_factory(plx), *exprs, str_as_lit=False
+        ),
+        ExprMetadata.from_horizontal_op(*exprs),
+    )
+
+
 def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
     """Sum all values horizontally across columns.
 
@@ -1270,15 +1293,8 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         |└─────┴──────┴─────┘|
         └────────────────────┘
     """
-    if not exprs:
-        msg = "At least one expression must be passed to `sum_horizontal`"
-        raise ValueError(msg)
-    flat_exprs = flatten(exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx, plx.sum_horizontal, *flat_exprs, str_as_lit=False
-        ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+    return _expr_with_n_ary_op(
+        "sum_horizontal", lambda plx: plx.sum_horizontal, *flatten(exprs)
     )
 
 
@@ -1314,15 +1330,8 @@ def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         | h_min: [[1,5,3]] |
         └──────────────────┘
     """
-    if not exprs:
-        msg = "At least one expression must be passed to `min_horizontal`"
-        raise ValueError(msg)
-    flat_exprs = flatten(exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx, plx.min_horizontal, *flat_exprs, str_as_lit=False
-        ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+    return _expr_with_n_ary_op(
+        "min_horizontal", lambda plx: plx.min_horizontal, *flatten(exprs)
     )
 
 
@@ -1360,15 +1369,8 @@ def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         |└─────┴──────┴───────┘|
         └──────────────────────┘
     """
-    if not exprs:
-        msg = "At least one expression must be passed to `max_horizontal`"
-        raise ValueError(msg)
-    flat_exprs = flatten(exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx, plx.max_horizontal, *flat_exprs, str_as_lit=False
-        ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+    return _expr_with_n_ary_op(
+        "max_horizontal", lambda plx: plx.max_horizontal, *flatten(exprs)
     )
 
 
@@ -1520,18 +1522,10 @@ def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
         └─────────────────────────────────────────┘
 
     """
-    if not exprs:
-        msg = "At least one expression must be passed to `all_horizontal`"
-        raise ValueError(msg)
-    flat_exprs = flatten(exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx,
-            partial(plx.all_horizontal, ignore_nulls=ignore_nulls),
-            *flat_exprs,
-            str_as_lit=False,
-        ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+    return _expr_with_n_ary_op(
+        "all_horizontal",
+        lambda plx: partial(plx.all_horizontal, ignore_nulls=ignore_nulls),
+        *flatten(exprs),
     )
 
 
@@ -1622,18 +1616,10 @@ def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
         |└───────┴───────┴───────┘|
         └─────────────────────────┘
     """
-    if not exprs:
-        msg = "At least one expression must be passed to `any_horizontal`"
-        raise ValueError(msg)
-    flat_exprs = flatten(exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx,
-            partial(plx.any_horizontal, ignore_nulls=ignore_nulls),
-            *flat_exprs,
-            str_as_lit=False,
-        ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+    return _expr_with_n_ary_op(
+        "any_horizontal",
+        lambda plx: partial(plx.any_horizontal, ignore_nulls=ignore_nulls),
+        *flatten(exprs),
     )
 
 
@@ -1667,15 +1653,8 @@ def mean_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         | a: [[2.5,6.5,3]] |
         └──────────────────┘
     """
-    if not exprs:
-        msg = "At least one expression must be passed to `mean_horizontal`"
-        raise ValueError(msg)
-    flat_exprs = flatten(exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx, plx.mean_horizontal, *flat_exprs, str_as_lit=False
-        ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+    return _expr_with_n_ary_op(
+        "mean_horizontal", lambda plx: plx.mean_horizontal, *flatten(exprs)
     )
 
 
@@ -1728,18 +1707,12 @@ def concat_str(
         └──────────────────┘
     """
     flat_exprs = flatten([*flatten([exprs]), *more_exprs])
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx,
-            lambda *args: plx.concat_str(
-                *args, separator=separator, ignore_nulls=ignore_nulls
-            ),
-            *flat_exprs,
-            str_as_lit=False,
+    return _expr_with_n_ary_op(
+        "concat_str",
+        lambda plx: lambda *args: plx.concat_str(
+            *args, separator=separator, ignore_nulls=ignore_nulls
         ),
-        combine_metadata(
-            *flat_exprs, str_as_lit=False, allow_multi_output=True, to_single_output=True
-        ),
+        *flat_exprs,
     )
 
 
@@ -1762,33 +1735,33 @@ def coalesce(
         A new expression.
 
     Examples:
-    >>> import polars as pl
-    >>> import narwhals as nw
-    >>> data = [
-    ...     (1, 5, None),
-    ...     (None, 6, None),
-    ...     (None, None, 9),
-    ...     (4, 8, 10),
-    ...     (None, None, None),
-    ... ]
-    >>> df = pl.DataFrame(data, schema=["a", "b", "c"], orient="row")
-    >>> nw.from_native(df).select(nw.coalesce("a", "b", "c", nw.lit(-1)))
-    ┌──────────────────┐
-    |Narwhals DataFrame|
-    |------------------|
-    |  shape: (5, 1)   |
-    |  ┌─────┐         |
-    |  │ a   │         |
-    |  │ --- │         |
-    |  │ i64 │         |
-    |  ╞═════╡         |
-    |  │ 1   │         |
-    |  │ 6   │         |
-    |  │ 9   │         |
-    |  │ 4   │         |
-    |  │ -1  │         |
-    |  └─────┘         |
-    └──────────────────┘
+        >>> import polars as pl
+        >>> import narwhals as nw
+        >>> data = [
+        ...     (1, 5, None),
+        ...     (None, 6, None),
+        ...     (None, None, 9),
+        ...     (4, 8, 10),
+        ...     (None, None, None),
+        ... ]
+        >>> df = pl.DataFrame(data, schema=["a", "b", "c"], orient="row")
+        >>> nw.from_native(df).select(nw.coalesce("a", "b", "c", nw.lit(-1)))
+        ┌──────────────────┐
+        |Narwhals DataFrame|
+        |------------------|
+        |  shape: (5, 1)   |
+        |  ┌─────┐         |
+        |  │ a   │         |
+        |  │ --- │         |
+        |  │ i64 │         |
+        |  ╞═════╡         |
+        |  │ 1   │         |
+        |  │ 6   │         |
+        |  │ 9   │         |
+        |  │ 4   │         |
+        |  │ -1  │         |
+        |  └─────┘         |
+        └──────────────────┘
     """
     flat_exprs = flatten([*flatten([exprs]), *more_exprs])
 

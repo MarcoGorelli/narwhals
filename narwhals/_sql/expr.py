@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# ruff: noqa: N806
 import operator as op
 from typing import TYPE_CHECKING, Any, Callable, Literal, Protocol
 
@@ -30,7 +29,13 @@ if TYPE_CHECKING:
     from narwhals._sql.expr_dt import SQLExprDateTimeNamesSpace
     from narwhals._sql.expr_str import SQLExprStringNamespace
     from narwhals._sql.namespace import SQLNamespace
-    from narwhals.typing import NumericLiteral, PythonLiteral, RankMethod, TemporalLiteral
+    from narwhals.typing import (
+        ModeKeepStrategy,
+        NumericLiteral,
+        PythonLiteral,
+        RankMethod,
+        TemporalLiteral,
+    )
 
 
 class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, NativeExprT]):
@@ -393,7 +398,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     # Aggregations
     def all(self) -> Self:
         def f(expr: NativeExprT) -> NativeExprT:
-            return self._coalesce(self._function("bool_and", expr), self._lit(True))  # noqa: FBT003
+            return self._coalesce(self._function("bool_and", expr), self._lit(True))
 
         def window_f(
             df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
@@ -403,7 +408,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
                     self._window_expression(
                         self._function("bool_and", expr), inputs.partition_by
                     ),
-                    self._lit(True),  # noqa: FBT003
+                    self._lit(True),
                 )
                 for expr in self(df)
             ]
@@ -412,7 +417,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     def any(self) -> Self:
         def f(expr: NativeExprT) -> NativeExprT:
-            return self._coalesce(self._function("bool_or", expr), self._lit(False))  # noqa: FBT003
+            return self._coalesce(self._function("bool_or", expr), self._lit(False))
 
         def window_f(
             df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
@@ -422,7 +427,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
                     self._window_expression(
                         self._function("bool_or", expr), inputs.partition_by
                     ),
-                    self._lit(False),  # noqa: FBT003
+                    self._lit(False),
                 )
                 for expr in self(df)
             ]
@@ -437,6 +442,12 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     def median(self) -> Self:
         return self._with_callable(lambda expr: self._function("median", expr))
+
+    def fill_nan(self, value: float | None) -> Self:
+        def _fill_nan(expr: NativeExprT) -> NativeExprT:
+            return self._when(self._function("isnan", expr), self._lit(value), expr)
+
+        return self._with_elementwise(_fill_nan)
 
     def min(self) -> Self:
         return self._with_callable(lambda expr: self._function("min", expr))
@@ -741,6 +752,16 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
             implementation=self._implementation,
         )
 
+    def mode(self, *, keep: ModeKeepStrategy) -> Self:
+        if keep != "any":
+            msg = (
+                f"`Expr.mode(keep='{keep}')` is not implemented for backend {self._implementation}\n\n"
+                "Hint: Use `nw.col(...).mode(keep='any')` instead."
+            )
+            raise NotImplementedError(msg)
+
+        return self._with_callable(lambda expr: self._function("mode", expr))
+
     # Namespaces
     @property
     def str(self) -> SQLExprStringNamespace[Self]: ...
@@ -759,7 +780,6 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     gather_every: not_implemented = not_implemented()
     head: not_implemented = not_implemented()
     map_batches: not_implemented = not_implemented()
-    mode: not_implemented = not_implemented()
     replace_strict: not_implemented = not_implemented()
     sort: not_implemented = not_implemented()
     tail: not_implemented = not_implemented()

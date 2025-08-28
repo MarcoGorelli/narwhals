@@ -59,8 +59,8 @@ from narwhals.stable.v1.dtypes import (
     UInt128,
     Unknown,
 )
+from narwhals.stable.v1.typing import IntoDataFrameT, IntoLazyFrameT
 from narwhals.translate import _from_native_impl, get_native_namespace, to_py_scalar
-from narwhals.typing import IntoDataFrameT, IntoFrameT
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
@@ -69,13 +69,21 @@ if TYPE_CHECKING:
     from typing_extensions import ParamSpec, Self
 
     from narwhals._translate import IntoArrowTable
+    from narwhals._typing import (
+        Arrow,
+        Backend,
+        EagerAllowed,
+        IntoBackend,
+        LazyAllowed,
+        Pandas,
+        Polars,
+    )
     from narwhals.dataframe import MultiColSelector, MultiIndexSelector
     from narwhals.dtypes import DType
     from narwhals.typing import (
         IntoDType,
         IntoExpr,
         IntoFrame,
-        IntoLazyFrameT,
         IntoSeries,
         NonNestedLiteral,
         SingleColSelector,
@@ -94,7 +102,8 @@ if TYPE_CHECKING:
 IntoSeriesT = TypeVar("IntoSeriesT", bound="IntoSeries", default=Any)
 
 
-class DataFrame(NwDataFrame[IntoDataFrameT]):
+# NOTE legit
+class DataFrame(NwDataFrame[IntoDataFrameT]):  # type: ignore[type-var]
     _version = Version.V1
 
     @inherit_doc(NwDataFrame)
@@ -107,7 +116,7 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
 
     @classmethod
     def from_arrow(
-        cls, native_frame: IntoArrowTable, *, backend: ModuleType | Implementation | str
+        cls, native_frame: IntoArrowTable, *, backend: IntoBackend[EagerAllowed]
     ) -> DataFrame[Any]:
         result = super().from_arrow(native_frame, backend=backend)
         return cast("DataFrame[Any]", result)
@@ -118,7 +127,7 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
         data: Mapping[str, Any],
         schema: Mapping[str, DType] | Schema | None = None,
         *,
-        backend: ModuleType | Implementation | str | None = None,
+        backend: IntoBackend[EagerAllowed] | None = None,
     ) -> DataFrame[Any]:
         result = super().from_dict(data, schema, backend=backend)
         return cast("DataFrame[Any]", result)
@@ -129,7 +138,7 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
         data: _2DArray,
         schema: Mapping[str, DType] | Schema | Sequence[str] | None = None,
         *,
-        backend: ModuleType | Implementation | str,
+        backend: IntoBackend[EagerAllowed],
     ) -> DataFrame[Any]:
         result = super().from_numpy(data, schema, backend=backend)
         return cast("DataFrame[Any]", result)
@@ -182,9 +191,12 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
         return super().get_column(name)  # type: ignore[return-value]
 
     def lazy(
-        self, backend: ModuleType | Implementation | str | None = None
+        self,
+        backend: IntoBackend[LazyAllowed] | None = None,
+        *,
+        session: Any | None = None,
     ) -> LazyFrame[Any]:
-        return _stableify(super().lazy(backend=backend))
+        return _stableify(super().lazy(backend=backend, session=session))
 
     @overload  # type: ignore[override]
     def to_dict(self, *, as_series: Literal[True] = ...) -> dict[str, Series[Any]]: ...
@@ -212,7 +224,7 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
         return self.select(all()._l1_norm())
 
 
-class LazyFrame(NwLazyFrame[IntoFrameT]):
+class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
     @inherit_doc(NwLazyFrame)
     def __init__(self, df: Any, *, level: Literal["full", "lazy", "interchange"]) -> None:
         assert df._version is Version.V1  # noqa: S101
@@ -251,7 +263,7 @@ class LazyFrame(NwLazyFrame[IntoFrameT]):
         raise InvalidIntoExprError.from_invalid_type(type(arg))
 
     def collect(
-        self, backend: ModuleType | Implementation | str | None = None, **kwargs: Any
+        self, backend: IntoBackend[Polars | Pandas | Arrow] | None = None, **kwargs: Any
     ) -> DataFrame[Any]:
         return _stableify(super().collect(backend=backend, **kwargs))
 
@@ -306,9 +318,21 @@ class Series(NwSeries[IntoSeriesT]):
         values: _1DArray,
         dtype: IntoDType | None = None,
         *,
-        backend: ModuleType | Implementation | str,
+        backend: IntoBackend[EagerAllowed],
     ) -> Series[Any]:
         result = super().from_numpy(name, values, dtype, backend=backend)
+        return cast("Series[Any]", result)
+
+    @classmethod
+    def from_iterable(
+        cls,
+        name: str,
+        values: Iterable[Any],
+        dtype: IntoDType | None = None,
+        *,
+        backend: IntoBackend[EagerAllowed],
+    ) -> Series[Any]:
+        result = super().from_iterable(name, values, dtype, backend=backend)
         return cast("Series[Any]", result)
 
     @property
@@ -451,9 +475,9 @@ class Schema(NwSchema):
 
 
 @overload
-def _stableify(obj: NwDataFrame[IntoFrameT]) -> DataFrame[IntoFrameT]: ...
+def _stableify(obj: NwDataFrame[IntoDataFrameT]) -> DataFrame[IntoDataFrameT]: ...  # type: ignore[type-var]
 @overload
-def _stableify(obj: NwLazyFrame[IntoFrameT]) -> LazyFrame[IntoFrameT]: ...
+def _stableify(obj: NwLazyFrame[IntoLazyFrameT]) -> LazyFrame[IntoLazyFrameT]: ...
 @overload
 def _stableify(obj: NwSeries[IntoSeriesT]) -> Series[IntoSeriesT]: ...
 @overload
@@ -461,11 +485,11 @@ def _stableify(obj: NwExpr) -> Expr: ...
 
 
 def _stableify(
-    obj: NwDataFrame[IntoFrameT]
-    | NwLazyFrame[IntoFrameT]
+    obj: NwDataFrame[IntoDataFrameT]  # type: ignore[type-var]
+    | NwLazyFrame[IntoLazyFrameT]
     | NwSeries[IntoSeriesT]
     | NwExpr,
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT] | Series[IntoSeriesT] | Expr:
+) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT] | Series[IntoSeriesT] | Expr:
     if isinstance(obj, NwDataFrame):
         return DataFrame(obj._compliant_frame._with_version(Version.V1), level=obj._level)
     if isinstance(obj, NwLazyFrame):
@@ -569,14 +593,14 @@ def from_native(
 
 @overload
 def from_native(
-    native_object: IntoFrameT | IntoSeriesT,
+    native_object: IntoDataFrameT | IntoLazyFrameT | IntoSeriesT,
     *,
     strict: Literal[False],
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
     allow_series: Literal[True],
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT] | Series[IntoSeriesT]: ...
+) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT] | Series[IntoSeriesT]: ...
 
 
 @overload
@@ -593,14 +617,26 @@ def from_native(
 
 @overload
 def from_native(
-    native_object: IntoFrameT,
+    native_object: IntoDataFrameT,
     *,
     strict: Literal[False],
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
     allow_series: None = ...,
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT]: ...
+) -> DataFrame[IntoDataFrameT]: ...
+
+
+@overload
+def from_native(
+    native_object: IntoLazyFrameT,
+    *,
+    strict: Literal[False],
+    eager_only: Literal[False] = ...,
+    eager_or_interchange_only: Literal[False] = ...,
+    series_only: Literal[False] = ...,
+    allow_series: None = ...,
+) -> LazyFrame[IntoLazyFrameT]: ...
 
 
 @overload
@@ -619,7 +655,7 @@ def from_native(
 def from_native(
     native_object: IntoDataFrameT,
     *,
-    strict: Literal[True] = ...,
+    strict: Literal[True] | None = ...,
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[True],
     series_only: Literal[False] = ...,
@@ -629,9 +665,21 @@ def from_native(
 
 @overload
 def from_native(
+    native_object: IntoLazyFrameT,
+    *,
+    strict: Literal[True] | None = ...,
+    eager_only: Literal[False] = ...,
+    eager_or_interchange_only: Literal[False] = ...,
+    series_only: Literal[False] = ...,
+    allow_series: None = ...,
+) -> LazyFrame[IntoLazyFrameT]: ...
+
+
+@overload
+def from_native(
     native_object: IntoDataFrameT,
     *,
-    strict: Literal[True] = ...,
+    strict: Literal[True] | None = ...,
     eager_only: Literal[True],
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
@@ -643,7 +691,7 @@ def from_native(
 def from_native(
     native_object: IntoFrame | IntoSeries,
     *,
-    strict: Literal[True] = ...,
+    strict: Literal[True] | None = ...,
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
@@ -655,7 +703,7 @@ def from_native(
 def from_native(
     native_object: IntoSeriesT,
     *,
-    strict: Literal[True] = ...,
+    strict: Literal[True] | None = ...,
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[True],
@@ -665,27 +713,14 @@ def from_native(
 
 @overload
 def from_native(
-    native_object: IntoLazyFrameT,
+    native_object: IntoDataFrameT,
     *,
-    strict: Literal[True] = ...,
+    strict: Literal[True] | None = ...,
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
     allow_series: None = ...,
-) -> LazyFrame[IntoLazyFrameT]: ...
-
-
-# NOTE: `pl.LazyFrame` originally matched here
-@overload
-def from_native(
-    native_object: IntoFrameT,
-    *,
-    strict: Literal[True] = ...,
-    eager_only: Literal[False] = ...,
-    eager_or_interchange_only: Literal[False] = ...,
-    series_only: Literal[False] = ...,
-    allow_series: None = ...,
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT]: ...
+) -> DataFrame[IntoDataFrameT]: ...
 
 
 @overload
@@ -762,14 +797,14 @@ def from_native(
 
 @overload
 def from_native(
-    native_object: IntoFrameT | IntoSeriesT,
+    native_object: IntoDataFrameT | IntoLazyFrameT | IntoSeriesT,
     *,
     pass_through: Literal[True],
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
     allow_series: Literal[True],
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT] | Series[IntoSeriesT]: ...
+) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT] | Series[IntoSeriesT]: ...
 
 
 @overload
@@ -786,14 +821,14 @@ def from_native(
 
 @overload
 def from_native(
-    native_object: IntoFrameT,
+    native_object: IntoDataFrameT | IntoLazyFrameT,
     *,
     pass_through: Literal[True],
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
     allow_series: None = ...,
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT]: ...
+) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT]: ...
 
 
 @overload
@@ -858,14 +893,26 @@ def from_native(
 
 @overload
 def from_native(
-    native_object: IntoFrameT,
+    native_object: IntoDataFrameT,
     *,
     pass_through: Literal[False] = ...,
     eager_only: Literal[False] = ...,
     eager_or_interchange_only: Literal[False] = ...,
     series_only: Literal[False] = ...,
     allow_series: None = ...,
-) -> DataFrame[IntoFrameT] | LazyFrame[IntoFrameT]: ...
+) -> DataFrame[IntoDataFrameT]: ...
+
+
+@overload
+def from_native(
+    native_object: IntoLazyFrameT,
+    *,
+    pass_through: Literal[False] = ...,
+    eager_only: Literal[False] = ...,
+    eager_or_interchange_only: Literal[False] = ...,
+    series_only: Literal[False] = ...,
+    allow_series: None = ...,
+) -> LazyFrame[IntoLazyFrameT]: ...
 
 
 # All params passed in as variables
@@ -882,7 +929,12 @@ def from_native(
 
 
 def from_native(
-    native_object: IntoFrameT | IntoFrame | IntoSeriesT | IntoSeries | T,
+    native_object: IntoDataFrameT
+    | IntoLazyFrameT
+    | IntoFrame
+    | IntoSeriesT
+    | IntoSeries
+    | T,
     *,
     strict: bool | None = None,
     pass_through: bool | None = None,
@@ -891,7 +943,7 @@ def from_native(
     series_only: bool = False,
     allow_series: bool | None = None,
     **kwds: Any,
-) -> LazyFrame[IntoFrameT] | DataFrame[IntoFrameT] | Series[IntoSeriesT] | T:
+) -> LazyFrame[IntoLazyFrameT] | DataFrame[IntoDataFrameT] | Series[IntoSeriesT] | T:
     """Convert `native_object` to Narwhals Dataframe, Lazyframe, or Series.
 
     See `narwhals.from_native` for full docstring. Note that `native_namespace` is
@@ -928,8 +980,8 @@ def to_native(
 ) -> IntoDataFrameT: ...
 @overload
 def to_native(
-    narwhals_object: LazyFrame[IntoFrameT], *, strict: Literal[True] = ...
-) -> IntoFrameT: ...
+    narwhals_object: LazyFrame[IntoLazyFrameT], *, strict: Literal[True] = ...
+) -> IntoLazyFrameT: ...
 @overload
 def to_native(
     narwhals_object: Series[IntoSeriesT], *, strict: Literal[True] = ...
@@ -942,8 +994,8 @@ def to_native(
 ) -> IntoDataFrameT: ...
 @overload
 def to_native(
-    narwhals_object: LazyFrame[IntoFrameT], *, pass_through: Literal[False] = ...
-) -> IntoFrameT: ...
+    narwhals_object: LazyFrame[IntoLazyFrameT], *, pass_through: Literal[False] = ...
+) -> IntoLazyFrameT: ...
 @overload
 def to_native(
     narwhals_object: Series[IntoSeriesT], *, pass_through: Literal[False] = ...
@@ -954,12 +1006,12 @@ def to_native(narwhals_object: Any, *, pass_through: bool) -> Any: ...
 
 def to_native(
     narwhals_object: DataFrame[IntoDataFrameT]
-    | LazyFrame[IntoFrameT]
+    | LazyFrame[IntoLazyFrameT]
     | Series[IntoSeriesT],
     *,
     strict: bool | None = None,
     pass_through: bool | None = None,
-) -> IntoFrameT | IntoSeriesT | Any:
+) -> IntoLazyFrameT | IntoDataFrameT | IntoSeriesT | Any:
     """Convert Narwhals object to native one.
 
     See `narwhals.to_native` for full docstring. Note that `native_namespace` is
@@ -1177,7 +1229,7 @@ def new_series(
     values: Any,
     dtype: IntoDType | None = None,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
 ) -> Series[Any]:
     """Instantiate Narwhals Series from iterable (e.g. list or array).
@@ -1186,7 +1238,7 @@ def new_series(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[EagerAllowed]", backend)
     return _stableify(_new_series_impl(name, values, dtype, backend=backend))
 
 
@@ -1194,7 +1246,7 @@ def new_series(
 def from_arrow(
     native_frame: IntoArrowTable,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
 ) -> DataFrame[Any]:
     """Construct a DataFrame from an object which supports the PyCapsule Interface.
@@ -1203,7 +1255,7 @@ def from_arrow(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[EagerAllowed]", backend)
     return _stableify(nw_f.from_arrow(native_frame, backend=backend))
 
 
@@ -1212,7 +1264,7 @@ def from_dict(
     data: Mapping[str, Any],
     schema: Mapping[str, DType] | Schema | None = None,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
 ) -> DataFrame[Any]:
     """Instantiate DataFrame from dictionary.
@@ -1229,7 +1281,7 @@ def from_numpy(
     data: _2DArray,
     schema: Mapping[str, DType] | Schema | Sequence[str] | None = None,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
 ) -> DataFrame[Any]:
     """Construct a DataFrame from a NumPy ndarray.
@@ -1238,7 +1290,7 @@ def from_numpy(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[EagerAllowed]", backend)
     return _stableify(nw_f.from_numpy(data, schema, backend=backend))
 
 
@@ -1246,7 +1298,7 @@ def from_numpy(
 def read_csv(
     source: str,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
     **kwargs: Any,
 ) -> DataFrame[Any]:
@@ -1256,7 +1308,7 @@ def read_csv(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[EagerAllowed]", backend)
     return _stableify(nw_f.read_csv(source, backend=backend, **kwargs))
 
 
@@ -1264,7 +1316,7 @@ def read_csv(
 def scan_csv(
     source: str,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[Backend] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
     **kwargs: Any,
 ) -> LazyFrame[Any]:
@@ -1274,7 +1326,7 @@ def scan_csv(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[Backend]", backend)
     return _stableify(nw_f.scan_csv(source, backend=backend, **kwargs))
 
 
@@ -1282,7 +1334,7 @@ def scan_csv(
 def read_parquet(
     source: str,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[EagerAllowed] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
     **kwargs: Any,
 ) -> DataFrame[Any]:
@@ -1292,7 +1344,7 @@ def read_parquet(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[EagerAllowed]", backend)
     return _stableify(nw_f.read_parquet(source, backend=backend, **kwargs))
 
 
@@ -1300,7 +1352,7 @@ def read_parquet(
 def scan_parquet(
     source: str,
     *,
-    backend: ModuleType | Implementation | str | None = None,
+    backend: IntoBackend[Backend] | None = None,
     native_namespace: ModuleType | None = None,  # noqa: ARG001
     **kwargs: Any,
 ) -> LazyFrame[Any]:
@@ -1310,7 +1362,7 @@ def scan_parquet(
     an is the same as `backend` but only accepts module types - for new code, we
     recommend using `backend`, as that's available beyond just `narwhals.stable.v1`.
     """
-    backend = cast("ModuleType | Implementation | str", backend)
+    backend = cast("IntoBackend[Backend]", backend)
     return _stableify(nw_f.scan_parquet(source, backend=backend, **kwargs))
 
 

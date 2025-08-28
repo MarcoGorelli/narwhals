@@ -28,7 +28,7 @@ from narwhals.expr_struct import ExprStructNamespace
 from narwhals.translate import to_native
 
 if TYPE_CHECKING:
-    from typing import TypeVar
+    from typing import NoReturn, TypeVar
 
     from typing_extensions import Concatenate, ParamSpec, Self, TypeAlias
 
@@ -39,11 +39,13 @@ if TYPE_CHECKING:
         FillNullStrategy,
         IntoDType,
         IntoExpr,
+        ModeKeepStrategy,
         NonNestedLiteral,
         NumericLiteral,
         RankMethod,
         RollingInterpolationMethod,
         TemporalLiteral,
+        _1DArray,
     )
 
     PS = ParamSpec("PS")
@@ -214,6 +216,37 @@ class Expr:
             "__xor__": "^",
         }
         return op_symbols.get(name, f".{name}()")
+
+    def _with_nary(
+        self,
+        n_ary_function: Callable[..., Any],
+        *args: IntoExpr | NonNestedLiteral | _1DArray,
+    ) -> Self:
+        return self.__class__(
+            lambda plx: apply_n_ary_operation(
+                plx, n_ary_function, self, *args, str_as_lit=False
+            ),
+            combine_metadata(
+                self,
+                *args,
+                str_as_lit=False,
+                allow_multi_output=False,
+                to_single_output=False,
+            ),
+        )
+
+    def __bool__(self) -> NoReturn:
+        msg = (
+            f"the truth value of {type(self)} is ambiguous"
+            "\n\n"
+            "You probably got here by using a Python standard library function instead "
+            "of the native expressions API.\n"
+            "Here are some things you might want to try:\n"
+            "- instead of `nw.col('a') and nw.col('b')`, use `nw.col('a') & nw.col('b')`\n"
+            "- instead of `nw.col('a') in [y, z]`, use `nw.col('a').is_in([y, z])`\n"
+            "- instead of `max(nw.col('a'), nw.col('b'))`, use `nw.max_horizontal(nw.col('a'), nw.col('b'))`\n"
+        )
+        raise TypeError(msg)
 
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
@@ -632,6 +665,8 @@ class Expr:
         self,
         function: Callable[[Any], CompliantExpr[Any, Any]],
         return_dtype: DType | None = None,
+        *,
+        returns_scalar: bool = False,
     ) -> Self:
         """Apply a custom python function to a whole Series or sequence of Series.
 
@@ -644,6 +679,10 @@ class Expr:
             return_dtype: Dtype of the output Series.
                 If not set, the dtype will be inferred based on the first non-null value
                 that is returned by the function.
+            returns_scalar: If the function returns a scalar, by default it will be wrapped
+                in a list in the output, since the assumption is that the function always
+                returns something Series-like.
+                If you want to keep the result as a scalar, set this argument to True.
 
         Examples:
             >>> import pandas as pd
@@ -664,12 +703,18 @@ class Expr:
             |2  3  6       4.0       7.0|
             └───────────────────────────┘
         """
-        # safest assumptions
-        return self._with_orderable_filtration(
-            lambda plx: self._to_compliant_expr(plx).map_batches(
-                function=function, return_dtype=return_dtype
+
+        def compliant_expr(plx: Any) -> Any:
+            return self._to_compliant_expr(plx).map_batches(
+                function=function,
+                return_dtype=return_dtype,
+                returns_scalar=returns_scalar,
             )
-        )
+
+        if returns_scalar:
+            return self._with_orderable_aggregation(compliant_expr)
+        # safest assumptions
+        return self._with_orderable_filtration(compliant_expr)
 
     @with_aggregation
     def skew(self) -> Self:
@@ -1060,24 +1105,10 @@ class Expr:
             |   4  5  False    |
             └──────────────────┘
         """
-        metadata = combine_metadata(
-            self,
+        return self._with_nary(
+            lambda expr, lb, ub: expr.is_between(lb, ub, closed=closed),
             lower_bound,
             upper_bound,
-            str_as_lit=False,
-            allow_multi_output=False,
-            to_single_output=False,
-        )
-        return self.__class__(
-            lambda plx: apply_n_ary_operation(
-                plx,
-                lambda slf, lb, ub: slf.is_between(lb, ub, closed=closed),
-                self,
-                lower_bound,
-                upper_bound,
-                str_as_lit=False,
-            ),
-            metadata,
         )
 
     @with_elementwise
@@ -1163,8 +1194,7 @@ class Expr:
 
         Notes:
             pandas handles null values differently from Polars and PyArrow.
-            See [null_handling](../concepts/null_handling.md/)
-            for reference.
+            See [null_handling](../concepts/null_handling.md/) for reference.
 
         Examples:
             >>> import duckdb
@@ -1196,8 +1226,7 @@ class Expr:
 
         Notes:
             pandas handles null values differently from Polars and PyArrow.
-            See [null_handling](../concepts/null_handling.md/)
-            for reference.
+            See [null_handling](../concepts/null_handling.md/) for reference.
 
         Examples:
             >>> import duckdb
@@ -1319,14 +1348,48 @@ class Expr:
             else self._metadata,
         )
 
+    def fill_nan(self, value: float | None) -> Self:
+        """Fill floating point NaN values with given value.
+
+        Arguments:
+            value: Value used to fill NaN values.
+
+        Notes:
+            This function only fills `'NaN'` values, not null ones, except for pandas
+            which doesn't distinguish between them.
+            See [null_handling](../concepts/null_handling.md/) for reference.
+
+        Examples:
+            >>> import duckdb
+            >>> import narwhals as nw
+            >>> df_native = duckdb.sql(
+            ...     "SELECT * FROM VALUES (5.::DOUBLE, 50.::DOUBLE), ('NaN', null) df(a, b)"
+            ... )
+            >>> df = nw.from_native(df_native)
+            >>> df.with_columns(nw.col("a", "b").fill_nan(0).name.suffix("_nans_filled"))
+            ┌───────────────────────────────────────────────────┐
+            |                Narwhals LazyFrame                 |
+            |---------------------------------------------------|
+            |┌────────┬────────┬───────────────┬───────────────┐|
+            |│   a    │   b    │ a_nans_filled │ b_nans_filled │|
+            |│ double │ double │    double     │    double     │|
+            |├────────┼────────┼───────────────┼───────────────┤|
+            |│    5.0 │   50.0 │           5.0 │          50.0 │|
+            |│    nan │   NULL │           0.0 │          NULL │|
+            |└────────┴────────┴───────────────┴───────────────┘|
+            └───────────────────────────────────────────────────┘
+        """
+        return self.__class__(
+            lambda plx: self._to_compliant_expr(plx).fill_nan(value), self._metadata
+        )
+
     # --- partial reduction ---
     def drop_nulls(self) -> Self:
         """Drop null values.
 
         Notes:
             pandas handles null values differently from Polars and PyArrow.
-            See [null_handling](../concepts/null_handling.md/)
-            for reference.
+            See [null_handling](../concepts/null_handling.md/) for reference.
 
         Examples:
             >>> import polars as pl
@@ -1468,8 +1531,7 @@ class Expr:
 
         Notes:
             pandas handles null values differently from Polars and PyArrow.
-            See [null_handling](../concepts/null_handling.md/)
-            for reference.
+            See [null_handling](../concepts/null_handling.md/) for reference.
 
         Examples:
             >>> import pandas as pd
@@ -1665,32 +1727,23 @@ class Expr:
             | 2  3          3  |
             └──────────────────┘
         """
-        return self.__class__(
-            lambda plx: apply_n_ary_operation(
-                plx,
-                lambda *exprs: exprs[0].clip(
-                    exprs[1] if lower_bound is not None else None,
-                    exprs[2] if upper_bound is not None else None,
-                ),
-                self,
-                lower_bound,
-                upper_bound,
-                str_as_lit=False,
+        return self._with_nary(
+            lambda *exprs: exprs[0].clip(
+                exprs[1] if lower_bound is not None else None,
+                exprs[2] if upper_bound is not None else None,
             ),
-            combine_metadata(
-                self,
-                lower_bound,
-                upper_bound,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-            ),
+            lower_bound,
+            upper_bound,
         )
 
-    def mode(self) -> Self:
+    def mode(self, *, keep: ModeKeepStrategy = "all") -> Self:
         r"""Compute the most occurring value(s).
 
         Can return multiple values.
+
+        Arguments:
+            keep: Whether to keep all modes or any mode found. Remark that `keep='any'`
+                is not deterministic for multimodal values.
 
         Examples:
             >>> import pandas as pd
@@ -1705,7 +1758,17 @@ class Expr:
             |       0  1       |
             └──────────────────┘
         """
-        return self._with_filtration(lambda plx: self._to_compliant_expr(plx).mode())
+        _supported_keep_values = ("all", "any")
+        if keep not in _supported_keep_values:  # pragma: no cover
+            msg = f"`keep` must be one of {_supported_keep_values}, found '{keep}'"
+            raise ValueError(msg)
+
+        def compliant_expr(plx: Any) -> Any:
+            return self._to_compliant_expr(plx).mode(keep=keep)
+
+        if keep == "any":
+            return self._with_aggregation(compliant_expr)
+        return self._with_filtration(compliant_expr)
 
     @with_elementwise
     def is_finite(self) -> Self:
@@ -1713,8 +1776,7 @@ class Expr:
 
         Warning:
             pandas handles null values differently from Polars and PyArrow.
-            See [null_handling](../concepts/null_handling.md/)
-            for reference.
+            See [null_handling](../concepts/null_handling.md/) for reference.
             `is_finite` will return False for NaN and Null's in the Dask and
             pandas non-nullable backend, while for Polars, PyArrow and pandas
             nullable backends null values are kept as such.
@@ -2313,21 +2375,8 @@ class Expr:
             raise ComputeError(msg)
 
         kwargs = {"abs_tol": abs_tol, "rel_tol": rel_tol, "nans_equal": nans_equal}
-        return self.__class__(
-            lambda plx: apply_n_ary_operation(
-                plx,
-                lambda *exprs: exprs[0].is_close(exprs[1], **kwargs),
-                self,
-                other,
-                str_as_lit=False,
-            ),
-            combine_metadata(
-                self,
-                other,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-            ),
+        return self._with_nary(
+            lambda *exprs: exprs[0].is_close(exprs[1], **kwargs), other
         )
 
     @property

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from narwhals._polars.dataframe import Method, PolarsDataFrame
     from narwhals._polars.namespace import PolarsNamespace
     from narwhals._utils import Version, _LimitedContext
-    from narwhals.typing import IntoDType, NumericLiteral
+    from narwhals.typing import IntoDType, ModeKeepStrategy, NumericLiteral
 
 
 class PolarsExpr:
@@ -149,14 +149,22 @@ class PolarsExpr:
         return self._with_native(native)
 
     def map_batches(
-        self, function: Callable[[Any], Any], return_dtype: IntoDType | None
+        self,
+        function: Callable[[Any], Any],
+        return_dtype: IntoDType | None,
+        *,
+        returns_scalar: bool,
     ) -> Self:
+        pl_version = self._backend_version
         return_dtype_pl = (
             narwhals_to_native_dtype(return_dtype, self._version)
-            if return_dtype
+            if return_dtype is not None
             else None
+            if pl_version < (1, 32)
+            else pl.self_dtype()
         )
-        native = self.native.map_batches(function, return_dtype_pl)
+        kwargs = {} if pl_version < (0, 20, 31) else {"returns_scalar": returns_scalar}
+        native = self.native.map_batches(function, return_dtype_pl, **kwargs)
         return self._with_native(native)
 
     @requires.backend_version((1,))
@@ -272,6 +280,10 @@ class PolarsExpr:
             )
         return self._with_native(result)
 
+    def mode(self, *, keep: ModeKeepStrategy) -> Self:
+        result = self.native.mode()
+        return self._with_native(result.first() if keep == "any" else result)
+
     @property
     def dt(self) -> PolarsExprDateTimeNamespace:
         return PolarsExprDateTimeNamespace(self)
@@ -341,6 +353,7 @@ class PolarsExpr:
     drop_nulls: Method[Self]
     exp: Method[Self]
     fill_null: Method[Self]
+    fill_nan: Method[Self]
     gather_every: Method[Self]
     head: Method[Self]
     is_between: Method[Self]
@@ -358,7 +371,6 @@ class PolarsExpr:
     mean: Method[Self]
     median: Method[Self]
     min: Method[Self]
-    mode: Method[Self]
     n_unique: Method[Self]
     null_count: Method[Self]
     quantile: Method[Self]

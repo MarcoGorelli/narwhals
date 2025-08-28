@@ -6,6 +6,8 @@ import polars as pl
 
 from narwhals._polars.utils import (
     BACKEND_VERSION,
+    SERIES_ACCEPTS_PD_INDEX,
+    SERIES_RESPECTS_DTYPE,
     PolarsAnyNamespace,
     PolarsCatNamespace,
     PolarsDateTimeNamespace,
@@ -19,7 +21,7 @@ from narwhals._polars.utils import (
     native_to_narwhals_dtype,
 )
 from narwhals._utils import Implementation, requires
-from narwhals.dependencies import is_numpy_array_1d
+from narwhals.dependencies import is_numpy_array_1d, is_pandas_index
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
     from narwhals.typing import (
         Into1DArray,
         IntoDType,
+        ModeKeepStrategy,
         MultiIndexSelector,
         NonNestedLiteral,
         NumericLiteral,
@@ -48,6 +51,7 @@ if TYPE_CHECKING:
     T = TypeVar("T")
     IncludeBreakpoint: TypeAlias = Literal[False, True]
 
+Incomplete: TypeAlias = Any
 
 # Series methods where PolarsSeries just defers to Polars.Series directly.
 INHERITED_METHODS = frozenset(
@@ -87,6 +91,7 @@ INHERITED_METHODS = frozenset(
         "drop_nulls",
         "exp",
         "fill_null",
+        "fill_nan",
         "filter",
         "gather_every",
         "head",
@@ -180,9 +185,15 @@ class PolarsSeries:
     ) -> Self:
         version = context._version
         dtype_pl = narwhals_to_native_dtype(dtype, version) if dtype else None
-        # NOTE: `Iterable` is fine, annotation is overly narrow
-        # https://github.com/pola-rs/polars/blob/82d57a4ee41f87c11ca1b1af15488459727efdd7/py-polars/polars/series/series.py#L332-L333
-        native = pl.Series(name=name, values=cast("Sequence[Any]", data), dtype=dtype_pl)
+        values: Incomplete = data
+        if SERIES_RESPECTS_DTYPE:
+            native = pl.Series(name, values, dtype=dtype_pl)
+        else:  # pragma: no cover
+            if (not SERIES_ACCEPTS_PD_INDEX) and is_pandas_index(values):
+                values = values.to_series()
+            native = pl.Series(name, values)
+            if dtype_pl:
+                native = native.cast(dtype_pl)
         return cls.from_native(native, context=context)
 
     @staticmethod
@@ -509,6 +520,10 @@ class PolarsSeries:
         )
         return self._with_native(result)
 
+    def mode(self, *, keep: ModeKeepStrategy) -> Self:
+        result = self.native.mode()
+        return self._with_native(result.head(1) if keep == "any" else result)
+
     def hist_from_bins(
         self, bins: list[float], *, include_breakpoint: bool
     ) -> PolarsDataFrame:
@@ -565,8 +580,6 @@ class PolarsSeries:
         returns bins that range from -inf to +inf and has bin_count + 1 bins.
           for compat: convert `bin_count=` call to `bins=`
         """
-        from typing import cast
-
         lower = cast("float", self.native.min())
         upper = cast("float", self.native.max())
 
@@ -675,6 +688,7 @@ class PolarsSeries:
     drop_nulls: Method[Self]
     exp: Method[Self]
     fill_null: Method[Self]
+    fill_nan: Method[Self]
     filter: Method[Self]
     gather_every: Method[Self]
     head: Method[Self]
@@ -695,7 +709,6 @@ class PolarsSeries:
     max: Method[Any]
     mean: Method[float]
     min: Method[Any]
-    mode: Method[Self]
     n_unique: Method[int]
     null_count: Method[int]
     quantile: Method[float]

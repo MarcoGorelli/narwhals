@@ -11,7 +11,9 @@ from narwhals._compliant.typing import (
     CompliantSeriesT,
     EagerExprT,
     EagerSeriesT,
+    NativeDataFrameT,
     NativeFrameT,
+    NativeLazyFrameT,
     NativeSeriesT,
 )
 from narwhals._translate import (
@@ -48,7 +50,9 @@ if TYPE_CHECKING:
 
     from narwhals._compliant.group_by import CompliantGroupBy, DataFrameGroupBy
     from narwhals._compliant.namespace import EagerNamespace
+    from narwhals._spark_like.utils import SparkSession
     from narwhals._translate import IntoArrowTable
+    from narwhals._typing import _EagerAllowedImpl, _LazyAllowedImpl
     from narwhals._utils import Implementation, _LimitedContext
     from narwhals.dataframe import DataFrame
     from narwhals.dtypes import DType
@@ -152,9 +156,6 @@ class CompliantDataFrame(
     @property
     def shape(self) -> tuple[int, int]: ...
     def clone(self) -> Self: ...
-    def collect(
-        self, backend: Implementation | None, **kwargs: Any
-    ) -> CompliantDataFrameAny: ...
     def collect_schema(self) -> Mapping[str, DType]: ...
     def drop(self, columns: Sequence[str], *, strict: bool) -> Self: ...
     def drop_nulls(self, subset: Sequence[str] | None) -> Self: ...
@@ -196,7 +197,9 @@ class CompliantDataFrame(
         strategy: AsofJoinStrategy,
         suffix: str,
     ) -> Self: ...
-    def lazy(self, *, backend: Implementation | None) -> CompliantLazyFrameAny: ...
+    def lazy(
+        self, backend: _LazyAllowedImpl | None, *, session: SparkSession | None
+    ) -> CompliantLazyFrameAny: ...
     def pivot(
         self,
         on: Sequence[str],
@@ -260,12 +263,12 @@ class CompliantDataFrame(
 
 
 class CompliantLazyFrame(
-    _StoresNative[NativeFrameT],
-    FromNative[NativeFrameT],
+    _StoresNative[NativeLazyFrameT],
+    FromNative[NativeLazyFrameT],
     ToNarwhals[ToNarwhalsT_co],
-    Protocol[CompliantExprT_contra, NativeFrameT, ToNarwhalsT_co],
+    Protocol[CompliantExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
 ):
-    _native_frame: NativeFrameT
+    _native_frame: NativeLazyFrameT
     _implementation: Implementation
     _version: Version
 
@@ -273,7 +276,9 @@ class CompliantLazyFrame(
     def __narwhals_namespace__(self) -> Any: ...
 
     @classmethod
-    def from_native(cls, data: NativeFrameT, /, *, context: _LimitedContext) -> Self: ...
+    def from_native(
+        cls, data: NativeLazyFrameT, /, *, context: _LimitedContext
+    ) -> Self: ...
 
     def simple_select(self, *column_names: str) -> Self:
         """`select` where all args are column names."""
@@ -289,7 +294,7 @@ class CompliantLazyFrame(
     def _with_version(self, version: Version) -> Self: ...
 
     @property
-    def native(self) -> NativeFrameT:
+    def native(self) -> NativeLazyFrameT:
         return self._native_frame
 
     @property
@@ -298,7 +303,7 @@ class CompliantLazyFrame(
     def schema(self) -> Mapping[str, DType]: ...
     def _iter_columns(self) -> Iterator[Any]: ...
     def collect(
-        self, backend: Implementation | None, **kwargs: Any
+        self, backend: _EagerAllowedImpl | None, **kwargs: Any
     ) -> CompliantDataFrameAny: ...
     def collect_schema(self) -> Mapping[str, DType]: ...
     def drop(self, columns: Sequence[str], *, strict: bool) -> Self: ...
@@ -353,10 +358,12 @@ class CompliantLazyFrame(
 
 
 class EagerDataFrame(
-    CompliantDataFrame[EagerSeriesT, EagerExprT, NativeFrameT, "DataFrame[NativeFrameT]"],
-    CompliantLazyFrame[EagerExprT, NativeFrameT, "DataFrame[NativeFrameT]"],
+    CompliantDataFrame[
+        EagerSeriesT, EagerExprT, NativeDataFrameT, "DataFrame[NativeDataFrameT]"
+    ],
+    CompliantLazyFrame[EagerExprT, "Incomplete", "DataFrame[NativeDataFrameT]"],
     ValidateBackendVersion,
-    Protocol[EagerSeriesT, EagerExprT, NativeFrameT, NativeSeriesT],
+    Protocol[EagerSeriesT, EagerExprT, NativeDataFrameT, NativeSeriesT],
 ):
     @property
     def _backend_version(self) -> tuple[int, ...]:
@@ -364,13 +371,15 @@ class EagerDataFrame(
 
     def __narwhals_namespace__(
         self,
-    ) -> EagerNamespace[Self, EagerSeriesT, EagerExprT, NativeFrameT, NativeSeriesT]: ...
+    ) -> EagerNamespace[
+        Self, EagerSeriesT, EagerExprT, NativeDataFrameT, NativeSeriesT
+    ]: ...
 
-    def to_narwhals(self) -> DataFrame[NativeFrameT]:
+    def to_narwhals(self) -> DataFrame[NativeDataFrameT]:
         return self._version.dataframe(self, level="full")
 
     def _with_native(
-        self, df: NativeFrameT, *, validate_column_names: bool = True
+        self, df: NativeDataFrameT, *, validate_column_names: bool = True
     ) -> Self: ...
 
     def _check_columns_exist(self, subset: Sequence[str]) -> ColumnNotFoundError | None:

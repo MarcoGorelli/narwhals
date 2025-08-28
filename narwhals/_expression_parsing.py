@@ -19,7 +19,7 @@ from typing import (
     cast,
 )
 
-from narwhals._utils import is_compliant_expr
+from narwhals._utils import is_compliant_expr, zip_strict
 from narwhals.dependencies import is_narwhals_series, is_numpy_array
 from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
 
@@ -124,10 +124,10 @@ def evaluate_output_names_and_aliases(
     if exclude:
         assert expr._metadata is not None  # noqa: S101
         if expr._metadata.expansion_kind.is_multi_unnamed():
-            output_names, aliases = zip(
+            output_names, aliases = zip_strict(
                 *[
                     (x, alias)
-                    for x, alias in zip(output_names, aliases)
+                    for x, alias in zip_strict(output_names, aliases)
                     if x not in exclude
                 ]
             )
@@ -623,7 +623,7 @@ def all_exprs_are_scalar_like(*args: IntoExpr, **kwargs: IntoExpr) -> bool:
 
 def apply_n_ary_operation(
     plx: CompliantNamespaceAny,
-    function: Any,
+    n_ary_function: Callable[..., CompliantExprAny],
     *comparands: IntoExpr | NonNestedLiteral | _1DArray,
     str_as_lit: bool,
 ) -> CompliantExprAny:
@@ -641,9 +641,9 @@ def apply_n_ary_operation(
         compliant_expr.broadcast(kind)
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
         else compliant_expr
-        for compliant_expr, kind in zip(compliant_exprs, kinds)
+        for compliant_expr, kind in zip_strict(compliant_exprs, kinds)
     )
-    return function(*compliant_exprs)
+    return n_ary_function(*compliant_exprs)
 
 
 def with_node(
