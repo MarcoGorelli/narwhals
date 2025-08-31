@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import operator as op
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -228,93 +227,89 @@ class Expr:
 
     # --- binary ---
     def _with_binary(
-        self,
-        function: Callable[[Any, Any], Any],
-        other: Self | Any,
-        *,
-        str_as_lit: bool = True,
+        self, attr: str, other: Self | Any, *, str_as_lit: bool = True
     ) -> Self:
         result = self.__class__(
             lambda plx: apply_n_ary_operation(
-                plx, function, self, other, str_as_lit=str_as_lit
+                plx, lambda x, y: getattr(x, attr)(y), self, other, str_as_lit=str_as_lit
             ),
             ExprMetadata.from_binary_op(self, other),
         )
-        node = ExprNode(ExprKind.ELEMENTWISE, str(function), other=other)
+        node = ExprNode(ExprKind.ELEMENTWISE, attr, other=other)
         result._metadata.nodes.append(node)
         return result
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]
-        return self._with_binary(op.eq, other)
+        return self._with_binary("__eq__", other)
 
     def __ne__(self, other: Self | Any) -> Self:  # type: ignore[override]
-        return self._with_binary(op.ne, other)
+        return self._with_binary("__ne__", other)
 
     def __and__(self, other: Any) -> Self:
-        return self._with_binary(op.and_, other)
+        return self._with_binary("__and__", other)
 
     def __rand__(self, other: Any) -> Self:
         return (self & other).alias("literal")  # type: ignore[no-any-return]
 
     def __or__(self, other: Any) -> Self:
-        return self._with_binary(op.or_, other)
+        return self._with_binary("__or__", other)
 
     def __ror__(self, other: Any) -> Self:
         return (self | other).alias("literal")  # type: ignore[no-any-return]
 
     def __add__(self, other: Any) -> Self:
-        return self._with_binary(op.add, other)
+        return self._with_binary("__add__", other)
 
     def __radd__(self, other: Any) -> Self:
         return (self + other).alias("literal")  # type: ignore[no-any-return]
 
     def __sub__(self, other: Any) -> Self:
-        return self._with_binary(op.sub, other)
+        return self._with_binary("__sub__", other)
 
     def __rsub__(self, other: Any) -> Self:
-        return self._with_binary(lambda x, y: x.__rsub__(y), other)
+        return self._with_binary("__rsub__", other)
 
     def __truediv__(self, other: Any) -> Self:
-        return self._with_binary(op.truediv, other)
+        return self._with_binary("__truediv__", other)
 
     def __rtruediv__(self, other: Any) -> Self:
-        return self._with_binary(lambda x, y: x.__rtruediv__(y), other)
+        return self._with_binary("__rtruediv__", other)
 
     def __mul__(self, other: Any) -> Self:
-        return self._with_binary(op.mul, other)
+        return self._with_binary("__mul__", other)
 
     def __rmul__(self, other: Any) -> Self:
         return (self * other).alias("literal")  # type: ignore[no-any-return]
 
     def __le__(self, other: Any) -> Self:
-        return self._with_binary(op.le, other)
+        return self._with_binary("__le__", other)
 
     def __lt__(self, other: Any) -> Self:
-        return self._with_binary(op.lt, other)
+        return self._with_binary("__lt__", other)
 
     def __gt__(self, other: Any) -> Self:
-        return self._with_binary(op.gt, other)
+        return self._with_binary("__gt__", other)
 
     def __ge__(self, other: Any) -> Self:
-        return self._with_binary(op.ge, other)
+        return self._with_binary("__ge__", other)
 
     def __pow__(self, other: Any) -> Self:
-        return self._with_binary(op.pow, other)
+        return self._with_binary("__pow__", other)
 
     def __rpow__(self, other: Any) -> Self:
-        return self._with_binary(lambda x, y: x.__rpow__(y), other)
+        return self._with_binary("__rpow__", other)
 
     def __floordiv__(self, other: Any) -> Self:
-        return self._with_binary(op.floordiv, other)
+        return self._with_binary("__floordiv__", other)
 
     def __rfloordiv__(self, other: Any) -> Self:
-        return self._with_binary(lambda x, y: x.__rfloordiv__(y), other)
+        return self._with_binary("__rfloordiv__", other)
 
     def __mod__(self, other: Any) -> Self:
-        return self._with_binary(op.mod, other)
+        return self._with_binary("__mod__", other)
 
     def __rmod__(self, other: Any) -> Self:
-        return self._with_binary(lambda x, y: x.__rmod__(y), other)
+        return self._with_binary("__rmod__", other)
 
     # --- unary ---
     @with_elementwise
