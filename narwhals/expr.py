@@ -181,8 +181,7 @@ class Expr:
             |      1  15       |
             └──────────────────┘
         """
-        # Don't use `_with_elementwise` so that `_metadata.last_node` is preserved.
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).alias(name))
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "alias"))
 
     def pipe(
         self,
