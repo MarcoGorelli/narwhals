@@ -12,6 +12,8 @@ ExprT = TypeVar("ExprT", bound="Expr")
 
 
 class ExprDateTimeNamespace(Generic[ExprT]):
+    _namespace = "dt"
+
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 

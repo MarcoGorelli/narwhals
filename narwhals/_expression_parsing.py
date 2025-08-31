@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     ExprT_co = TypeVar("ExprT_co", bound="Expr", covariant=True)
 
     class ExprNamespace(Protocol[ExprT_co]):
-        _namespace: str = "todo"
+        _namespace: str
         _expr: ExprT_co
 
     ExprNamespaceT = TypeVar("ExprNamespaceT", bound=ExprNamespace[Any])
