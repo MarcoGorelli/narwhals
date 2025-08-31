@@ -10,7 +10,6 @@ from narwhals._expression_parsing import (
     ExprNode,
     apply_n_ary_operation,
     combine_metadata,
-    with_window,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
@@ -80,6 +79,8 @@ class Expr:
             md = self._metadata.with_elementwise_op()
         elif node.kind is ExprKind.ORDERABLE_WINDOW:
             md = self._metadata.with_orderable_window()
+        elif node.kind is ExprKind.WINDOW:
+            md = self._metadata.with_window()
         else:
             msg = "todo"
             raise NotImplementedError(msg)
@@ -2061,7 +2062,6 @@ class Expr:
             )
         )
 
-    @with_window
     def rank(self, method: RankMethod = "average", *, descending: bool = False) -> Self:
         """Assign ranks to data, dealing with ties appropriately.
 
@@ -2116,10 +2116,8 @@ class Expr:
             )
             raise ValueError(msg)
 
-        return self._with_window(
-            lambda plx: self._to_compliant_expr(plx).rank(
-                method=method, descending=descending
-            )
+        return self._with_node(
+            ExprNode(ExprKind.WINDOW, "rank", method=method, descending=descending)
         )
 
     def log(self, base: float = math.e) -> Self:
