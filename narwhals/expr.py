@@ -11,7 +11,6 @@ from narwhals._expression_parsing import (
     apply_n_ary_operation,
     combine_metadata,
     with_elementwise,
-    with_orderable_window,
     with_window,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
@@ -809,7 +808,6 @@ class Expr:
             ExprNode(ExprKind.ORDERABLE_WINDOW, "cum_sum", reverse=reverse)
         )
 
-    @with_orderable_window
     def diff(self) -> Self:
         """Returns the difference between each element and the previous one.
 
@@ -849,9 +847,8 @@ class Expr:
             | └─────┴────────┘ |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).diff())
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_WINDOW, "diff"))
 
-    @with_orderable_window
     def shift(self, n: int) -> Self:
         """Shift values by `n` positions.
 
@@ -895,8 +892,7 @@ class Expr:
             └──────────────────┘
         """
         ensure_type(n, int, param_name="n")
-
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).shift(n))
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_WINDOW, "shift", n=n))
 
     def replace_strict(
         self,
@@ -1441,7 +1437,6 @@ class Expr:
         """
         return self._with_node(ExprNode(ExprKind.AGGREGATION, "null_count"))
 
-    @with_orderable_window
     def is_first_distinct(self) -> Self:
         r"""Return a boolean mask indicating the first occurrence of each distinct value.
 
@@ -1467,11 +1462,8 @@ class Expr:
             |3  1  c                False                 True|
             └─────────────────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).is_first_distinct()
-        )
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_WINDOW, "is_first_distinct"))
 
-    @with_orderable_window
     def is_last_distinct(self) -> Self:
         r"""Return a boolean mask indicating the last occurrence of each distinct value.
 
@@ -1497,9 +1489,7 @@ class Expr:
             |3  1  c                True                True|
             └───────────────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).is_last_distinct()
-        )
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_WINDOW, "is_last_distinct"))
 
     def quantile(
         self, quantile: float, interpolation: RollingInterpolationMethod
@@ -1706,7 +1696,6 @@ class Expr:
         """
         return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "is_finite"))
 
-    @with_orderable_window
     def cum_count(self, *, reverse: bool = False) -> Self:
         r"""Return the cumulative count of the non-null values in the column.
 
@@ -1736,11 +1725,10 @@ class Expr:
             |3     d            3                    1|
             └─────────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).cum_count(reverse=reverse)
+        return self._with_node(
+            ExprNode(ExprKind.ORDERABLE_WINDOW, "cum_count", reverse=reverse)
         )
 
-    @with_orderable_window
     def cum_min(self, *, reverse: bool = False) -> Self:
         r"""Return the cumulative min of the non-null values in the column.
 
@@ -1770,11 +1758,10 @@ class Expr:
             |3  2.0        1.0                2.0|
             └────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).cum_min(reverse=reverse)
+        return self._with_node(
+            ExprNode(ExprKind.ORDERABLE_WINDOW, "cum_min", reverse=reverse)
         )
 
-    @with_orderable_window
     def cum_max(self, *, reverse: bool = False) -> Self:
         r"""Return the cumulative max of the non-null values in the column.
 
@@ -1804,11 +1791,10 @@ class Expr:
             |3  2.0        3.0                2.0|
             └────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).cum_max(reverse=reverse)
+        return self._with_node(
+            ExprNode(ExprKind.ORDERABLE_WINDOW, "cum_max", reverse=reverse)
         )
 
-    @with_orderable_window
     def cum_prod(self, *, reverse: bool = False) -> Self:
         r"""Return the cumulative product of the non-null values in the column.
 
@@ -1838,11 +1824,10 @@ class Expr:
             |3  2.0         6.0                 2.0|
             └──────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).cum_prod(reverse=reverse)
+        return self._with_node(
+            ExprNode(ExprKind.ORDERABLE_WINDOW, "cum_prod", reverse=reverse)
         )
 
-    @with_orderable_window
     def rolling_sum(
         self, window_size: int, *, min_samples: int | None = None, center: bool = False
     ) -> Self:
@@ -1885,17 +1870,19 @@ class Expr:
             |3  4.0            6.0|
             └─────────────────────┘
         """
-        window_size, min_samples_int = _validate_rolling_arguments(
+        window_size, min_samples = _validate_rolling_arguments(
             window_size=window_size, min_samples=min_samples
         )
-
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).rolling_sum(
-                window_size=window_size, min_samples=min_samples_int, center=center
+        return self._with_node(
+            ExprNode(
+                ExprKind.ORDERABLE_WINDOW,
+                "rolling_sum",
+                window_size=window_size,
+                min_samples=min_samples,
+                center=center,
             )
         )
 
-    @with_orderable_window
     def rolling_mean(
         self, window_size: int, *, min_samples: int | None = None, center: bool = False
     ) -> Self:
@@ -1942,13 +1929,16 @@ class Expr:
             window_size=window_size, min_samples=min_samples
         )
 
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).rolling_mean(
-                window_size=window_size, min_samples=min_samples, center=center
+        return self._with_node(
+            ExprNode(
+                ExprKind.ORDERABLE_WINDOW,
+                "rolling_mean",
+                window_size=window_size,
+                min_samples=min_samples,
+                center=center,
             )
         )
 
-    @with_orderable_window
     def rolling_var(
         self,
         window_size: int,
@@ -2000,14 +1990,17 @@ class Expr:
         window_size, min_samples = _validate_rolling_arguments(
             window_size=window_size, min_samples=min_samples
         )
-
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).rolling_var(
-                window_size=window_size, min_samples=min_samples, center=center, ddof=ddof
+        return self._with_node(
+            ExprNode(
+                ExprKind.ORDERABLE_WINDOW,
+                "rolling_var",
+                ddof=ddof,
+                window_size=window_size,
+                min_samples=min_samples,
+                center=center,
             )
         )
 
-    @with_orderable_window
     def rolling_std(
         self,
         window_size: int,
@@ -2059,10 +2052,14 @@ class Expr:
         window_size, min_samples = _validate_rolling_arguments(
             window_size=window_size, min_samples=min_samples
         )
-
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).rolling_std(
-                window_size=window_size, min_samples=min_samples, center=center, ddof=ddof
+        return self._with_node(
+            ExprNode(
+                ExprKind.ORDERABLE_WINDOW,
+                "rolling_std",
+                ddof=ddof,
+                window_size=window_size,
+                min_samples=min_samples,
+                center=center,
             )
         )
 
