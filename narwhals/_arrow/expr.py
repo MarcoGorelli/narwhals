@@ -42,7 +42,6 @@ class ArrowExpr(EagerExpr["ArrowDataFrame", ArrowSeries]):
         self._evaluate_output_names = evaluate_output_names
         self._alias_output_names = alias_output_names
         self._version = version
-        self._scalar_kwargs = scalar_kwargs or {}
         self._metadata: ExprMetadata | None = None
 
     @classmethod

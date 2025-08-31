@@ -87,8 +87,9 @@ class ArrowGroupBy(EagerGroupBy["ArrowDataFrame", "ArrowExpr", "Aggregation"]):
 
             function_name = self._leaf_name(expr)
             if function_name in {"std", "var"}:
-                assert "ddof" in expr._scalar_kwargs  # noqa: S101
-                option: Any = pc.VarianceOptions(ddof=expr._scalar_kwargs["ddof"])
+                assert expr._metadata is not None  # noqa: S101
+                last_node = next(expr._metadata.op_nodes_reversed())
+                option: Any = pc.VarianceOptions(**last_node.kwargs)
             elif function_name in {"len", "n_unique"}:
                 option = pc.CountOptions(mode="all")
             elif function_name == "count":
