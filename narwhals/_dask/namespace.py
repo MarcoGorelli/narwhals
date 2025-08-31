@@ -34,7 +34,6 @@ if TYPE_CHECKING:
 
     import dask.dataframe.dask_expr as dx
 
-    from narwhals._compliant.typing import ScalarKwargs
     from narwhals._utils import Version
     from narwhals.typing import ConcatMethod, IntoDType, NonNestedLiteral
 
@@ -73,8 +72,6 @@ class DaskNamespace(
 
         return self._expr(
             func,
-            depth=0,
-            function_name="lit",
             evaluate_output_names=lambda _df: ["literal"],
             alias_output_names=None,
             version=self._version,
@@ -87,8 +84,6 @@ class DaskNamespace(
 
         return self._expr(
             func,
-            depth=0,
-            function_name="len",
             evaluate_output_names=lambda _df: ["len"],
             alias_output_names=None,
             version=self._version,
@@ -106,8 +101,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="all_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -122,8 +115,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="any_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -138,8 +129,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="sum_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -188,8 +177,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="mean_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -205,8 +192,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="min_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -222,8 +207,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="max_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -266,8 +249,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="concat_str",
             evaluate_output_names=getattr(
                 exprs[0], "_evaluate_output_names", lambda _df: ["literal"]
             ),
@@ -284,8 +265,6 @@ class DaskNamespace(
 
         return self._expr(
             call=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="coalesce",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
@@ -333,6 +312,4 @@ class DaskWhen(CompliantWhen[DaskLazyFrame, "dx.Series", DaskExpr]):  # pyright:
 
 
 class DaskThen(CompliantThen[DaskLazyFrame, "dx.Series", DaskExpr, DaskWhen], DaskExpr):  # pyright: ignore[reportInvalidTypeArguments]
-    _depth: int = 0
-    _scalar_kwargs: ScalarKwargs = {}  # noqa: RUF012
-    _function_name: str = "whenthen"
+    ...

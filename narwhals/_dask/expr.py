@@ -54,20 +54,14 @@ class DaskExpr(
         self,
         call: EvalSeries[DaskLazyFrame, dx.Series],  # pyright: ignore[reportInvalidTypeForm]
         *,
-        depth: int,
-        function_name: str,
         evaluate_output_names: EvalNames[DaskLazyFrame],
         alias_output_names: AliasNames | None,
         version: Version,
-        scalar_kwargs: ScalarKwargs | None = None,
     ) -> None:
         self._call = call
-        self._depth = depth
-        self._function_name = function_name
         self._evaluate_output_names = evaluate_output_names
         self._alias_output_names = alias_output_names
         self._version = version
-        self._scalar_kwargs = scalar_kwargs or {}
         self._metadata: ExprMetadata | None = None
 
     def __call__(self, df: DaskLazyFrame) -> Sequence[dx.Series]:
@@ -88,12 +82,9 @@ class DaskExpr(
 
         return self.__class__(
             func,
-            depth=self._depth,
-            function_name=self._function_name,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,
-            scalar_kwargs=self._scalar_kwargs,
         )
 
     @classmethod
@@ -103,7 +94,6 @@ class DaskExpr(
         /,
         *,
         context: _LimitedContext,
-        function_name: str = "",
     ) -> Self:
         def func(df: DaskLazyFrame) -> list[dx.Series]:
             try:
@@ -118,8 +108,6 @@ class DaskExpr(
 
         return cls(
             func,
-            depth=0,
-            function_name=function_name,
             evaluate_output_names=evaluate_column_names,
             alias_output_names=None,
             version=context._version,
@@ -132,8 +120,6 @@ class DaskExpr(
 
         return cls(
             func,
-            depth=0,
-            function_name="nth",
             evaluate_output_names=cls._eval_names_indices(column_indices),
             alias_output_names=None,
             version=context._version,
@@ -162,12 +148,9 @@ class DaskExpr(
 
         return self.__class__(
             func,
-            depth=self._depth + 1,
-            function_name=f"{self._function_name}->{expr_name}",
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,
-            scalar_kwargs=scalar_kwargs,
         )
 
     def _with_alias_output_names(self, func: AliasNames | None, /) -> Self:
@@ -181,12 +164,9 @@ class DaskExpr(
         )
         return type(self)(
             call=self._call,
-            depth=self._depth,
-            function_name=self._function_name,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=alias_output_names,
             version=self._version,
-            scalar_kwargs=self._scalar_kwargs,
         )
 
     def _with_binary(
@@ -301,11 +281,7 @@ class DaskExpr(
         return self._with_callable(lambda expr: expr.max().to_series(), "max")
 
     def std(self, ddof: int) -> Self:
-        return self._with_callable(
-            lambda expr: expr.std(ddof=ddof).to_series(),
-            "std",
-            scalar_kwargs={"ddof": ddof},
-        )
+        return self._with_callable(lambda expr: expr.std(ddof=ddof).to_series(), "std")
 
     def var(self, ddof: int) -> Self:
         return self._with_callable(
@@ -613,16 +589,18 @@ class DaskExpr(
                         category=UserWarning,
                     )
                     grouped = df.native.groupby(partition_by)
+                    assert self._metadata is not None  # noqa: S101
+                    kwargs = next(self._metadata.op_nodes_reversed()).kwargs
                     if dask_function_name == "size":
                         if len(output_names) != 1:  # pragma: no cover
                             msg = "Safety check failed, please report a bug."
                             raise AssertionError(msg)
                         res_native = grouped.transform(
-                            dask_function_name, **self._scalar_kwargs
+                            dask_function_name, **kwargs
                         ).to_frame(output_names[0])
                     else:
                         res_native = grouped[list(output_names)].transform(
-                            dask_function_name, **self._scalar_kwargs
+                            dask_function_name, **kwargs
                         )
                 result_frame = df._with_native(
                     res_native.rename(columns=dict(zip(output_names, aliases)))
@@ -631,8 +609,6 @@ class DaskExpr(
 
         return self.__class__(
             func,
-            depth=self._depth + 1,
-            function_name=self._function_name + "->over",
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,
