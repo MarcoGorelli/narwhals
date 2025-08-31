@@ -201,6 +201,8 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
     def over(  # noqa: C901, PLR0915
         self, partition_by: Sequence[str], order_by: Sequence[str]
     ) -> Self:
+        assert self._metadata is not None  # noqa: S101
+        nodes = self._metadata.nodes[:-1]  # skip last node, as we know it's `over`
         if not partition_by:
             # e.g. `nw.col('a').cum_sum().order_by(key)`
             # We can always easily support this as it doesn't require grouping.
@@ -216,7 +218,7 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                 for s in results:
                     s._scatter_in_place(sorting_indices, s)
                 return results
-        elif not self._is_elementary():
+        elif len(nodes) > 2:
             msg = (
                 "Only elementary expressions are supported for `.over` in pandas-like backends.\n\n"
                 "Please see: "
@@ -224,7 +226,8 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
             )
             raise NotImplementedError(msg)
         else:
-            function_name = PandasLikeGroupBy._leaf_name(self)
+            leaf_node = nodes[-1]
+            function_name = leaf_node.name
             pandas_function_name = WINDOW_FUNCTIONS_TO_PANDAS_EQUIVALENT.get(
                 function_name, PandasLikeGroupBy._REMAP_AGGS.get(function_name)
             )
@@ -236,7 +239,7 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                 )
                 raise NotImplementedError(msg)
             assert self._metadata is not None  # noqa: S101
-            scalar_kwargs = self._metadata.nodes[-1].kwargs
+            scalar_kwargs = leaf_node.kwargs
             pandas_kwargs = window_kwargs_to_pandas_equivalent(
                 function_name, scalar_kwargs
             )

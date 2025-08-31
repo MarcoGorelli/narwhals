@@ -1043,25 +1043,7 @@ class Expr:
             |     5  7  12     |
             └──────────────────┘
         """
-        flat_predicates = flatten(predicates)
-        metadata = combine_metadata(
-            self,
-            *flat_predicates,
-            str_as_lit=False,
-            allow_multi_output=True,
-            to_single_output=False,
-        ).with_filtration()
-        result = self._with_callable(
-            lambda plx: apply_n_ary_operation(
-                plx,
-                lambda *exprs: exprs[0].filter(*exprs[1:]),
-                self,
-                *flat_predicates,
-                str_as_lit=False,
-            )
-        )
-        result._metadata = metadata
-        return result
+        return self._with_node(ExprNode(ExprKind.FILTRATION, "filter", *predicates))
 
     def is_null(self) -> Self:
         """Returns a boolean Series indicating which values are null.
