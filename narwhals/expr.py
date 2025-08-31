@@ -952,8 +952,8 @@ class Expr:
             ExprNode(
                 ExprKind.ELEMENTWISE,
                 "replace_strict",
-                old,
-                new,
+                old=old,
+                new=new,
                 return_dtype=return_dtype,
             )
         )
