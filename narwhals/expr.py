@@ -11,7 +11,6 @@ from narwhals._expression_parsing import (
     ExprNode,
     apply_n_ary_operation,
     combine_metadata,
-    extract_compliant,
     with_aggregation,
     with_elementwise,
     with_orderable_window,
@@ -1251,7 +1250,7 @@ class Expr:
 
         result = self._with_callable(
             lambda plx: self._to_compliant_expr(plx).fill_null(
-                value=extract_compliant(plx, value, str_as_lit=True),
+                value=plx.parse_into_expr(value, str_as_lit=True),
                 strategy=strategy,
                 limit=limit,
             )
