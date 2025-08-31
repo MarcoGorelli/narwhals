@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from narwhals._utils import CompliantT_co, _StoresCompliant
 
@@ -70,6 +70,8 @@ class NameNamespace(_StoresCompliant[CompliantT_co], Protocol[CompliantT_co]):
 
 
 class StringNamespace(_StoresCompliant[CompliantT_co], Protocol[CompliantT_co]):
+    _namespace: ClassVar[str] = "str"
+
     def len_chars(self) -> CompliantT_co: ...
     def replace(
         self, pattern: str, value: str, *, literal: bool, n: int

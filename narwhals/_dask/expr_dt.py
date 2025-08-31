@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 class DaskExprDateTimeNamespace(
     LazyExprNamespace["DaskExpr"], DateTimeNamespace["DaskExpr"]
 ):
+    _accessor = "dt"
+
     def date(self) -> DaskExpr:
         return self.compliant._with_callable(lambda expr: expr.dt.date, "date")
 

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class DaskExprStringNamespace(LazyExprNamespace["DaskExpr"], StringNamespace["DaskExpr"]):
+    _accessor = "str"
+
     def len_chars(self) -> DaskExpr:
         return self.compliant._with_callable(lambda expr: expr.str.len(), "len")
 

@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 class DuckDBExprListNamespace(
     LazyExprNamespace["DuckDBExpr"], ListNamespace["DuckDBExpr"]
 ):
+    _accessor = "list"
+
     def len(self) -> DuckDBExpr:
         return self.compliant._with_elementwise(lambda expr: F("len", expr))
 

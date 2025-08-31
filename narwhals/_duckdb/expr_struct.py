@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 class DuckDBExprStructNamespace(
     LazyExprNamespace["DuckDBExpr"], StructNamespace["DuckDBExpr"]
 ):
+    _accessor = "struct"
+
     def field(self, name: str) -> DuckDBExpr:
         return self.compliant._with_elementwise(
             lambda expr: F("struct_extract", expr, lit(name))

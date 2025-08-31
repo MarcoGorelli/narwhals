@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class IbisExprListNamespace(LazyExprNamespace["IbisExpr"], ListNamespace["IbisExpr"]):
+    _accessor = "list"
+
     def len(self) -> IbisExpr:
         return self.compliant._with_callable(lambda expr: expr.length())
 

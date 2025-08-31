@@ -11,7 +11,7 @@ ExprT = TypeVar("ExprT", bound="Expr")
 
 
 class ExprCatNamespace(Generic[ExprT]):
-    _namespace = "cat"
+    _accessor = "cat"
 
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr

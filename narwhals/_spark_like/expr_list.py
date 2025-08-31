@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 class SparkLikeExprListNamespace(
     LazyExprNamespace["SparkLikeExpr"], ListNamespace["SparkLikeExpr"]
 ):
+    _accessor = "list"
+
     def len(self) -> SparkLikeExpr:
         return self.compliant._with_elementwise(self.compliant._F.array_size)
 

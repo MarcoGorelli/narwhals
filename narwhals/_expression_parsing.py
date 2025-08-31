@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     ExprT_co = TypeVar("ExprT_co", bound="Expr", covariant=True)
 
     class ExprNamespace(Protocol[ExprT_co]):
-        _namespace: str
+        _accessor: str
         _expr: ExprT_co
 
     ExprNamespaceT = TypeVar("ExprNamespaceT", bound=ExprNamespace[Any])
@@ -718,7 +718,7 @@ def namespace_method_with_node(
         def wrapper(
             self: ExprNamespaceT, *args: PS.args, **kwargs: PS.kwargs
         ) -> ExprT_co:
-            name = f"{self._namespace}.{func.__name__}"
+            name = f"{self._accessor}.{func.__name__}"
 
             result = func(self, *args, **kwargs)
             md = result._metadata
