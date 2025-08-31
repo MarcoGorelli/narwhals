@@ -232,18 +232,9 @@ class Expr:
         return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "cast", dtype=dtype))
 
     # --- binary ---
-    def _with_binary(
-        self, attr: str, other: Self | Any, *, str_as_lit: bool = True
-    ) -> Self:
-        result = self.__class__(
-            lambda plx: apply_n_ary_operation(
-                plx, lambda x, y: getattr(x, attr)(y), self, other, str_as_lit=str_as_lit
-            ),
-            ExprMetadata.from_binary_op(self, other),
-        )
-        node = ExprNode(ExprKind.ELEMENTWISE, attr, other=other)
-        result._metadata.nodes.append(node)
-        return result
+    def _with_binary(self, attr: str, other: Self | Any) -> Self:
+        node = ExprNode(ExprKind.ELEMENTWISE, attr, other)
+        return self._with_node(node)
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]
         return self._with_binary("__eq__", other)
