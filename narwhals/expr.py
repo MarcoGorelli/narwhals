@@ -77,6 +77,8 @@ class Expr:
             md = self._metadata.with_aggregation()
         elif node.kind is ExprKind.ELEMENTWISE:
             md = self._metadata.with_elementwise_op()
+        elif node.kind is ExprKind.FILTRATION:
+            md = self._metadata.with_filtration()
         elif node.kind is ExprKind.ORDERABLE_WINDOW:
             md = self._metadata.with_orderable_window()
         elif node.kind is ExprKind.ORDERABLE_FILTRATION:
@@ -103,24 +105,6 @@ class Expr:
 
     def _with_callable(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
         return self.__class__(to_compliant_expr, self._metadata)
-
-    def _with_orderable_aggregation(
-        self, to_compliant_expr: Callable[[Any], Any]
-    ) -> Self:
-        return self.__class__(
-            to_compliant_expr, self._metadata.with_orderable_aggregation()
-        )
-
-    def _with_window(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_window())
-
-    def _with_filtration(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata.with_filtration())
-
-    def _with_orderable_filtration(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(
-            to_compliant_expr, self._metadata.with_orderable_filtration()
-        )
 
     def __repr__(self) -> str:
         """Pretty-print the expression by combining all nodes in the metadata."""
@@ -765,7 +749,7 @@ class Expr:
             |     0  9  12     |
             └──────────────────┘
         """
-        return self._with_filtration(lambda plx: self._to_compliant_expr(plx).unique())
+        return self._with_node(ExprNode(ExprKind.FILTRATION, "unique"))
 
     def abs(self) -> Self:
         """Return absolute value of each element.
@@ -1271,9 +1255,7 @@ class Expr:
             |└────────┴────────┴───────────────┴───────────────┘|
             └───────────────────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).fill_nan(value)
-        )
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "fill_nan", value=value))
 
     # --- partial reduction ---
     def drop_nulls(self) -> Self:
@@ -1306,9 +1288,7 @@ class Expr:
             |  └─────┘         |
             └──────────────────┘
         """
-        return self._with_filtration(
-            lambda plx: self._to_compliant_expr(plx).drop_nulls()
-        )
+        return self._with_node(ExprNode(ExprKind.FILTRATION, "drop_nulls"))
 
     def over(
         self,
@@ -1656,20 +1636,8 @@ class Expr:
         if keep not in _supported_keep_values:  # pragma: no cover
             msg = f"`keep` must be one of {_supported_keep_values}, found '{keep}'"
             raise ValueError(msg)
-
-        def compliant_expr(plx: Any) -> Any:
-            return self._to_compliant_expr(plx).mode(keep=keep)
-
-        result = self._with_callable(compliant_expr)
-        if keep == "any":
-            kind = ExprKind.AGGREGATION
-            result._metadata = result._metadata.with_aggregation()
-        else:
-            kind = ExprKind.FILTRATION
-            result._metadata = result._metadata.with_filtration()
-        node = ExprNode(kind, "mode", keep=keep)
-        result._metadata.nodes.append(node)
-        return result
+        kind = ExprKind.AGGREGATION if keep == "any" else ExprKind.FILTRATION
+        return self._with_node(ExprNode(kind, "mode", keep=keep))
 
     def is_finite(self) -> Self:
         """Returns boolean values indicating which original values are finite.
