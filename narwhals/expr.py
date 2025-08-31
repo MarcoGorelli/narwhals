@@ -1342,7 +1342,12 @@ class Expr:
             )
         )
         if strategy is not None:
+            kind = ExprKind.ORDERABLE_WINDOW
             result._metadata = self._metadata.with_orderable_window()
+        else:
+            kind = ExprKind.ELEMENTWISE
+        node = ExprNode(kind, "fill_null", value=value, strategy=strategy, limit=limit)
+        result._metadata.nodes.append(node)
         return result
 
     def fill_nan(self, value: float | None) -> Self:

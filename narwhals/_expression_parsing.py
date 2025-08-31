@@ -414,7 +414,7 @@ class ExprMetadata:
                 "  + `nw.col('price').diff().over(order_by='date') + 1`\n"
             )
             raise InvalidOperationError(msg)
-        if self.nodes[-1].kind.is_orderable_window:
+        if next(self.op_nodes_reversed()).kind.is_orderable_window:
             n_orderable_ops -= 1
         return ExprMetadata(
             self.expansion_kind,
