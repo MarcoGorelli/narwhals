@@ -1293,9 +1293,14 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         |└─────┴──────┴─────┘|
         └────────────────────┘
     """
-    return _expr_with_n_ary_op(
-        "sum_horizontal", lambda plx: plx.sum_horizontal, *flatten(exprs)
+    flat_exprs = flatten(exprs)
+    result = _expr_with_n_ary_op(
+        "sum_horizontal", lambda plx: plx.sum_horizontal, *flat_exprs
     )
+    result._metadata.nodes = [
+        ExprNode(ExprKind.ELEMENTWISE, "sum_horizontal", exprs=flat_exprs)
+    ]
+    return result
 
 
 def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:

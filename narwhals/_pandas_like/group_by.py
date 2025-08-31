@@ -118,6 +118,7 @@ class AggExpr:
             )
         elif self.is_mode():
             compliant = group_by.compliant
+            assert self.expr._metadata is not None  # noqa: S101
             kwargs = self.expr._metadata.nodes[-1].kwargs
             if (keep := kwargs.get("keep")) != "any":  # pragma: no cover
                 msg = (
@@ -179,9 +180,7 @@ class AggExpr:
         assert self.expr._metadata is not None  # noqa: S101
         last_node = self.expr._metadata.nodes[-1]
         return _native_agg(
-            PandasLikeGroupBy._remap_expr_name(self.leaf_name),
-            *last_node.args,
-            **last_node.kwargs,
+            PandasLikeGroupBy._remap_expr_name(self.leaf_name), **last_node.kwargs
         )
 
 

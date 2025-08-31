@@ -98,7 +98,9 @@ def by_dtype(*dtypes: DType | type[DType] | Iterable[DType | type[DType]]) -> Se
         lambda plx: plx.selectors.by_dtype(flattened),
         ExprMetadata.selector_multi_unnamed(),
     )
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "by_dtype", flattened)]
+    result._metadata.nodes = [
+        ExprNode(ExprKind.ELEMENTWISE, "by_dtype", dtypes=flattened)
+    ]
     return result
 
 
@@ -130,7 +132,7 @@ def matches(pattern: str) -> Selector:
     result = Selector(
         lambda plx: plx.selectors.matches(pattern), ExprMetadata.selector_multi_unnamed()
     )
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "matches", pattern)]
+    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "matches", pattern=pattern)]
     return result
 
 

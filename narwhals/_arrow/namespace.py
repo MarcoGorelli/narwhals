@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
     from narwhals._arrow.typing import ArrayOrScalar, ChunkedArrayAny, Incomplete
-    from narwhals._compliant.typing import ScalarKwargs
     from narwhals._utils import Version
     from narwhals.typing import IntoDType, NonNestedLiteral
 
@@ -55,8 +54,6 @@ class ArrowNamespace(
             lambda df: [
                 ArrowSeries.from_iterable([len(df.native)], name="len", context=self)
             ],
-            depth=0,
-            function_name="len",
             evaluate_output_names=lambda _df: ["len"],
             alias_output_names=None,
             version=self._version,
@@ -73,8 +70,6 @@ class ArrowNamespace(
 
         return self._expr(
             lambda df: [_lit_arrow_series(df)],
-            depth=0,
-            function_name="lit",
             evaluate_output_names=lambda _df: ["literal"],
             alias_output_names=None,
             version=self._version,
@@ -90,8 +85,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="all_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -107,8 +100,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="any_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -123,8 +114,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="sum_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -144,8 +133,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="mean_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -165,8 +152,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="min_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -186,8 +171,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="max_horizontal",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -269,8 +252,6 @@ class ArrowNamespace(
 
         return self._expr._from_callable(
             func=func,
-            depth=max(x._depth for x in exprs) + 1,
-            function_name="coalesce",
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
             context=self,
@@ -295,7 +276,4 @@ class ArrowWhen(EagerWhen[ArrowDataFrame, ArrowSeries, ArrowExpr, "ChunkedArrayA
 
 class ArrowThen(
     CompliantThen[ArrowDataFrame, ArrowSeries, ArrowExpr, ArrowWhen], ArrowExpr
-):
-    _depth: int = 0
-    _scalar_kwargs: ScalarKwargs = {}  # noqa: RUF012
-    _function_name: str = "whenthen"
+): ...

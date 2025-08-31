@@ -226,6 +226,7 @@ class Expr:
         )
         raise TypeError(msg)
 
+    @with_aggregation
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
         # It's not intended to be used.
