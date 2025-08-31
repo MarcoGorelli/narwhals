@@ -10,7 +10,6 @@ from narwhals._expression_parsing import (
     ExprNode,
     apply_n_ary_operation,
     combine_metadata,
-    with_elementwise,
     with_window,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
@@ -2124,7 +2123,6 @@ class Expr:
             )
         )
 
-    @with_elementwise
     def log(self, base: float = math.e) -> Self:
         r"""Compute the logarithm to a given base.
 
@@ -2153,11 +2151,8 @@ class Expr:
             |log_2: [[0,1,2]]                                |
             └────────────────────────────────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).log(base=base)
-        )
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "log", base=base))
 
-    @with_elementwise
     def exp(self) -> Self:
         r"""Compute the exponent.
 
@@ -2179,9 +2174,8 @@ class Expr:
             |exp: [[0.36787944117144233,1,2.718281828459045]]|
             └────────────────────────────────────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).exp())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "exp"))
 
-    @with_elementwise
     def sqrt(self) -> Self:
         r"""Compute the square root.
 
@@ -2203,7 +2197,7 @@ class Expr:
             |sqrt: [[1,2,3]]   |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).sqrt())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "sqrt"))
 
     def is_close(
         self,
