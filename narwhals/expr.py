@@ -217,7 +217,6 @@ class Expr:
         """
         return function(self, *args, **kwargs)
 
-    @with_elementwise
     def cast(self, dtype: IntoDType) -> Self:
         """Redefine an object's data type.
 
@@ -240,7 +239,7 @@ class Expr:
             └──────────────────┘
         """
         _validate_dtype(dtype)
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).cast(dtype))
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "cast", dtype=dtype))
 
     # --- binary ---
     def _with_binary(
@@ -329,9 +328,8 @@ class Expr:
         return self._with_binary("__rmod__", other)
 
     # --- unary ---
-    @with_elementwise
     def __invert__(self) -> Self:
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).__invert__())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "__invert__"))
 
     def any(self) -> Self:
         """Return whether any of the values in the column are `True`.
@@ -373,7 +371,6 @@ class Expr:
         """
         return self._with_node(ExprNode(ExprKind.AGGREGATION, "all"))
 
-    @with_orderable_window
     def ewm_mean(
         self,
         *,
@@ -457,8 +454,10 @@ class Expr:
             │ 2.428571 │
             └──────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).ewm_mean(
+        return self._with_node(
+            ExprNode(
+                ExprKind.ORDERABLE_WINDOW,
+                "ewm_mean",
                 com=com,
                 span=span,
                 half_life=half_life,
@@ -760,7 +759,6 @@ class Expr:
         """
         return self._with_filtration(lambda plx: self._to_compliant_expr(plx).unique())
 
-    @with_elementwise
     def abs(self) -> Self:
         """Return absolute value of each element.
 
@@ -778,9 +776,8 @@ class Expr:
             |1 -2  4      2      4|
             └─────────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).abs())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "abs"))
 
-    @with_orderable_window
     def cum_sum(self, *, reverse: bool = False) -> Self:
         """Return cumulative sum.
 
@@ -808,8 +805,8 @@ class Expr:
             |4  5  6         15|
             └──────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).cum_sum(reverse=reverse)
+        return self._with_node(
+            ExprNode(ExprKind.ORDERABLE_WINDOW, "cum_sum", reverse=reverse)
         )
 
     @with_orderable_window
@@ -901,7 +898,6 @@ class Expr:
 
         return self._with_callable(lambda plx: self._to_compliant_expr(plx).shift(n))
 
-    @with_elementwise
     def replace_strict(
         self,
         old: Sequence[Any] | Mapping[Any, Any],
@@ -952,9 +948,13 @@ class Expr:
             new = list(old.values())
             old = list(old.keys())
 
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).replace_strict(
-                old, new, return_dtype=return_dtype
+        return self._with_node(
+            ExprNode(
+                ExprKind.ELEMENTWISE,
+                "replace_strict",
+                old,
+                new,
+                return_dtype=return_dtype,
             )
         )
 
@@ -995,7 +995,6 @@ class Expr:
             upper_bound,
         )
 
-    @with_elementwise
     def is_in(self, other: Any) -> Self:
         """Check if elements of this expression are present in the other iterable.
 
@@ -1019,9 +1018,11 @@ class Expr:
             └──────────────────┘
         """
         if isinstance(other, Iterable) and not isinstance(other, (str, bytes)):
-            return self._with_callable(
-                lambda plx: self._to_compliant_expr(plx).is_in(
-                    to_native(other, pass_through=True)
+            return self._with_node(
+                ExprNode(
+                    ExprKind.ELEMENTWISE,
+                    "is_in",
+                    other=to_native(other, pass_through=True),
                 )
             )
         msg = "Narwhals `is_in` doesn't accept expressions as an argument, as opposed to Polars. You should provide an iterable instead."
@@ -1073,7 +1074,6 @@ class Expr:
         result._metadata = metadata
         return result
 
-    @with_elementwise
     def is_null(self) -> Self:
         """Returns a boolean Series indicating which values are null.
 
@@ -1103,9 +1103,8 @@ class Expr:
             |└───────┴────────┴───────────┴───────────┘|
             └──────────────────────────────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).is_null())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "is_null"))
 
-    @with_elementwise
     def is_nan(self) -> Self:
         """Indicate which values are NaN.
 
@@ -1135,7 +1134,7 @@ class Expr:
             |└───────┴────────┴──────────┴──────────┘|
             └────────────────────────────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).is_nan())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "is_nan"))
 
     def fill_null(
         self,
@@ -1542,7 +1541,6 @@ class Expr:
             )
         )
 
-    @with_elementwise
     def round(self, decimals: int = 0) -> Self:
         r"""Round underlying floating point data by `decimals` digits.
 
@@ -1573,9 +1571,7 @@ class Expr:
             |2  3.901234        3.9|
             └──────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).round(decimals)
-        )
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "round", decimals=decimals))
 
     def len(self) -> Self:
         r"""Return the number of elements in the column.
@@ -1676,7 +1672,6 @@ class Expr:
         result._metadata.nodes.append(node)
         return result
 
-    @with_elementwise
     def is_finite(self) -> Self:
         """Returns boolean values indicating which original values are finite.
 
@@ -1709,7 +1704,7 @@ class Expr:
             |└──────┴─────────────┘|
             └──────────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).is_finite())
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "is_finite"))
 
     @with_orderable_window
     def cum_count(self, *, reverse: bool = False) -> Self:
