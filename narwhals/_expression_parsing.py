@@ -660,6 +660,8 @@ def with_node(
                 md = self._metadata.with_elementwise_op()
             elif kind is ExprKind.AGGREGATION:
                 md = self._metadata.with_aggregation()
+            elif kind is ExprKind.LITERAL:
+                md = self._metadata.literal()
             elif kind is ExprKind.ORDERABLE_WINDOW:
                 md = self._metadata.with_orderable_window()
             elif kind is ExprKind.WINDOW:
