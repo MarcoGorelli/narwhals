@@ -25,7 +25,7 @@ from narwhals.dependencies import is_narwhals_series, is_numpy_array
 from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterator, Sequence
 
     from typing_extensions import Never, TypeIs
 
@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     ExprT_co = TypeVar("ExprT_co", bound="Expr", covariant=True)
 
     class ExprNamespace(Protocol[ExprT_co]):
+        _namespace: str = "todo"
         _expr: ExprT_co
 
     ExprNamespaceT = TypeVar("ExprNamespaceT", bound=ExprNamespace[Any])
@@ -521,6 +522,13 @@ class ExprMetadata:
             *exprs, str_as_lit=False, allow_multi_output=True, to_single_output=True
         )
 
+    def op_nodes_reversed(self) -> Iterator[ExprNode]:
+        for node in reversed(self.nodes):
+            if node.name.startswith("name.") or node.name == "alias":
+                # Skip nodes which only do aliasing.
+                continue
+            yield node
+
 
 def combine_metadata(
     *args: IntoExpr | object | None,
@@ -710,7 +718,7 @@ def namespace_method_with_node(
         def wrapper(
             self: ExprNamespaceT, *args: PS.args, **kwargs: PS.kwargs
         ) -> ExprT_co:
-            name = func.__name__
+            name = f"{self._namespace}.{func.__name__}"
 
             result = func(self, *args, **kwargs)
             md = result._metadata

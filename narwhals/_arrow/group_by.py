@@ -72,7 +72,7 @@ class ArrowGroupBy(EagerGroupBy["ArrowDataFrame", "ArrowExpr", "Aggregation"]):
                 expr, self.compliant, exclude
             )
             assert expr._metadata is not None  # noqa: S101
-            if len(expr._metadata.nodes) == 1:
+            if len(list(expr._metadata.op_nodes_reversed())) == 1:
                 # e.g. `agg(nw.len())`
                 if expr._function_name != "len":  # pragma: no cover
                     msg = "Safety assertion failed, please report a bug to https://github.com/narwhals-dev/narwhals/issues"

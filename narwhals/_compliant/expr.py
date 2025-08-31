@@ -194,7 +194,7 @@ class DepthTrackingExpr(
         pandas, PyArrow, and Dask.
         """
         assert self._metadata is not None  # noqa: S101
-        return len(self._metadata.nodes) <= 2
+        return len(list(self._metadata.op_nodes_reversed())) <= 2
 
 
 class EagerExpr(
