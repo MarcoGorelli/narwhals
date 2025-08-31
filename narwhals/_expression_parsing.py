@@ -270,6 +270,7 @@ class ExprMetadata:
         is_elementwise: bool = True,
         is_scalar_like: bool = False,
         is_literal: bool = False,
+        nodes: list[ExprNode] | None = None,
     ) -> None:
         if is_literal:
             assert is_scalar_like  # noqa: S101  # debug assertion
@@ -282,8 +283,7 @@ class ExprMetadata:
         self.preserves_length: bool = preserves_length
         self.is_scalar_like: bool = is_scalar_like
         self.is_literal: bool = is_literal
-
-        self.nodes: list[ExprNode] = []
+        self.nodes: list[ExprNode] = nodes or []
 
     def __init_subclass__(cls, /, *args: Any, **kwds: Any) -> Never:  # pragma: no cover
         msg = f"Cannot subclass {cls.__name__!r}"
@@ -319,6 +319,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=True,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_orderable_aggregation(self) -> ExprMetadata:

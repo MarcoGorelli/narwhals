@@ -76,6 +76,19 @@ class Expr:
     def _metadata(self, value: ExprMetadata, /) -> None:
         self._opt_metadata = value
 
+    def _with_node(self, node: ExprNode) -> Self:
+        if node.kind is ExprKind.AGGREGATION:
+            md = self._metadata.with_aggregation()
+            md.nodes.append(node)
+            return self.__class__(
+                lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
+                    **node.kwargs
+                ),
+                md,
+            )
+        msg = "todo"
+        raise NotImplementedError(msg)
+
     def _with_callable(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
         return self.__class__(to_compliant_expr, self._metadata)
 
@@ -495,7 +508,6 @@ class Expr:
         """
         return self._with_callable(lambda plx: self._to_compliant_expr(plx).median())
 
-    @with_aggregation
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
 
@@ -516,9 +528,7 @@ class Expr:
             |0  17.79513  1.265789|
             └─────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).std(ddof=ddof)
-        )
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "std", ddof=ddof))
 
     @with_aggregation
     def var(self, *, ddof: int = 1) -> Self:
