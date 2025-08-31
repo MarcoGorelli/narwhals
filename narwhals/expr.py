@@ -101,89 +101,14 @@ class Expr:
 
     def __repr__(self) -> str:
         """Pretty-print the expression by combining all nodes in the metadata."""
-        md = self._metadata
-
-        if not hasattr(md, "nodes") or not md.nodes:
-            return "Expr"
-
-        nodes = md.nodes
-
-        if not nodes:
-            return "Expr"
-
-        # Start with the first node (usually a column reference)
-        first_node = nodes[0]
-
-        # Handle the first node (typically col(...))
-        result = first_node.name
-
-        # Chain the remaining operations
-        for node in nodes[1:]:
-            # Check if this is a binary operation
-            if self._is_binary_op(node.name):
-                # Format as infix operation with parentheses
-                # Fallback to method call if no args
-                result = f"{result}.{node.name}()"
+        result: str = "nw"
+        for node in self._metadata.nodes:
+            if node.kwargs:
+                args_str = ", ".join(f"{k}={v!r}" for k, v in node.kwargs.items())
+                result = f"{result}.{node.name}({args_str})"
             else:
-                # Regular method call
-                args_parts = []
-
-                # Add keyword arguments
-                if hasattr(node, "kwargs") and node.kwargs:
-                    args_parts.extend(f"{k}={v!r}" for k, v in node.kwargs.items())
-
-                # Format the method call
-                if args_parts:
-                    args_str = ", ".join(args_parts)
-                    result = f"{result}.{node.name}({args_str})"
-                else:
-                    result = f"{result}.{node.name}()"
-
+                result = f"{result}.{node.name}()"
         return result
-
-    def _is_binary_op(self, name: str) -> bool:
-        """Check if a method name represents a binary operation."""
-        binary_ops = {
-            "__add__",
-            "__sub__",
-            "__mul__",
-            "__truediv__",
-            "__floordiv__",
-            "__mod__",
-            "__pow__",
-            "__eq__",
-            "__ne__",
-            "__lt__",
-            "__le__",
-            "__gt__",
-            "__ge__",
-            "__and__",
-            "__or__",
-            "__xor__",
-        }
-        return name in binary_ops
-
-    def _get_op_symbol(self, name: str) -> str:
-        """Get the symbol representation for a binary operation."""
-        op_symbols = {
-            "__add__": "+",
-            "__sub__": "-",
-            "__mul__": "*",
-            "__truediv__": "/",
-            "__floordiv__": "//",
-            "__mod__": "%",
-            "__pow__": "**",
-            "__eq__": "==",
-            "__ne__": "!=",
-            "__lt__": "<",
-            "__le__": "<=",
-            "__gt__": ">",
-            "__ge__": ">=",
-            "__and__": "&",
-            "__or__": "|",
-            "__xor__": "^",
-        }
-        return op_symbols.get(name, f".{name}()")
 
     def _with_nary(
         self,
