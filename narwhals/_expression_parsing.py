@@ -224,13 +224,14 @@ class ExpansionKind(Enum):
 
 
 class ExprNode:
-    def __init__(self, kind: ExprKind, name: str, /, **kwargs: Any) -> None:
+    def __init__(self, kind: ExprKind, name: str, /, *exprs: Any, **kwargs: Any) -> None:
         self.kind = kind
         self.name = name
+        self.exprs = exprs
         self.kwargs = kwargs
 
     def __repr__(self) -> str:
-        return f"{self.name}({self.kwargs})"
+        return f"{self.name}({self.exprs}, {self.kwargs})"
 
 
 class ExprMetadata:

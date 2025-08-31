@@ -79,15 +79,21 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation()
-            md.nodes.append(node)
-            return self.__class__(
-                lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
-                    **node.kwargs
-                ),
-                md,
-            )
-        msg = "todo"
-        raise NotImplementedError(msg)
+        elif node.kind is ExprKind.ELEMENTWISE:
+            md = self._metadata.with_elementwise_op()
+        elif node.kind is ExprKind.ORDERABLE_WINDOW:
+            md = self._metadata.with_orderable_window()
+        else:
+            msg = "todo"
+            raise NotImplementedError(msg)
+        md.nodes.append(node)
+        return self.__class__(
+            lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
+                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
+                **node.kwargs.items(),
+            ),
+            md,
+        )
 
     def _with_callable(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
         return self.__class__(to_compliant_expr, self._metadata)
@@ -1232,21 +1238,19 @@ class Expr:
             msg = f"strategy not supported: {strategy}"
             raise ValueError(msg)
 
-        result = self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).fill_null(
-                value=plx.parse_into_expr(value, str_as_lit=True),
+        if strategy is not None:
+            node = ExprNode(
+                ExprKind.ORDERABLE_WINDOW,
+                "fill_null",
+                value=value,
                 strategy=strategy,
                 limit=limit,
             )
-        )
-        if strategy is not None:
-            kind = ExprKind.ORDERABLE_WINDOW
-            result._metadata = self._metadata.with_orderable_window()
         else:
-            kind = ExprKind.ELEMENTWISE
-        node = ExprNode(kind, "fill_null", value=value, strategy=strategy, limit=limit)
-        result._metadata.nodes.append(node)
-        return result
+            node = ExprNode(
+                ExprKind.ELEMENTWISE, "fill_null", value, strategy=strategy, limit=limit
+            )
+        return self._with_node(node)
 
     def fill_nan(self, value: float | None) -> Self:
         """Fill floating point NaN values with given value.
