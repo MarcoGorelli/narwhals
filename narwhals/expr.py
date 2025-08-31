@@ -10,7 +10,6 @@ from narwhals._expression_parsing import (
     ExprNode,
     apply_n_ary_operation,
     combine_metadata,
-    with_aggregation,
     with_elementwise,
     with_orderable_window,
     with_window,
@@ -158,11 +157,10 @@ class Expr:
         )
         raise TypeError(msg)
 
-    @with_aggregation
     def _taxicab_norm(self) -> Self:
         # This is just used to test out the stable api feature in a realistic-ish way.
         # It's not intended to be used.
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).abs().sum())
+        return self.abs().sum()
 
     # --- convert ---
     def alias(self, name: str) -> Self:
@@ -335,7 +333,6 @@ class Expr:
     def __invert__(self) -> Self:
         return self._with_callable(lambda plx: self._to_compliant_expr(plx).__invert__())
 
-    @with_aggregation
     def any(self) -> Self:
         """Return whether any of the values in the column are `True`.
 
@@ -354,9 +351,8 @@ class Expr:
             |  0  True  True   |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).any())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "any"))
 
-    @with_aggregation
     def all(self) -> Self:
         """Return whether all values in the column are `True`.
 
@@ -375,7 +371,7 @@ class Expr:
             |  0  False  True  |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).all())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "all"))
 
     @with_orderable_window
     def ewm_mean(
@@ -473,7 +469,6 @@ class Expr:
             )
         )
 
-    @with_aggregation
     def mean(self) -> Self:
         """Get mean value.
 
@@ -490,9 +485,8 @@ class Expr:
             |   0  0.0  4.0    |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).mean())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "mean"))
 
-    @with_aggregation
     def median(self) -> Self:
         """Get median value.
 
@@ -512,7 +506,7 @@ class Expr:
             |   0  3.0  4.0    |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).median())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "median"))
 
     def std(self, *, ddof: int = 1) -> Self:
         """Get standard deviation.
@@ -536,7 +530,6 @@ class Expr:
         """
         return self._with_node(ExprNode(ExprKind.AGGREGATION, "std", ddof=ddof))
 
-    @with_aggregation
     def var(self, *, ddof: int = 1) -> Self:
         """Get variance.
 
@@ -557,9 +550,7 @@ class Expr:
             |0  316.666667  1.602222|
             └───────────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).var(ddof=ddof)
-        )
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "var", ddof=ddof))
 
     def map_batches(
         self,
@@ -616,7 +607,6 @@ class Expr:
         # safest assumptions
         return self._with_orderable_filtration(compliant_expr)
 
-    @with_aggregation
     def skew(self) -> Self:
         """Calculate the sample skewness of a column.
 
@@ -633,9 +623,8 @@ class Expr:
             | 0  0.0  1.472427 |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).skew())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "skew"))
 
-    @with_aggregation
     def kurtosis(self) -> Self:
         """Compute the kurtosis (Fisher's definition) without bias correction.
 
@@ -655,10 +644,9 @@ class Expr:
             | 0 -1.3  0.210657 |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).kurtosis())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "kurtosis"))
 
-    @with_aggregation
-    def sum(self) -> Expr:
+    def sum(self) -> Self:
         """Return the sum value.
 
         If there are no non-null elements, the result is zero.
@@ -680,9 +668,8 @@ class Expr:
             |└────────┴────────┘|
             └───────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).sum())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "sum"))
 
-    @with_aggregation
     def min(self) -> Self:
         """Returns the minimum value(s) from a column(s).
 
@@ -699,9 +686,8 @@ class Expr:
             |     0  1  3      |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).min())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "min"))
 
-    @with_aggregation
     def max(self) -> Self:
         """Returns the maximum value(s) from a column(s).
 
@@ -718,9 +704,8 @@ class Expr:
             |    0  20  100    |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).max())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "max"))
 
-    @with_aggregation
     def count(self) -> Self:
         """Returns the number of non-null elements in the column.
 
@@ -737,9 +722,8 @@ class Expr:
             |     0  3  2      |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).count())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "count"))
 
-    @with_aggregation
     def n_unique(self) -> Self:
         """Returns count of unique values.
 
@@ -756,7 +740,7 @@ class Expr:
             |     0  5  3      |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).n_unique())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "n_unique"))
 
     def unique(self) -> Self:
         """Return unique values of this expression.
@@ -1434,7 +1418,6 @@ class Expr:
         """
         return self._with_window(lambda plx: self._to_compliant_expr(plx).is_unique())
 
-    @with_aggregation
     def null_count(self) -> Self:
         r"""Count null values.
 
@@ -1457,7 +1440,7 @@ class Expr:
             |     0  1  2      |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).null_count())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "null_count"))
 
     @with_orderable_window
     def is_first_distinct(self) -> Self:
@@ -1519,7 +1502,6 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).is_last_distinct()
         )
 
-    @with_aggregation
     def quantile(
         self, quantile: float, interpolation: RollingInterpolationMethod
     ) -> Self:
@@ -1551,8 +1533,13 @@ class Expr:
             |  0  24.5  74.5   |
             └──────────────────┘
         """
-        return self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).quantile(quantile, interpolation)
+        return self._with_node(
+            ExprNode(
+                ExprKind.AGGREGATION,
+                "quantile",
+                quantile=quantile,
+                interpolation=interpolation,
+            )
         )
 
     @with_elementwise
@@ -1590,7 +1577,6 @@ class Expr:
             lambda plx: self._to_compliant_expr(plx).round(decimals)
         )
 
-    @with_aggregation
     def len(self) -> Self:
         r"""Return the number of elements in the column.
 
@@ -1612,7 +1598,7 @@ class Expr:
             |    0   2   1     |
             └──────────────────┘
         """
-        return self._with_callable(lambda plx: self._to_compliant_expr(plx).len())
+        return self._with_node(ExprNode(ExprKind.AGGREGATION, "len"))
 
     def clip(
         self,
