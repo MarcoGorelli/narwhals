@@ -90,7 +90,7 @@ class Expr:
         return self.__class__(
             lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
                 *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
-                **node.kwargs.items(),
+                **node.kwargs,
             ),
             md,
         )
