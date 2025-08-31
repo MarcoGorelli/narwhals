@@ -79,15 +79,23 @@ class Expr:
             md = self._metadata.with_elementwise_op()
         elif node.kind is ExprKind.ORDERABLE_WINDOW:
             md = self._metadata.with_orderable_window()
+        elif node.kind is ExprKind.ORDERABLE_FILTRATION:
+            md = self._metadata.with_orderable_filtration()
+        elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
+            md = self._metadata.with_orderable_aggregation()
         elif node.kind is ExprKind.WINDOW:
             md = self._metadata.with_window()
         else:
             msg = "todo"
             raise NotImplementedError(msg)
         md.nodes.append(node)
+        str_as_lit = node.name.startswith("__")  # binary ops
         return self.__class__(
             lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
-                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
+                *[
+                    plx.parse_into_expr(expr, str_as_lit=str_as_lit)
+                    for expr in node.exprs
+                ],
                 **node.kwargs,
             ),
             md,
@@ -182,7 +190,7 @@ class Expr:
             |      1  15       |
             └──────────────────┘
         """
-        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "alias"))
+        return self._with_node(ExprNode(ExprKind.ELEMENTWISE, "alias", name=name))
 
     def pipe(
         self,
@@ -591,18 +599,20 @@ class Expr:
             |2  3  6       4.0       7.0|
             └───────────────────────────┘
         """
-
-        def compliant_expr(plx: Any) -> Any:
-            return self._to_compliant_expr(plx).map_batches(
+        kind = (
+            ExprKind.ORDERABLE_AGGREGATION
+            if returns_scalar
+            else ExprKind.ORDERABLE_FILTRATION
+        )
+        return self._with_node(
+            ExprNode(
+                kind,
+                "map_batches",
                 function=function,
                 return_dtype=return_dtype,
                 returns_scalar=returns_scalar,
             )
-
-        if returns_scalar:
-            return self._with_orderable_aggregation(compliant_expr)
-        # safest assumptions
-        return self._with_orderable_filtration(compliant_expr)
+        )
 
     def skew(self) -> Self:
         """Calculate the sample skewness of a column.
@@ -1389,7 +1399,7 @@ class Expr:
             |3  1  c             True            False|
             └─────────────────────────────────────────┘
         """
-        return self._with_window(lambda plx: self._to_compliant_expr(plx).is_duplicated())
+        return self._with_node(ExprNode(ExprKind.WINDOW, "is_duplicated"))
 
     def is_unique(self) -> Self:
         r"""Return a boolean mask indicating unique values.
@@ -1410,7 +1420,7 @@ class Expr:
             |3  1  c        False         True|
             └─────────────────────────────────┘
         """
-        return self._with_window(lambda plx: self._to_compliant_expr(plx).is_unique())
+        return self._with_node(ExprNode(ExprKind.WINDOW, "is_unique"))
 
     def null_count(self) -> Self:
         r"""Count null values.

@@ -336,6 +336,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=True,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_elementwise_op(self) -> ExprMetadata:
@@ -347,6 +348,7 @@ class ExprMetadata:
             is_elementwise=self.is_elementwise,
             is_scalar_like=self.is_scalar_like,
             is_literal=self.is_literal,
+            nodes=self.nodes,
         )
 
     def with_window(self) -> ExprMetadata:
@@ -364,6 +366,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_orderable_window(self) -> ExprMetadata:
@@ -379,6 +382,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_ordered_over(self) -> ExprMetadata:
@@ -413,6 +417,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_partitioned_over(self) -> ExprMetadata:
@@ -433,6 +438,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_filtration(self) -> ExprMetadata:
@@ -447,6 +453,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     def with_orderable_filtration(self) -> ExprMetadata:
@@ -461,6 +468,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
+            nodes=self.nodes,
         )
 
     @staticmethod
