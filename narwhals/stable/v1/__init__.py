@@ -7,6 +7,7 @@ import narwhals as nw
 from narwhals import exceptions, functions as nw_f
 from narwhals._exceptions import issue_warning
 from narwhals._typing_compat import TypeVar, assert_never
+from narwhals._expression_parsing import ExprNode, ExprKind
 from narwhals._utils import (
     Implementation,
     Version,
@@ -367,15 +368,11 @@ class Expr(NwExpr):
 
     def head(self, n: int = 10) -> Self:
         r"""Get the first `n` rows."""
-        return self._with_orderable_filtration(
-            lambda plx: self._to_compliant_expr(plx).head(n)  # type: ignore[attr-defined]
-        )
+        return self._with_node(ExprNode(ExprKind.FILTRATION, 'head', n=n))
 
     def tail(self, n: int = 10) -> Self:
         r"""Get the last `n` rows."""
-        return self._with_orderable_filtration(
-            lambda plx: self._to_compliant_expr(plx).tail(n)  # type: ignore[attr-defined]
-        )
+        return self._with_node(ExprNode(ExprKind.FILTRATION, 'tail', n=n))
 
     def gather_every(self, n: int, offset: int = 0) -> Self:
         r"""Take every nth value in the Series and return as new Series.
@@ -384,9 +381,7 @@ class Expr(NwExpr):
             n: Gather every *n*-th row.
             offset: Starting index.
         """
-        return self._with_orderable_filtration(
-            lambda plx: self._to_compliant_expr(plx).gather_every(n=n, offset=offset)  # type: ignore[attr-defined]
-        )
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_FILTRATION, 'gather_every', n=n, offset=offset))
 
     def unique(self, *, maintain_order: bool | None = None) -> Self:
         """Return unique values of this expression."""
@@ -396,33 +391,23 @@ class Expr(NwExpr):
                 "You can safely remove this argument."
             )
             issue_warning(msg, UserWarning)
-        return self._with_filtration(lambda plx: self._to_compliant_expr(plx).unique())
+        return self._with_node(ExprNode(ExprKind.FILTRATION, 'unique'))
 
     def sort(self, *, descending: bool = False, nulls_last: bool = False) -> Self:
         """Sort this column. Place null values first."""
-        return self._with_window(
-            lambda plx: self._to_compliant_expr(plx).sort(  # type: ignore[attr-defined]
-                descending=descending, nulls_last=nulls_last
-            )
-        )
+        return self._with_node(ExprNode(ExprKind.WINDOW, 'sort', descending=descending, nulls_last=nulls_last))
 
     def arg_max(self) -> Self:
         """Returns the index of the maximum value."""
-        return self._with_orderable_aggregation(
-            lambda plx: self._to_compliant_expr(plx).arg_max()  # type: ignore[attr-defined]
-        )
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_AGGREGATION, 'arg_max'))
 
     def arg_min(self) -> Self:
         """Returns the index of the minimum value."""
-        return self._with_orderable_aggregation(
-            lambda plx: self._to_compliant_expr(plx).arg_min()  # type: ignore[attr-defined]
-        )
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_AGGREGATION, 'arg_min'))
 
     def arg_true(self) -> Self:
         """Find elements where boolean expression is True."""
-        return self._with_orderable_filtration(
-            lambda plx: self._to_compliant_expr(plx).arg_true()  # type: ignore[attr-defined]
-        )
+        return self._with_node(ExprNode(ExprKind.ORDERABLE_FILTRATION, 'arg_true'))
 
     def sample(
         self,
@@ -441,11 +426,7 @@ class Expr(NwExpr):
             seed: Seed for the random number generator. If set to None (default), a random
                 seed is generated for each sample operation.
         """
-        return self._with_filtration(
-            lambda plx: self._to_compliant_expr(plx).sample(  # type: ignore[attr-defined]
-                n, fraction=fraction, with_replacement=with_replacement, seed=seed
-            )
-        )
+        return self._with_node(ExprNode(ExprKind.FILTRATION, 'sample', n=n, fraction=fraction, with_replacement=with_replacement, seed=seed))
 
 
 class Schema(NwSchema):

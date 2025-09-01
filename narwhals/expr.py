@@ -75,6 +75,8 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation()
+        elif node.name.startswith('__') and node.kind is ExprKind.ELEMENTWISE:
+            md = ExprMetadata.from_binary_op(self, *node.exprs)
         elif node.kind is ExprKind.ELEMENTWISE:
             md = self._metadata.with_elementwise_op()
         elif node.kind is ExprKind.FILTRATION:

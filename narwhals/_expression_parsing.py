@@ -509,9 +509,11 @@ class ExprMetadata:
     def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, /) -> ExprMetadata:
         # We may be able to allow multi-output rhs in the future:
         # https://github.com/narwhals-dev/narwhals/issues/2244.
-        return combine_metadata(
+        md = combine_metadata(
             lhs, rhs, str_as_lit=True, allow_multi_output=False, to_single_output=False
         )
+        md.nodes = lhs._metadata.nodes
+        return md
 
     @classmethod
     def from_horizontal_op(cls, *exprs: IntoExpr) -> ExprMetadata:
@@ -640,6 +642,7 @@ def apply_n_ary_operation(
     ]
 
     broadcast = any(not kind.is_scalar_like for kind in kinds)
+    breakpoint()
     compliant_exprs = (
         compliant_expr.broadcast(kind)
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
