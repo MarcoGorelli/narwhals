@@ -75,8 +75,19 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation()
-        elif node.name.startswith('__') and node.kind is ExprKind.ELEMENTWISE:
+        elif node.name.startswith("__") and node.kind is ExprKind.ELEMENTWISE:
             md = ExprMetadata.from_binary_op(self, *node.exprs)
+            other = node.exprs[0]
+            return self.__class__(
+                lambda plx: apply_n_ary_operation(
+                    plx,
+                    lambda x, y: getattr(x, node.name)(y),
+                    self,
+                    other,
+                    str_as_lit=True,
+                ),
+                md,
+            )
         elif node.kind is ExprKind.ELEMENTWISE:
             md = self._metadata.with_elementwise_op()
         elif node.kind is ExprKind.FILTRATION:
@@ -93,13 +104,9 @@ class Expr:
             msg = "todo"
             raise NotImplementedError(msg)
         md.nodes.append(node)
-        str_as_lit = node.name.startswith("__")  # binary ops
         return self.__class__(
             lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
-                *[
-                    plx.parse_into_expr(expr, str_as_lit=str_as_lit)
-                    for expr in node.exprs
-                ],
+                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
                 **node.kwargs,
             ),
             md,

@@ -642,7 +642,6 @@ def apply_n_ary_operation(
     ]
 
     broadcast = any(not kind.is_scalar_like for kind in kinds)
-    breakpoint()
     compliant_exprs = (
         compliant_expr.broadcast(kind)
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
