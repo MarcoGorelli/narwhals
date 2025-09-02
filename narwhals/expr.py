@@ -77,8 +77,7 @@ class Expr:
             md = self._metadata.with_aggregation()
         elif node.kind is ExprKind.BINARY:
             other = next(iter(node.exprs))
-            md = ExprMetadata.from_binary_op(self, other)
-            md.nodes.append(node)
+            md = ExprMetadata.from_binary_op(self, other, node)
             return self.__class__(
                 lambda plx: apply_n_ary_operation(
                     plx,

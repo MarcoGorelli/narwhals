@@ -512,13 +512,13 @@ class ExprMetadata:
         return ExprMetadata(ExpansionKind.MULTI_UNNAMED)
 
     @classmethod
-    def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, /) -> ExprMetadata:
+    def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, node: ExprNode) -> ExprMetadata:
         # We may be able to allow multi-output rhs in the future:
         # https://github.com/narwhals-dev/narwhals/issues/2244.
         md = combine_metadata(
             lhs, rhs, str_as_lit=True, allow_multi_output=False, to_single_output=False
         )
-        md.nodes = lhs._metadata.nodes
+        md.nodes = [*lhs._metadata.nodes, node]
         return md
 
     @classmethod
