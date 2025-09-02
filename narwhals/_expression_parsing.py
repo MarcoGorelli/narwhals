@@ -515,20 +515,25 @@ class ExprMetadata:
     def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, node: ExprNode) -> ExprMetadata:
         # We may be able to allow multi-output rhs in the future:
         # https://github.com/narwhals-dev/narwhals/issues/2244.
-        md = combine_metadata(
-            lhs, rhs, str_as_lit=True, allow_multi_output=False, to_single_output=False
+        return combine_metadata(
+            lhs,
+            rhs,
+            str_as_lit=True,
+            allow_multi_output=False,
+            to_single_output=False,
+            nodes=[*lhs._metadata.nodes, node],
         )
-        md.nodes = [*lhs._metadata.nodes, node]
-        return md
 
     @classmethod
     def from_n_ary_op(cls, name: str, *exprs: IntoExpr) -> ExprMetadata:
         node = ExprNode(ExprKind.N_ARY, name, *exprs)
-        md = combine_metadata(
-            *exprs, str_as_lit=False, allow_multi_output=True, to_single_output=True
+        return combine_metadata(
+            *exprs,
+            str_as_lit=False,
+            allow_multi_output=True,
+            to_single_output=True,
+            nodes=[node],
         )
-        md.nodes = [node]
-        return md
 
     def op_nodes_reversed(self) -> Iterator[ExprNode]:
         for node in reversed(self.nodes):
@@ -547,6 +552,7 @@ def combine_metadata(
     str_as_lit: bool,
     allow_multi_output: bool,
     to_single_output: bool,
+    nodes: list[ExprNode],
 ) -> ExprMetadata:
     """Combine metadata from `args`.
 
@@ -556,6 +562,7 @@ def combine_metadata(
         allow_multi_output: Whether to allow multi-output inputs.
         to_single_output: Whether the result is always single-output, regardless
             of the inputs (e.g. `nw.sum_horizontal`).
+        nodes: Nodes of result node.
     """
     n_filtrations = 0
     result_expansion_kind = ExpansionKind.SINGLE
@@ -616,6 +623,7 @@ def combine_metadata(
         is_elementwise=result_is_elementwise,
         is_scalar_like=result_is_scalar_like,
         is_literal=result_is_literal,
+        nodes=nodes,
     )
 
 
