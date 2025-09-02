@@ -529,7 +529,11 @@ class ExprMetadata:
 
     def op_nodes_reversed(self) -> Iterator[ExprNode]:
         for node in reversed(self.nodes):
-            if node.name.startswith("name.") or node.name == "alias":
+            if (
+                node.name.startswith("name.")  # noqa: PLR1714
+                or node.name == "alias"
+                or node.name == "over"
+            ):
                 # Skip nodes which only do aliasing.
                 continue
             yield node
