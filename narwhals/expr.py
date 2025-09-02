@@ -75,9 +75,9 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation()
-        elif node.name.startswith("__") and node.kind is ExprKind.ELEMENTWISE:
-            md = ExprMetadata.from_binary_op(self, *node.exprs)
-            other = node.exprs[0]
+        elif node.kind is ExprKind.BINARY:
+            other = next(iter(node.exprs))
+            md = ExprMetadata.from_binary_op(self, other)
             return self.__class__(
                 lambda plx: apply_n_ary_operation(
                     plx,
@@ -88,6 +88,8 @@ class Expr:
                 ),
                 md,
             )
+        elif node.kind is ExprKind.N_ARY:
+            pass  # TODO (marco): fixup
         elif node.kind is ExprKind.ELEMENTWISE:
             md = self._metadata.with_elementwise_op()
         elif node.kind is ExprKind.FILTRATION:
@@ -242,7 +244,7 @@ class Expr:
 
     # --- binary ---
     def _with_binary(self, attr: str, other: Self | Any) -> Self:
-        node = ExprNode(ExprKind.ELEMENTWISE, attr, other)
+        node = ExprNode(ExprKind.BINARY, attr, other)
         return self._with_node(node)
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]

@@ -1254,7 +1254,7 @@ def _expr_with_n_ary_op(
         lambda plx: apply_n_ary_operation(
             plx, operation_factory(plx), *exprs, str_as_lit=False
         ),
-        ExprMetadata.from_horizontal_op(*exprs),
+        ExprMetadata.from_n_ary_op(*exprs),
     )
 
 
@@ -1782,5 +1782,5 @@ def coalesce(
         lambda plx: apply_n_ary_operation(
             plx, lambda *args: plx.coalesce(*args), *flat_exprs, str_as_lit=False
         ),
-        ExprMetadata.from_horizontal_op(*flat_exprs),
+        ExprMetadata.from_n_ary_op(*flat_exprs),
     )

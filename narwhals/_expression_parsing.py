@@ -153,6 +153,12 @@ class ExprKind(Enum):
     OVER = auto()
     """Results from calling `.over` on expression."""
 
+    BINARY = auto()
+    """Results from binary expression (like `nw.col('a') + nw.col('b')`)."""
+
+    N_ARY = auto()
+    """Results from n-ary expression (like `nw.sum_horizontal`)."""
+
     UNKNOWN = auto()
     """Based on the information we have, we can't determine the ExprKind."""
 
@@ -516,7 +522,7 @@ class ExprMetadata:
         return md
 
     @classmethod
-    def from_horizontal_op(cls, *exprs: IntoExpr) -> ExprMetadata:
+    def from_n_ary_op(cls, *exprs: IntoExpr) -> ExprMetadata:
         return combine_metadata(
             *exprs, str_as_lit=False, allow_multi_output=True, to_single_output=True
         )
