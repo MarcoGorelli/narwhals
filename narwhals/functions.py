@@ -3,7 +3,7 @@ from __future__ import annotations
 import platform
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from narwhals._expression_parsing import (
     ExprKind,
@@ -1239,25 +1239,7 @@ def max(*columns: str) -> Expr:
     return col(*columns).max()
 
 
-def _expr_with_n_ary_op(
-    func_name: str,
-    operation_factory: Callable[
-        [CompliantNamespace[Any, Any]], Callable[..., CompliantExpr[Any, Any]]
-    ],
-    *exprs: IntoExpr,
-) -> Expr:
-    if not exprs:
-        msg = f"At least one expression must be passed to `{func_name}`"
-        raise ValueError(msg)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx, operation_factory(plx), *exprs, str_as_lit=False
-        ),
-        ExprMetadata.from_n_ary_op(*exprs),
-    )
-
-
-def _expr_with_n_ary_op_new(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
+def _expr_with_n_ary_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
     if not exprs:
         msg = f"At least one expression must be passed to `{name}`"
         raise ValueError(msg)
@@ -1310,7 +1292,7 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         └────────────────────┘
     """
     flat_exprs = flatten(exprs)
-    return _expr_with_n_ary_op_new("sum_horizontal", *flat_exprs)
+    return _expr_with_n_ary_op("sum_horizontal", *flat_exprs)
 
 
 def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1345,9 +1327,7 @@ def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         | h_min: [[1,5,3]] |
         └──────────────────┘
     """
-    return _expr_with_n_ary_op(
-        "min_horizontal", lambda plx: plx.min_horizontal, *flatten(exprs)
-    )
+    return _expr_with_n_ary_op("min_horizontal", *flatten(exprs))
 
 
 def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1384,9 +1364,7 @@ def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         |└─────┴──────┴───────┘|
         └──────────────────────┘
     """
-    return _expr_with_n_ary_op(
-        "max_horizontal", lambda plx: plx.max_horizontal, *flatten(exprs)
-    )
+    return _expr_with_n_ary_op("max_horizontal", *flatten(exprs))
 
 
 class When:
@@ -1538,9 +1516,7 @@ def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
 
     """
     flat_exprs = flatten(exprs)
-    return _expr_with_n_ary_op_new(
-        "all_horizontal", *flat_exprs, ignore_nulls=ignore_nulls
-    )
+    return _expr_with_n_ary_op("all_horizontal", *flat_exprs, ignore_nulls=ignore_nulls)
 
 
 def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
@@ -1631,9 +1607,7 @@ def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
         └─────────────────────────┘
     """
     flat_exprs = flatten(exprs)
-    return _expr_with_n_ary_op_new(
-        "any_horizontal", *flat_exprs, ignore_nulls=ignore_nulls
-    )
+    return _expr_with_n_ary_op("any_horizontal", *flat_exprs, ignore_nulls=ignore_nulls)
 
 
 def mean_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1666,9 +1640,7 @@ def mean_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         | a: [[2.5,6.5,3]] |
         └──────────────────┘
     """
-    return _expr_with_n_ary_op(
-        "mean_horizontal", lambda plx: plx.mean_horizontal, *flatten(exprs)
-    )
+    return _expr_with_n_ary_op("mean_horizontal", *flatten(exprs))
 
 
 def concat_str(
@@ -1721,11 +1693,7 @@ def concat_str(
     """
     flat_exprs = flatten([*flatten([exprs]), *more_exprs])
     return _expr_with_n_ary_op(
-        "concat_str",
-        lambda plx: lambda *args: plx.concat_str(
-            *args, separator=separator, ignore_nulls=ignore_nulls
-        ),
-        *flat_exprs,
+        "concat_str", *flat_exprs, separator=separator, ignore_nulls=ignore_nulls
     )
 
 
