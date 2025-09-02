@@ -3,7 +3,6 @@ from __future__ import annotations
 import platform
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from functools import partial
 from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
@@ -1258,6 +1257,24 @@ def _expr_with_n_ary_op(
     )
 
 
+def _expr_with_n_ary_op_new(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
+    if not exprs:
+        msg = f"At least one expression must be passed to `{name}`"
+        raise ValueError(msg)
+    node = ExprNode(ExprKind.N_ARY, name, *exprs)
+    md = ExprMetadata.from_n_ary_op(*exprs)
+    md.nodes.append(node)
+    return Expr(
+        lambda plx: apply_n_ary_operation(
+            plx,
+            lambda *args: getattr(plx, node.name)(*args, **kwargs),
+            *exprs,
+            str_as_lit=False,
+        ),
+        md,
+    )
+
+
 def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
     """Sum all values horizontally across columns.
 
@@ -1293,13 +1310,7 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         └────────────────────┘
     """
     flat_exprs = flatten(exprs)
-    result = _expr_with_n_ary_op(
-        "sum_horizontal", lambda plx: plx.sum_horizontal, *flat_exprs
-    )
-    result._metadata.nodes = [
-        ExprNode(ExprKind.ELEMENTWISE, "sum_horizontal", exprs=flat_exprs)
-    ]
-    return result
+    return _expr_with_n_ary_op_new("sum_horizontal", *flat_exprs)
 
 
 def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1526,10 +1537,9 @@ def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
         └─────────────────────────────────────────┘
 
     """
-    return _expr_with_n_ary_op(
-        "all_horizontal",
-        lambda plx: partial(plx.all_horizontal, ignore_nulls=ignore_nulls),
-        *flatten(exprs),
+    flat_exprs = flatten(exprs)
+    return _expr_with_n_ary_op_new(
+        "all_horizontal", *flat_exprs, ignore_nulls=ignore_nulls
     )
 
 
@@ -1620,10 +1630,9 @@ def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
         |└───────┴───────┴───────┘|
         └─────────────────────────┘
     """
-    return _expr_with_n_ary_op(
-        "any_horizontal",
-        lambda plx: partial(plx.any_horizontal, ignore_nulls=ignore_nulls),
-        *flatten(exprs),
+    flat_exprs = flatten(exprs)
+    return _expr_with_n_ary_op_new(
+        "any_horizontal", *flat_exprs, ignore_nulls=ignore_nulls
     )
 
 
