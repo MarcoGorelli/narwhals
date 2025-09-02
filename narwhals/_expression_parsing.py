@@ -522,10 +522,13 @@ class ExprMetadata:
         return md
 
     @classmethod
-    def from_n_ary_op(cls, *exprs: IntoExpr) -> ExprMetadata:
-        return combine_metadata(
+    def from_n_ary_op(cls, name: str, *exprs: IntoExpr) -> ExprMetadata:
+        node = ExprNode(ExprKind.N_ARY, name, *exprs)
+        md = combine_metadata(
             *exprs, str_as_lit=False, allow_multi_output=True, to_single_output=True
         )
+        md.nodes = [node]
+        return md
 
     def op_nodes_reversed(self) -> Iterator[ExprNode]:
         for node in reversed(self.nodes):

@@ -1243,13 +1243,11 @@ def _expr_with_n_ary_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
     if not exprs:
         msg = f"At least one expression must be passed to `{name}`"
         raise ValueError(msg)
-    node = ExprNode(ExprKind.N_ARY, name, *exprs)
-    md = ExprMetadata.from_n_ary_op(*exprs)
-    md.nodes.append(node)
+    md = ExprMetadata.from_n_ary_op(name, *exprs)
     return Expr(
         lambda plx: apply_n_ary_operation(
             plx,
-            lambda *args: getattr(plx, node.name)(*args, **kwargs),
+            lambda *args: getattr(plx, name)(*args, **kwargs),
             *exprs,
             str_as_lit=False,
         ),
