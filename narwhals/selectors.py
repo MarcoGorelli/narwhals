@@ -96,14 +96,12 @@ def by_dtype(*dtypes: DType | type[DType] | Iterable[DType | type[DType]]) -> Se
         c: [[8.2,4.6]]
     """
     flattened = flatten(dtypes)
-    result = Selector(
+    return Selector(
         lambda plx: plx.selectors.by_dtype(flattened),
-        ExprMetadata.selector_multi_unnamed(),
+        ExprMetadata.selector_multi_unnamed(
+            ExprNode(ExprKind.ELEMENTWISE, "by_dtype", dtypes=flattened)
+        ),
     )
-    result._metadata.nodes = [
-        ExprNode(ExprKind.ELEMENTWISE, "by_dtype", dtypes=flattened)
-    ]
-    return result
 
 
 def matches(pattern: str) -> Selector:
@@ -131,11 +129,12 @@ def matches(pattern: str) -> Selector:
         0  123  2.0
         1  456  5.5
     """
-    result = Selector(
-        lambda plx: plx.selectors.matches(pattern), ExprMetadata.selector_multi_unnamed()
+    return Selector(
+        lambda plx: plx.selectors.matches(pattern),
+        ExprMetadata.selector_multi_unnamed(
+            ExprNode(ExprKind.ELEMENTWISE, "matches", pattern=pattern)
+        ),
     )
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "matches", pattern=pattern)]
-    return result
 
 
 def numeric() -> Selector:
@@ -164,11 +163,10 @@ def numeric() -> Selector:
         │ 4   ┆ 4.6 │
         └─────┴─────┘
     """
-    result = Selector(
-        lambda plx: plx.selectors.numeric(), ExprMetadata.selector_multi_unnamed()
+    return Selector(
+        lambda plx: plx.selectors.numeric(),
+        ExprMetadata.selector_multi_unnamed(ExprNode(ExprKind.ELEMENTWISE, "numeric")),
     )
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "numeric")]
-    return result
 
 
 def boolean() -> Selector:
@@ -202,7 +200,7 @@ def boolean() -> Selector:
         └──────────────────┘
     """
     return Selector(
-        lambda plx: plx.selectors.boolean(), ExprMetadata.selector_multi_unnamed()
+        lambda plx: plx.selectors.boolean(), ExprMetadata.selector_multi_unnamed(None)
     )
 
 
@@ -233,7 +231,7 @@ def string() -> Selector:
         └─────┘
     """
     return Selector(
-        lambda plx: plx.selectors.string(), ExprMetadata.selector_multi_unnamed()
+        lambda plx: plx.selectors.string(), ExprMetadata.selector_multi_unnamed(None)
     )
 
 
@@ -266,7 +264,7 @@ def categorical() -> Selector:
         └─────┘
     """
     return Selector(
-        lambda plx: plx.selectors.categorical(), ExprMetadata.selector_multi_unnamed()
+        lambda plx: plx.selectors.categorical(), ExprMetadata.selector_multi_unnamed(None)
     )
 
 
@@ -291,7 +289,7 @@ def all() -> Selector:
         1  2  y   True
     """
     return Selector(
-        lambda plx: plx.selectors.all(), ExprMetadata.selector_multi_unnamed()
+        lambda plx: plx.selectors.all(), ExprMetadata.selector_multi_unnamed(None)
     )
 
 

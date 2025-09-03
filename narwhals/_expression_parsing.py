@@ -510,19 +510,19 @@ class ExprMetadata:
         )
 
     @staticmethod
-    def selector_single() -> ExprMetadata:
+    def selector_single(node: ExprNode) -> ExprMetadata:
         # e.g. `nw.col('a')`, `nw.nth(0)`
-        return ExprMetadata(ExpansionKind.SINGLE)
+        return ExprMetadata(ExpansionKind.SINGLE, nodes=[node])
 
     @staticmethod
-    def selector_multi_named() -> ExprMetadata:
+    def selector_multi_named(node: ExprNode) -> ExprMetadata:
         # e.g. `nw.col('a', 'b')`
-        return ExprMetadata(ExpansionKind.MULTI_NAMED)
+        return ExprMetadata(ExpansionKind.MULTI_NAMED, nodes=[node])
 
     @staticmethod
-    def selector_multi_unnamed() -> ExprMetadata:
+    def selector_multi_unnamed(node: ExprNode) -> ExprMetadata:
         # e.g. `nw.all()`
-        return ExprMetadata(ExpansionKind.MULTI_UNNAMED)
+        return ExprMetadata(ExpansionKind.MULTI_UNNAMED, nodes=[node])
 
     @classmethod
     def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, node: ExprNode) -> ExprMetadata:

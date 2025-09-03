@@ -74,11 +74,10 @@ class Expr:
     def _from_node(cls, node: ExprNode) -> Self:
         if node.kind is ExprKind.COL:
             md = (
-                ExprMetadata.selector_single()
+                ExprMetadata.selector_single(node)
                 if len(node.kwargs["names"]) == 1
-                else ExprMetadata.selector_multi_named()
+                else ExprMetadata.selector_multi_named(node)
             )
-            md.nodes.append(node)
             return cls(lambda plx: getattr(plx, node.name)(*node.kwargs["names"]), md)
         msg = "todo"
         raise NotImplementedError(msg)

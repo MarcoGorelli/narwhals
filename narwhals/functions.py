@@ -973,12 +973,14 @@ def exclude(*names: str | Iterable[str]) -> Expr:
         |  └─────┘         |
         └──────────────────┘
     """
-    exclude_names = frozenset(flatten(names))
+    flat_names = flatten(names)
+    exclude_names = frozenset(flat_names)
 
     def func(plx: Any) -> Any:
         return plx.exclude(exclude_names)
 
-    return Expr(func, ExprMetadata.selector_multi_unnamed())
+    node = ExprNode(ExprKind.ELEMENTWISE, "exclude", names=flat_names)
+    return Expr(func, ExprMetadata.selector_multi_unnamed(node))
 
 
 def nth(*indices: int | Sequence[int]) -> Expr:
@@ -1016,12 +1018,8 @@ def nth(*indices: int | Sequence[int]) -> Expr:
     def func(plx: Any) -> Any:
         return plx.nth(*flat_indices)
 
-    return Expr(
-        func,
-        ExprMetadata.selector_single()
-        if len(flat_indices) == 1
-        else ExprMetadata.selector_multi_unnamed(),
-    )
+    node = ExprNode(ExprKind.COL, "nth", names=flat_indices)
+    return Expr._from_node(node)
 
 
 # Add underscore so it doesn't conflict with builtin `all`
@@ -1045,9 +1043,8 @@ def all_() -> Expr:
         |   1  4  0.246    |
         └──────────────────┘
     """
-    result = Expr(lambda plx: plx.all(), ExprMetadata.selector_multi_unnamed())
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "all")]
-    return result
+    node = ExprNode(ExprKind.ELEMENTWISE, "all")
+    return Expr(lambda plx: plx.all(), ExprMetadata.selector_multi_unnamed(node))
 
 
 # Add underscore so it doesn't conflict with builtin `len`
