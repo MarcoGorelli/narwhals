@@ -156,8 +156,11 @@ class ExprKind(Enum):
     COL = auto()
     """Results from calling `nw.col`."""
 
-    EXCLUDE = auto()
-    """Results from calling `nw.exclude`."""
+    NTH = auto()
+    """Results from calling `nw.nth`."""
+
+    SELECTOR = auto()
+    """Results from creating an expression with a selector."""
 
     BINARY = auto()
     """Results from binary expression (like `nw.col('a') + nw.col('b')`)."""

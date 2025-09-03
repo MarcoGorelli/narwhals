@@ -79,7 +79,14 @@ class Expr:
                 else ExprMetadata.selector_multi_named(node)
             )
             return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
-        if node.kind is ExprKind.EXCLUDE:
+        if node.kind is ExprKind.NTH:
+            md = (
+                ExprMetadata.selector_single(node)
+                if len(node.kwargs["indices"]) == 1
+                else ExprMetadata.selector_multi_unnamed(node)
+            )
+            return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
+        if node.kind is ExprKind.SELECTOR:
             md = ExprMetadata.selector_multi_unnamed(node)
             return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
         msg = "todo"

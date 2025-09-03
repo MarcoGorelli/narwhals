@@ -962,7 +962,7 @@ def exclude(*names: str | Iterable[str]) -> Expr:
     """
     flat_names = flatten(names)
     exclude_names = frozenset(flat_names)
-    return Expr._from_node(ExprNode(ExprKind.EXCLUDE, "exclude", names=exclude_names))
+    return Expr._from_node(ExprNode(ExprKind.SELECTOR, "exclude", names=exclude_names))
 
 
 def nth(*indices: int | Sequence[int]) -> Expr:
@@ -996,7 +996,7 @@ def nth(*indices: int | Sequence[int]) -> Expr:
         └──────────────────┘
     """
     flat_indices = flatten(indices)
-    node = ExprNode(ExprKind.COL, "nth", indices=flat_indices)
+    node = ExprNode(ExprKind.NTH, "nth", indices=flat_indices)
     return Expr._from_node(node)
 
 
