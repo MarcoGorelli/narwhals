@@ -87,7 +87,7 @@ class Expr:
                 if len(node.kwargs["indices"]) == 1
                 else ExprMetadata.selector_multi_unnamed(node)
             )
-        elif node.kind is ExprKind.ALL:
+        elif node.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
             md = ExprMetadata.selector_multi_unnamed(node)
         elif node.kind is ExprKind.AGGREGATION:
             md = ExprMetadata.aggregation(node)

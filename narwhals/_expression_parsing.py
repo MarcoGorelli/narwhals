@@ -159,6 +159,9 @@ class ExprKind(Enum):
     NTH = auto()
     """Results from calling `nw.nth`."""
 
+    EXCLUDE = auto()
+    """Results from calling `nw.exclude`."""
+
     ALL = auto()
     """Results from calling `nw.all`."""
 
