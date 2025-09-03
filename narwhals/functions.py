@@ -1021,8 +1021,8 @@ def all_() -> Expr:
         |   1  4  0.246    |
         └──────────────────┘
     """
-    node = ExprNode(ExprKind.ELEMENTWISE, "all")
-    return Expr(lambda plx: plx.all(), ExprMetadata.selector_multi_unnamed(node))
+    node = ExprNode(ExprKind.SELECTOR, "all")
+    return Expr._from_node(node)
 
 
 # Add underscore so it doesn't conflict with builtin `len`
@@ -1051,13 +1051,8 @@ def len_() -> Expr:
         |  └─────┘         |
         └──────────────────┘
     """
-
-    def func(plx: Any) -> Any:
-        return plx.len()
-
-    result = Expr(func, ExprMetadata.aggregation())
-    result._metadata.nodes = [ExprNode(ExprKind.AGGREGATION, "len")]
-    return result
+    node = ExprNode(ExprKind.AGGREGATION, "len")
+    return Expr._from_node(node)
 
 
 def sum(*columns: str) -> Expr:
@@ -1220,16 +1215,8 @@ def _expr_with_n_ary_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
     if not exprs:
         msg = f"At least one expression must be passed to `{name}`"
         raise ValueError(msg)
-    md = ExprMetadata.from_n_ary_op(name, *exprs)
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx,
-            lambda *args: getattr(plx, name)(*args, **kwargs),
-            *exprs,
-            str_as_lit=False,
-        ),
-        md,
-    )
+    node = ExprNode(ExprKind.N_ARY, name, *exprs, **kwargs)
+    return Expr._from_node(node)
 
 
 def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1532,9 +1519,8 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
         msg = f"Nested datatypes are not supported yet. Got {value}"
         raise NotImplementedError(msg)
 
-    result = Expr(lambda plx: plx.lit(value, dtype), ExprMetadata.literal())
-    result._metadata.nodes = [ExprNode(ExprKind.LITERAL, "lit", value=value, dtype=dtype)]
-    return result
+    node = ExprNode(ExprKind.LITERAL, "lit", value=value, dtype=dtype)
+    return Expr._from_node(node)
 
 
 def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:

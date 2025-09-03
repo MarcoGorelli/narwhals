@@ -78,19 +78,39 @@ class Expr:
                 if len(node.kwargs["names"]) == 1
                 else ExprMetadata.selector_multi_named(node)
             )
-            return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
-        if node.kind is ExprKind.NTH:
+        elif node.kind is ExprKind.NTH:
             md = (
                 ExprMetadata.selector_single(node)
                 if len(node.kwargs["indices"]) == 1
                 else ExprMetadata.selector_multi_unnamed(node)
             )
-            return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
-        if node.kind is ExprKind.SELECTOR:
+        elif node.kind is ExprKind.SELECTOR:
             md = ExprMetadata.selector_multi_unnamed(node)
-            return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
-        msg = "todo"
-        raise NotImplementedError(msg)
+        elif node.kind is ExprKind.AGGREGATION:
+            md = ExprMetadata.aggregation(node)
+        elif node.kind is ExprKind.LITERAL:
+            md = ExprMetadata.literal(node)
+        elif node.kind is ExprKind.N_ARY:
+            md = ExprMetadata.from_n_ary_op(node.name, *node.exprs)
+            return cls(
+                lambda plx: apply_n_ary_operation(
+                    plx,
+                    lambda *exprs: getattr(plx, node.name)(*exprs, **node.kwargs),
+                    *node.exprs,
+                    str_as_lit=False,
+                ),
+                md,
+            )
+        else:
+            msg = "todo"
+            raise NotImplementedError(msg)
+        return cls(
+            lambda plx: getattr(plx, node.name)(
+                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
+                **node.kwargs,
+            ),
+            md,
+        )
 
     def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912,C901
         if node.kind is ExprKind.AGGREGATION:

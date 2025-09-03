@@ -497,22 +497,24 @@ class ExprMetadata:
         )
 
     @staticmethod
-    def aggregation() -> ExprMetadata:
+    def aggregation(node: ExprNode) -> ExprMetadata:
         return ExprMetadata(
             ExpansionKind.SINGLE,
             is_elementwise=False,
             preserves_length=False,
             is_scalar_like=True,
+            nodes=[node],
         )
 
     @staticmethod
-    def literal() -> ExprMetadata:
+    def literal(node: ExprNode) -> ExprMetadata:
         return ExprMetadata(
             ExpansionKind.SINGLE,
             is_elementwise=False,
             preserves_length=False,
             is_literal=True,
             is_scalar_like=True,
+            nodes=[node],
         )
 
     @staticmethod
