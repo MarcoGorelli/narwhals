@@ -477,6 +477,16 @@ class ExprMetadata:
             nodes=self.nodes,
         )
 
+    def with_n_ary(self, name: str, *exprs: IntoExpr, **kwargs: Any) -> ExprMetadata:
+        node = ExprNode(ExprKind.N_ARY, name, *exprs, **kwargs)
+        return combine_metadata(
+            *exprs,
+            str_as_lit=False,
+            allow_multi_output=False,
+            to_single_output=False,
+            nodes=[*self.nodes, node],
+        )
+
     @staticmethod
     def aggregation() -> ExprMetadata:
         return ExprMetadata(

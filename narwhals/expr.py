@@ -89,7 +89,7 @@ class Expr:
                 md,
             )
         elif node.kind is ExprKind.N_ARY:
-            md = ExprMetadata.from_n_ary_op(node.name, self, *node.exprs)
+            md = self._metadata.with_n_ary(node.name, self, *node.exprs)
             return self.__class__(
                 lambda plx: apply_n_ary_operation(
                     plx,
@@ -991,11 +991,10 @@ class Expr:
             |   4  5  False    |
             └──────────────────┘
         """
-        return self._with_nary(
-            lambda expr, lb, ub: expr.is_between(lb, ub, closed=closed),
-            lower_bound,
-            upper_bound,
+        node = ExprNode(
+            ExprKind.N_ARY, "is_between", lower_bound, upper_bound, closed=closed
         )
+        return self._with_node(node)
 
     def is_in(self, other: Any) -> Self:
         """Check if elements of this expression are present in the other iterable.
