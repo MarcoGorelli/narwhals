@@ -89,7 +89,17 @@ class Expr:
                 md,
             )
         elif node.kind is ExprKind.N_ARY:
-            pass  # TODO (marco): fixup
+            md = ExprMetadata.from_n_ary_op(node.name, self, *node.exprs)
+            return self.__class__(
+                lambda plx: apply_n_ary_operation(
+                    plx,
+                    lambda expr, *exprs: getattr(expr, node.name)(*exprs, **node.kwargs),
+                    self,
+                    *node.exprs,
+                    str_as_lit=False,
+                ),
+                md,
+            )
         elif node.kind is ExprKind.ELEMENTWISE:
             md = self._metadata.with_elementwise_op()
         elif node.kind is ExprKind.FILTRATION:
@@ -143,6 +153,7 @@ class Expr:
                 str_as_lit=False,
                 allow_multi_output=False,
                 to_single_output=False,
+                nodes=[],
             ),
         )
 
@@ -2229,9 +2240,8 @@ class Expr:
             raise ComputeError(msg)
 
         kwargs = {"abs_tol": abs_tol, "rel_tol": rel_tol, "nans_equal": nans_equal}
-        return self._with_nary(
-            lambda *exprs: exprs[0].is_close(exprs[1], **kwargs), other
-        )
+        node = ExprNode(ExprKind.N_ARY, "is_close", other, **kwargs)
+        return self._with_node(node)
 
     @property
     def str(self) -> ExprStringNamespace[Self]:

@@ -1392,6 +1392,7 @@ class When:
                 str_as_lit=False,
                 allow_multi_output=False,
                 to_single_output=False,
+                nodes=[],
             ),
         )
 
@@ -1425,6 +1426,7 @@ class Then(Expr):
                 str_as_lit=False,
                 allow_multi_output=False,
                 to_single_output=False,
+                nodes=[],
             ),
         )
 
