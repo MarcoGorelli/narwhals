@@ -9,7 +9,6 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     apply_n_ary_operation,
-    combine_metadata,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
@@ -40,7 +39,6 @@ if TYPE_CHECKING:
         RankMethod,
         RollingInterpolationMethod,
         TemporalLiteral,
-        _1DArray,
     )
 
     PS = ParamSpec("PS")
@@ -137,25 +135,6 @@ class Expr:
             else:
                 result = f"{result}.{node.name}()"
         return result
-
-    def _with_nary(
-        self,
-        n_ary_function: Callable[..., Any],
-        *args: IntoExpr | NonNestedLiteral | _1DArray,
-    ) -> Self:
-        return self.__class__(
-            lambda plx: apply_n_ary_operation(
-                plx, n_ary_function, self, *args, str_as_lit=False
-            ),
-            combine_metadata(
-                self,
-                *args,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[],
-            ),
-        )
 
     def __bool__(self) -> NoReturn:
         msg = (
@@ -1595,14 +1574,7 @@ class Expr:
             | 2  3          3  |
             └──────────────────┘
         """
-        return self._with_nary(
-            lambda *exprs: exprs[0].clip(
-                exprs[1] if lower_bound is not None else None,
-                exprs[2] if upper_bound is not None else None,
-            ),
-            lower_bound,
-            upper_bound,
-        )
+        return self._with_node(ExprNode(ExprKind.N_ARY, "clip", lower_bound, upper_bound))
 
     def mode(self, *, keep: ModeKeepStrategy = "all") -> Self:
         r"""Compute the most occurring value(s).

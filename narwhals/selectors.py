@@ -39,6 +39,7 @@ class Selector(Expr):
                     str_as_lit=False,
                     allow_multi_output=True,
                     to_single_output=False,
+                    nodes=[],
                 ),
             )
         return self._to_expr() | other  # type: ignore[no-any-return]
@@ -53,6 +54,7 @@ class Selector(Expr):
                     str_as_lit=False,
                     allow_multi_output=True,
                     to_single_output=False,
+                    nodes=[],
                 ),
             )
         return self._to_expr() & other  # type: ignore[no-any-return]
