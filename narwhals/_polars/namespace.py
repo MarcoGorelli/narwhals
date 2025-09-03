@@ -137,10 +137,13 @@ class PolarsNamespace:
             return self._dataframe.from_numpy(data, schema=schema, context=self)
         return self._series.from_numpy(data, context=self)  # pragma: no cover
 
+    def col(self, names: Sequence[str]) -> PolarsExpr:
+        return self._expr(pl.col(*names), version=self._version)
+
     @requires.backend_version(
         (1, 0, 0), "Please use `col` for columns selection instead."
     )
-    def nth(self, *indices: int) -> PolarsExpr:
+    def nth(self, indices: Sequence[int]) -> PolarsExpr:
         return self._expr(pl.nth(*indices), version=self._version)
 
     def len(self) -> PolarsExpr:

@@ -928,20 +928,7 @@ def col(*names: str | Iterable[str]) -> Expr:
         └──────────────────┘
     """
     flat_names = flatten(names)
-
-    def func(plx: Any) -> Any:
-        return plx.col(*flat_names)
-
     return Expr._from_node(ExprNode(ExprKind.COL, "col", names=flat_names))
-    return None
-    result = Expr(
-        func,
-        ExprMetadata.selector_single()
-        if len(flat_names) == 1
-        else ExprMetadata.selector_multi_named(),
-    )
-    result._metadata.nodes = []
-    return result
 
 
 def exclude(*names: str | Iterable[str]) -> Expr:
@@ -1014,11 +1001,7 @@ def nth(*indices: int | Sequence[int]) -> Expr:
         └──────────────────┘
     """
     flat_indices = flatten(indices)
-
-    def func(plx: Any) -> Any:
-        return plx.nth(*flat_indices)
-
-    node = ExprNode(ExprKind.COL, "nth", names=flat_indices)
+    node = ExprNode(ExprKind.COL, "nth", indices=flat_indices)
     return Expr._from_node(node)
 
 

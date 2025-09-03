@@ -78,7 +78,7 @@ class Expr:
                 if len(node.kwargs["names"]) == 1
                 else ExprMetadata.selector_multi_named(node)
             )
-            return cls(lambda plx: getattr(plx, node.name)(*node.kwargs["names"]), md)
+            return cls(lambda plx: getattr(plx, node.name)(**node.kwargs), md)
         msg = "todo"
         raise NotImplementedError(msg)
 
