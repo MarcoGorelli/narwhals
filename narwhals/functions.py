@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from narwhals._expression_parsing import (
     ExprKind,
-    ExprMetadata,
     ExprNode,
     apply_n_ary_operation,
     combine_metadata,
@@ -1718,9 +1717,5 @@ def coalesce(
         )
         raise TypeError(msg)
 
-    return Expr(
-        lambda plx: apply_n_ary_operation(
-            plx, lambda *args: plx.coalesce(*args), *flat_exprs, str_as_lit=False
-        ),
-        ExprMetadata.from_n_ary_op(*flat_exprs),
-    )
+    node = ExprNode(ExprKind.N_ARY, "coalesce", *flat_exprs)
+    return Expr._from_node(node)
