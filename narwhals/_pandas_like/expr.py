@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from narwhals._compliant import EagerExpr
 from narwhals._expression_parsing import evaluate_output_names_and_aliases
@@ -13,7 +13,12 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from narwhals._compliant.typing import AliasNames, EvalNames, EvalSeries
+    from narwhals._compliant.typing import (
+        AliasNames,
+        EvalNames,
+        EvalSeries,
+        NarwhalsAggregation,
+    )
     from narwhals._expression_parsing import ExprMetadata
     from narwhals._pandas_like.dataframe import PandasLikeDataFrame
     from narwhals._pandas_like.namespace import PandasLikeNamespace
@@ -229,7 +234,10 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
             leaf_node = nodes[-1]
             function_name = leaf_node.name
             pandas_function_name = WINDOW_FUNCTIONS_TO_PANDAS_EQUIVALENT.get(
-                function_name, PandasLikeGroupBy._REMAP_AGGS.get(function_name)
+                function_name,
+                PandasLikeGroupBy._REMAP_AGGS.get(
+                    cast("NarwhalsAggregation", function_name)
+                ),
             )
             if pandas_function_name is None:
                 msg = (
