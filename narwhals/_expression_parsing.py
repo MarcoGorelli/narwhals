@@ -154,7 +154,10 @@ class ExprKind(Enum):
     """Results from calling `.over` on expression."""
 
     COL = auto()
-    """Results from calling `.col`."""
+    """Results from calling `nw.col`."""
+
+    EXCLUDE = auto()
+    """Results from calling `nw.exclude`."""
 
     BINARY = auto()
     """Results from binary expression (like `nw.col('a') + nw.col('b')`)."""

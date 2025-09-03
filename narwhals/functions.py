@@ -962,12 +962,7 @@ def exclude(*names: str | Iterable[str]) -> Expr:
     """
     flat_names = flatten(names)
     exclude_names = frozenset(flat_names)
-
-    def func(plx: Any) -> Any:
-        return plx.exclude(exclude_names)
-
-    node = ExprNode(ExprKind.ELEMENTWISE, "exclude", names=flat_names)
-    return Expr(func, ExprMetadata.selector_multi_unnamed(node))
+    return Expr._from_node(ExprNode(ExprKind.EXCLUDE, "exclude", names=exclude_names))
 
 
 def nth(*indices: int | Sequence[int]) -> Expr:

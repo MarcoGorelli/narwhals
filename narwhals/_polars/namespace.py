@@ -140,6 +140,9 @@ class PolarsNamespace:
     def col(self, names: Sequence[str]) -> PolarsExpr:
         return self._expr(pl.col(*names), version=self._version)
 
+    def exclude(self, names: Sequence[str]) -> PolarsExpr:
+        return self._expr(pl.exclude(*names), version=self._version)
+
     @requires.backend_version(
         (1, 0, 0), "Please use `col` for columns selection instead."
     )
