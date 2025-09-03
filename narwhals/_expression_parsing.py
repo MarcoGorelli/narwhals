@@ -391,7 +391,7 @@ class ExprMetadata:
             nodes=self.nodes,
         )
 
-    def with_ordered_over(self) -> ExprMetadata:
+    def with_ordered_over(self, node: ExprNode) -> ExprMetadata:
         if self.has_windows:
             msg = "Cannot nest `over` statements."
             raise InvalidOperationError(msg)
@@ -423,10 +423,10 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
-    def with_partitioned_over(self) -> ExprMetadata:
+    def with_partitioned_over(self, node: ExprNode) -> ExprMetadata:
         if self.has_windows:
             msg = "Cannot nest `over` statements."
             raise InvalidOperationError(msg)
@@ -444,7 +444,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
     def with_filtration(self) -> ExprMetadata:

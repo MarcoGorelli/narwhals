@@ -110,6 +110,21 @@ class Expr:
             md = self._metadata.with_orderable_aggregation()
         elif node.kind is ExprKind.WINDOW:
             md = self._metadata.with_window()
+        elif node.kind is ExprKind.OVER:
+            current_meta = self._metadata
+            if node.kwargs['order_by']:
+                md = current_meta.with_ordered_over(node)
+            elif not node.kwargs['partition_by']:  # pragma: no cover
+                msg = "At least one of `partition_by` or `order_by` must be specified."
+                raise InvalidOperationError(msg)
+            else:
+                md = current_meta.with_partitioned_over(node)
+            return self.__class__(
+                lambda plx: self._to_compliant_expr(plx).over(
+                    node.kwargs['order_by'], node.kwargs['partition_by']
+                ),
+                md,
+            )
         else:
             msg = "todo"
             raise NotImplementedError(msg)
@@ -1311,27 +1326,18 @@ class Expr:
         if not flat_partition_by and not flat_order_by:  # pragma: no cover
             msg = "At least one of `partition_by` or `order_by` must be specified."
             raise ValueError(msg)
-
-        current_meta = self._metadata
-        if flat_order_by:
-            next_meta = current_meta.with_ordered_over()
-        elif not flat_partition_by:  # pragma: no cover
-            msg = "At least one of `partition_by` or `order_by` must be specified."
-            raise InvalidOperationError(msg)
-        else:
-            next_meta = current_meta.with_partitioned_over()
-
         node = ExprNode(
-            ExprKind.WINDOW, "over", partition_by=partition_by, order_by=order_by
+            ExprKind.OVER, "over", partition_by=flat_partition_by, order_by=flat_order_by
         )
-        result = self._with_callable(
-            lambda plx: self._to_compliant_expr(plx).over(
-                flat_partition_by, flat_order_by
-            )
-        )
-        next_meta.nodes.append(node)
-        result._metadata = next_meta
-        return result
+        return self._with_node(node)
+        # result = self._with_callable(
+        #     lambda plx: self._to_compliant_expr(plx).over(
+        #         flat_partition_by, flat_order_by
+        #     )
+        # )
+        # next_meta.nodes.append(node)
+        # result._metadata = next_meta
+        # return result
 
     def is_duplicated(self) -> Self:
         r"""Return a boolean mask indicating duplicated values.
