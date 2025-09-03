@@ -1020,7 +1020,7 @@ def all_() -> Expr:
         |   1  4  0.246    |
         └──────────────────┘
     """
-    node = ExprNode(ExprKind.SELECTOR, "all")
+    node = ExprNode(ExprKind.ALL, "all")
     return Expr._from_node(node)
 
 

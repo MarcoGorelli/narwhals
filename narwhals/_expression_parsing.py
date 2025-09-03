@@ -159,6 +159,9 @@ class ExprKind(Enum):
     NTH = auto()
     """Results from calling `nw.nth`."""
 
+    ALL = auto()
+    """Results from calling `nw.all`."""
+
     SELECTOR = auto()
     """Results from creating an expression with a selector."""
 

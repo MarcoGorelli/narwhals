@@ -87,7 +87,7 @@ class Expr:
                 if len(node.kwargs["indices"]) == 1
                 else ExprMetadata.selector_multi_unnamed(node)
             )
-        elif node.kind is ExprKind.SELECTOR:
+        elif node.kind is ExprKind.ALL:
             md = ExprMetadata.selector_multi_unnamed(node)
         elif node.kind is ExprKind.AGGREGATION:
             md = ExprMetadata.aggregation(node)
@@ -102,6 +102,12 @@ class Expr:
                     *node.exprs,
                     str_as_lit=False,
                 ),
+                md,
+            )
+        elif node.kind is ExprKind.SELECTOR:
+            md = ExprMetadata.selector_multi_unnamed(node)
+            return cls(
+                lambda plx: getattr(plx.selectors, node.name)(*node.exprs, **node.kwargs),
                 md,
             )
         else:
