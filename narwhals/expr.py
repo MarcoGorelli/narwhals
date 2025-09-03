@@ -1040,7 +1040,7 @@ class Expr:
             └──────────────────┘
         """
         node = ExprNode(
-            ExprKind.N_ARY, "is_between", lower_bound, upper_bound, closed=closed
+            ExprKind.ELEMENTWISE, "is_between", lower_bound, upper_bound, closed=closed
         )
         return self._with_node(node)
 

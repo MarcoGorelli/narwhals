@@ -37,6 +37,7 @@ from narwhals._utils import (
     is_slice_index,
     is_slice_none,
 )
+from narwhals.exceptions import MultiOutputExpressionError
 
 if TYPE_CHECKING:
     from io import BytesIO
@@ -332,7 +333,9 @@ class EagerDataFrame(
     def _evaluate_expr(self, expr: EagerExprT, /) -> EagerSeriesT:
         """Evaluate `expr` and ensure it has a **single** output."""
         result: Sequence[EagerSeriesT] = expr(self)
-        assert len(result) == 1  # debug assertion  # noqa: S101
+        if len(result) != 1:
+            msg = "multi-output expressions not allowed in this context"
+            raise MultiOutputExpressionError(msg)
         return result[0]
 
     def _evaluate_into_exprs(self, *exprs: EagerExprT) -> Sequence[EagerSeriesT]:
