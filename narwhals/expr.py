@@ -147,19 +147,6 @@ class Expr:
                 ),
                 md,
             )
-        elif node.kind is ExprKind.N_ARY:
-            md = self._metadata.with_n_ary(node.name, self, *node.exprs, **node.kwargs)
-            return self.__class__(
-                lambda plx: apply_n_ary_operation(
-                    plx,
-                    lambda *exprs: getattr(self._to_compliant_expr(plx), node.name)(
-                        *exprs, **node.kwargs
-                    ),
-                    *node.exprs,
-                    str_as_lit=False,
-                ),
-                md,
-            )
         elif node.kind is ExprKind.ELEMENTWISE:
             md = self._metadata.with_elementwise_op(node)
         elif node.kind is ExprKind.FILTRATION:
@@ -188,8 +175,8 @@ class Expr:
                 md,
             )
         else:
-            msg = "todo"
-            raise NotImplementedError(msg)
+            msg = f"Unexpected node kind: {node.kind}"
+            raise AssertionError(msg)
         return self.__class__(
             lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
                 *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
@@ -205,14 +192,16 @@ class Expr:
         """Pretty-print the expression by combining all nodes in the metadata."""
         result: str = "nw"
         for node in self._metadata.nodes:
-            args_str = ""
+            args_str = []
+            exprs_repr = ", ".join(str(x) for x in node.exprs)
+            kwargs_repr = ", ".join(
+                f"{key}={value}" for key, value in node.kwargs.items()
+            )
             if node.exprs:
-                args_str = ", ".join(str(x) for x in node.exprs)
+                args_str.append(exprs_repr)
             if node.kwargs:
-                args_str = ", ".join(
-                    f"{key}={value}" for key, value in node.kwargs.items()
-                )
-            result = f"{result}.{node.name}({args_str})"
+                args_str.append(kwargs_repr)
+            result = f"{result}.{node.name}({', '.join(args_str)})"
         return result
 
     def __bool__(self) -> NoReturn:
@@ -1636,7 +1625,9 @@ class Expr:
             | 2  3          3  |
             └──────────────────┘
         """
-        return self._with_node(ExprNode(ExprKind.N_ARY, "clip", lower_bound, upper_bound))
+        return self._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "clip", lower_bound, upper_bound)
+        )
 
     def mode(self, *, keep: ModeKeepStrategy = "all") -> Self:
         r"""Compute the most occurring value(s).
@@ -2273,7 +2264,7 @@ class Expr:
             raise ComputeError(msg)
 
         kwargs = {"abs_tol": abs_tol, "rel_tol": rel_tol, "nans_equal": nans_equal}
-        node = ExprNode(ExprKind.N_ARY, "is_close", other, **kwargs)
+        node = ExprNode(ExprKind.ELEMENTWISE, "is_close", other, **kwargs)
         return self._with_node(node)
 
     @property
