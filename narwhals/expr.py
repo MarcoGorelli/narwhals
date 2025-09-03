@@ -99,9 +99,6 @@ class Expr:
     @classmethod
     def _from_node(cls, node: ExprNode) -> Self:
         if node.kind is ExprKind.COL:
-            if isinstance(node.kwargs["names"], str):
-                msg = "unexpected"
-                raise TypeError(msg)
             md = (
                 ExprMetadata.selector_single(node)
                 if len(node.kwargs["names"]) == 1
