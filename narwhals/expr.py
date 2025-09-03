@@ -9,10 +9,15 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     apply_n_ary_operation,
+    is_expr,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
-from narwhals.exceptions import ComputeError, InvalidOperationError
+from narwhals.exceptions import (
+    ComputeError,
+    InvalidOperationError,
+    MultiOutputExpressionError,
+)
 from narwhals.expr_cat import ExprCatNamespace
 from narwhals.expr_dt import ExprDateTimeNamespace
 from narwhals.expr_list import ExprListNamespace
@@ -122,6 +127,11 @@ class Expr:
         )
 
     def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912,C901
+        if any(
+            x._metadata.expansion_kind.is_multi_output() for x in node.exprs if is_expr(x)
+        ):
+            msg = "multi-output expressions not allowed in this context"
+            raise MultiOutputExpressionError(msg)
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:
