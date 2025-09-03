@@ -70,6 +70,19 @@ class Expr:
     def _metadata(self, value: ExprMetadata, /) -> None:
         self._opt_metadata = value
 
+    @classmethod
+    def _from_node(cls, node: ExprNode) -> Self:
+        if node.kind is ExprKind.COL:
+            md = (
+                ExprMetadata.selector_single()
+                if len(node.kwargs["names"]) == 1
+                else ExprMetadata.selector_multi_named()
+            )
+            md.nodes.append(node)
+            return cls(lambda plx: getattr(plx, node.name)(*node.kwargs["names"]), md)
+        msg = "todo"
+        raise NotImplementedError(msg)
+
     def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912,C901
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation(node)

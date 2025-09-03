@@ -932,13 +932,15 @@ def col(*names: str | Iterable[str]) -> Expr:
     def func(plx: Any) -> Any:
         return plx.col(*flat_names)
 
+    return Expr._from_node(ExprNode(ExprKind.COL, "col", names=flat_names))
+    return None
     result = Expr(
         func,
         ExprMetadata.selector_single()
         if len(flat_names) == 1
         else ExprMetadata.selector_multi_named(),
     )
-    result._metadata.nodes = [ExprNode(ExprKind.ELEMENTWISE, "col", names=flat_names)]
+    result._metadata.nodes = []
     return result
 
 

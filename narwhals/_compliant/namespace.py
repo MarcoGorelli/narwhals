@@ -76,10 +76,8 @@ class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
     def all(self) -> CompliantExprT:
         return self._expr.from_column_names(get_column_names, context=self)
 
-    def col(self, *column_names: str) -> CompliantExprT:
-        return self._expr.from_column_names(
-            passthrough_column_names(column_names), context=self
-        )
+    def col(self, *names: str) -> CompliantExprT:
+        return self._expr.from_column_names(passthrough_column_names(names), context=self)
 
     def exclude(self, excluded_names: Container[str]) -> CompliantExprT:
         return self._expr.from_column_names(
@@ -122,10 +120,8 @@ class DepthTrackingNamespace(
     def all(self) -> DepthTrackingExprT:
         return self._expr.from_column_names(get_column_names, context=self)
 
-    def col(self, *column_names: str) -> DepthTrackingExprT:
-        return self._expr.from_column_names(
-            passthrough_column_names(column_names), context=self
-        )
+    def col(self, *names: str) -> DepthTrackingExprT:
+        return self._expr.from_column_names(passthrough_column_names(names), context=self)
 
     def exclude(self, excluded_names: Container[str]) -> DepthTrackingExprT:
         return self._expr.from_column_names(
