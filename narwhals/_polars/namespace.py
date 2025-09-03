@@ -37,8 +37,6 @@ if TYPE_CHECKING:
 class PolarsNamespace:
     all: Method[PolarsExpr]
     coalesce: Method[PolarsExpr]
-    col: Method[PolarsExpr]
-    exclude: Method[PolarsExpr]
     sum_horizontal: Method[PolarsExpr]
     min_horizontal: Method[PolarsExpr]
     max_horizontal: Method[PolarsExpr]
@@ -98,7 +96,7 @@ class PolarsNamespace:
             assert isinstance(expr, self._expr)  # noqa: S101
             return expr
         if isinstance(data, str) and not str_as_lit:
-            return self.col(data)
+            return self.col([data])
         return self.lit(data.to_native() if is_series(data) else data, None)
 
     @overload

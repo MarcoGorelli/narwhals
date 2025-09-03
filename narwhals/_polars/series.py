@@ -510,7 +510,7 @@ class PolarsSeries:
             other_expr = (
                 ns.lit(other.native, None) if isinstance(other, PolarsSeries) else other
             )
-            expr = ns.col(name).is_close(
+            expr = ns.col([name]).is_close(
                 other_expr, abs_tol=abs_tol, rel_tol=rel_tol, nans_equal=nans_equal
             )
             return self.to_frame().select(expr).get_column(name)
@@ -768,7 +768,7 @@ class PolarsSeriesStringNamespace(
     def zfill(self, width: int) -> PolarsSeries:
         name = self.name
         ns = self.__narwhals_namespace__()
-        return self.to_frame().select(ns.col(name).str.zfill(width)).get_column(name)
+        return self.to_frame().select(ns.col([name]).str.zfill(width)).get_column(name)
 
 
 class PolarsSeriesCatNamespace(
@@ -782,12 +782,12 @@ class PolarsSeriesListNamespace(
     def len(self) -> PolarsSeries:
         name = self.name
         ns = self.__narwhals_namespace__()
-        return self.to_frame().select(ns.col(name).list.len()).get_column(name)
+        return self.to_frame().select(ns.col([name]).list.len()).get_column(name)
 
     def contains(self, item: NonNestedLiteral) -> PolarsSeries:
         name = self.name
         ns = self.__narwhals_namespace__()
-        return self.to_frame().select(ns.col(name).list.contains(item)).get_column(name)
+        return self.to_frame().select(ns.col([name]).list.contains(item)).get_column(name)
 
 
 class PolarsSeriesStructNamespace(

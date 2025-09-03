@@ -73,6 +73,9 @@ class Expr:
     @classmethod
     def _from_node(cls, node: ExprNode) -> Self:
         if node.kind is ExprKind.COL:
+            if isinstance(node.kwargs["names"], str):
+                msg = "unexpected"
+                raise TypeError(msg)
             md = (
                 ExprMetadata.selector_single(node)
                 if len(node.kwargs["names"]) == 1
@@ -129,12 +132,13 @@ class Expr:
                 md,
             )
         elif node.kind is ExprKind.N_ARY:
-            md = self._metadata.with_n_ary(node.name, self, *node.exprs)
+            md = self._metadata.with_n_ary(node.name, self, *node.exprs, **node.kwargs)
             return self.__class__(
                 lambda plx: apply_n_ary_operation(
                     plx,
-                    lambda expr, *exprs: getattr(expr, node.name)(*exprs, **node.kwargs),
-                    self,
+                    lambda *exprs: getattr(self._to_compliant_expr(plx), node.name)(
+                        *exprs, **node.kwargs
+                    ),
                     *node.exprs,
                     str_as_lit=False,
                 ),

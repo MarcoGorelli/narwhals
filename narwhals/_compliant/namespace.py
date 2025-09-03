@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, overload
+from typing import TYPE_CHECKING, Any, Never, Protocol, overload
 
 from narwhals._compliant.typing import (
     CompliantExprT,
@@ -25,7 +25,7 @@ from narwhals._utils import (
 from narwhals.dependencies import is_numpy_array, is_numpy_array_2d
 
 if TYPE_CHECKING:
-    from collections.abc import Container, Iterable, Sequence
+    from collections.abc import Iterable, Sequence
 
     from typing_extensions import TypeAlias
 
@@ -69,17 +69,22 @@ class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
             assert isinstance(expr, self._expr)  # noqa: S101
             return expr
         if isinstance(data, str) and not str_as_lit:
-            return self.col(data)
+            return self.col([data])
         return data
 
     # NOTE: `polars`
     def all(self) -> CompliantExprT:
         return self._expr.from_column_names(get_column_names, context=self)
 
+    @overload
+    def col(self, names: str) -> Never: ...
+    @overload
+    def col(self, names: Sequence[str]) -> CompliantExprT: ...
+
     def col(self, names: Sequence[str]) -> CompliantExprT:
         return self._expr.from_column_names(passthrough_column_names(names), context=self)
 
-    def exclude(self, names: Container[str]) -> CompliantExprT:
+    def exclude(self, names: Sequence[str]) -> CompliantExprT:
         return self._expr.from_column_names(
             partial(exclude_column_names, names=names), context=self
         )
@@ -123,7 +128,7 @@ class DepthTrackingNamespace(
     def col(self, names: Sequence[str]) -> DepthTrackingExprT:
         return self._expr.from_column_names(passthrough_column_names(names), context=self)
 
-    def exclude(self, names: Container[str]) -> DepthTrackingExprT:
+    def exclude(self, names: Sequence[str]) -> DepthTrackingExprT:
         return self._expr.from_column_names(
             partial(exclude_column_names, names=names), context=self
         )
