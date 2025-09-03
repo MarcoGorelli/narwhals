@@ -130,7 +130,7 @@ class Expr:
         if any(
             x._metadata.expansion_kind.is_multi_output() for x in node.exprs if is_expr(x)
         ):
-            msg = "multi-output expressions not allowed in this context"
+            msg = "multi-output expressions are not allowed as arguments to Expr methods."
             raise MultiOutputExpressionError(msg)
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation(node)
