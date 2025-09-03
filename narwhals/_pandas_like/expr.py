@@ -202,7 +202,7 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         self, partition_by: Sequence[str], order_by: Sequence[str]
     ) -> Self:
         assert self._metadata is not None  # noqa: S101
-        nodes = self._metadata.nodes[:-1]  # skip last node, as we know it's `over`
+        nodes = self._metadata.nodes  # skip last node, as we know it's `over`
         if not partition_by:
             # e.g. `nw.col('a').cum_sum().order_by(key)`
             # We can always easily support this as it doesn't require grouping.

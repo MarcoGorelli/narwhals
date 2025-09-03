@@ -70,7 +70,7 @@ class Expr:
     def _metadata(self, value: ExprMetadata, /) -> None:
         self._opt_metadata = value
 
-    def _with_node(self, node: ExprNode) -> Self:
+    def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912,C901
         if node.kind is ExprKind.AGGREGATION:
             md = self._metadata.with_aggregation()
         elif node.kind is ExprKind.BINARY:
@@ -112,16 +112,16 @@ class Expr:
             md = self._metadata.with_window()
         elif node.kind is ExprKind.OVER:
             current_meta = self._metadata
-            if node.kwargs['order_by']:
+            if node.kwargs["order_by"]:
                 md = current_meta.with_ordered_over(node)
-            elif not node.kwargs['partition_by']:  # pragma: no cover
+            elif not node.kwargs["partition_by"]:  # pragma: no cover
                 msg = "At least one of `partition_by` or `order_by` must be specified."
                 raise InvalidOperationError(msg)
             else:
                 md = current_meta.with_partitioned_over(node)
             return self.__class__(
                 lambda plx: self._to_compliant_expr(plx).over(
-                    node.kwargs['order_by'], node.kwargs['partition_by']
+                    node.kwargs["partition_by"], node.kwargs["order_by"]
                 ),
                 md,
             )
@@ -1330,14 +1330,6 @@ class Expr:
             ExprKind.OVER, "over", partition_by=flat_partition_by, order_by=flat_order_by
         )
         return self._with_node(node)
-        # result = self._with_callable(
-        #     lambda plx: self._to_compliant_expr(plx).over(
-        #         flat_partition_by, flat_order_by
-        #     )
-        # )
-        # next_meta.nodes.append(node)
-        # result._metadata = next_meta
-        # return result
 
     def is_duplicated(self) -> Self:
         r"""Return a boolean mask indicating duplicated values.
