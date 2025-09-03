@@ -195,11 +195,14 @@ class Expr:
         """Pretty-print the expression by combining all nodes in the metadata."""
         result: str = "nw"
         for node in self._metadata.nodes:
+            args_str = ""
+            if node.exprs:
+                args_str = ", ".join(str(x) for x in node.exprs)
             if node.kwargs:
-                args_str = ", ".join(f"{k}={v!r}" for k, v in node.kwargs.items())
-                result = f"{result}.{node.name}({args_str})"
-            else:
-                result = f"{result}.{node.name}()"
+                args_str = ", ".join(
+                    f"{key}={value}" for key, value in node.kwargs.items()
+                )
+            result = f"{result}.{node.name}({args_str})"
         return result
 
     def __bool__(self) -> NoReturn:

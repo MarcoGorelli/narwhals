@@ -252,7 +252,12 @@ class ExprNode:
         self.kwargs = kwargs
 
     def __repr__(self) -> str:
-        return f"{self.name}({self.exprs}, {self.kwargs})"
+        arg_str = ""
+        if self.exprs:
+            arg_str = ", ".join(str(x) for x in self.exprs)
+        if self.kwargs:
+            arg_str = ", ".join(f"{key}: {value}" for key, value in self.kwargs.items())
+        return f"{self.name}({arg_str})"
 
 
 class ExprMetadata:
