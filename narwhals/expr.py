@@ -52,6 +52,27 @@ if TYPE_CHECKING:
         [CompliantNamespace[Any, Any]], CompliantExpr[Any, Any]
     ]
 
+_OP_SYMBOLS = {
+    "__add__": "+",
+    "__radd__": "+",
+    "__sub__": "-",
+    "__rsub__": "-",
+    "__mul__": "*",
+    "__rmul__": "*",
+    "__truediv__": "/",
+    "__rtruediv__": "/",
+    "__floordiv__": "//",
+    "__rfloordiv__": "//",
+    "__mod__": "%",
+    "__rmod__": "%",
+    "__ge__": ">=",
+    "__gt__": ">",
+    "__le__": "<=",
+    "__lt__": "<",
+    "__eq__": "==",
+    "__ne__": "!=",
+}
+
 
 class Expr:
     def __init__(
@@ -201,7 +222,12 @@ class Expr:
                 args_str.append(exprs_repr)
             if node.kwargs:
                 args_str.append(kwargs_repr)
-            result = f"{result}.{node.name}({', '.join(args_str)})"
+            if node.name.startswith("__r"):
+                result = f"({', '.join(args_str)} {_OP_SYMBOLS[node.name]} {result})"
+            elif node.name.startswith("__"):
+                result = f"({result} {_OP_SYMBOLS[node.name]} {', '.join(args_str)})"
+            else:
+                result = f"{result}.{node.name}({', '.join(args_str)})"
         return result
 
     def __bool__(self) -> NoReturn:
