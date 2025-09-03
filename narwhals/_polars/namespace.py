@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Never, cast, overload
 
 import polars as pl
 
@@ -135,6 +135,10 @@ class PolarsNamespace:
             return self._dataframe.from_numpy(data, schema=schema, context=self)
         return self._series.from_numpy(data, context=self)  # pragma: no cover
 
+    @overload
+    def col(self, names: str) -> Never: ...
+    @overload
+    def col(self, names: Sequence[str]) -> PolarsExpr: ...
     def col(self, names: Sequence[str]) -> PolarsExpr:
         return self._expr(pl.col(*names), version=self._version)
 

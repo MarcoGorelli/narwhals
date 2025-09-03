@@ -759,12 +759,15 @@ class PolarsSeriesNamespace(PolarsAnyNamespace[PolarsSeries, pl.Series]):
 
 class PolarsSeriesDateTimeNamespace(
     PolarsSeriesNamespace, PolarsDateTimeNamespace[PolarsSeries, pl.Series]
-): ...
+):
+    _accessor = "dt"
 
 
 class PolarsSeriesStringNamespace(
     PolarsSeriesNamespace, PolarsStringNamespace[PolarsSeries, pl.Series]
 ):
+    _accessor = "str"
+
     def zfill(self, width: int) -> PolarsSeries:
         name = self.name
         ns = self.__narwhals_namespace__()
@@ -773,12 +776,15 @@ class PolarsSeriesStringNamespace(
 
 class PolarsSeriesCatNamespace(
     PolarsSeriesNamespace, PolarsCatNamespace[PolarsSeries, pl.Series]
-): ...
+):
+    _accessor = "cat"
 
 
 class PolarsSeriesListNamespace(
     PolarsSeriesNamespace, PolarsListNamespace[PolarsSeries, pl.Series]
 ):
+    _accessor = "list"
+
     def len(self) -> PolarsSeries:
         name = self.name
         ns = self.__narwhals_namespace__()
@@ -792,4 +798,5 @@ class PolarsSeriesListNamespace(
 
 class PolarsSeriesStructNamespace(
     PolarsSeriesNamespace, PolarsStructNamespace[PolarsSeries, pl.Series]
-): ...
+):
+    _accessor = "struct"

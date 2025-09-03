@@ -404,6 +404,8 @@ class PolarsExprDateTimeNamespace(
 class PolarsExprStringNamespace(
     PolarsExprNamespace, PolarsStringNamespace[PolarsExpr, pl.Expr]
 ):
+    _accessor = "str"
+
     def zfill(self, width: int) -> PolarsExpr:
         backend_version = self.compliant._backend_version
         native_result = self.native.str.zfill(width)
