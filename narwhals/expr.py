@@ -72,7 +72,7 @@ class Expr:
 
     def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912,C901
         if node.kind is ExprKind.AGGREGATION:
-            md = self._metadata.with_aggregation()
+            md = self._metadata.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:
             other = next(iter(node.exprs))
             md = ExprMetadata.from_binary_op(self, other, node)
@@ -99,17 +99,17 @@ class Expr:
                 md,
             )
         elif node.kind is ExprKind.ELEMENTWISE:
-            md = self._metadata.with_elementwise_op()
+            md = self._metadata.with_elementwise_op(node)
         elif node.kind is ExprKind.FILTRATION:
-            md = self._metadata.with_filtration()
+            md = self._metadata.with_filtration(node)
         elif node.kind is ExprKind.ORDERABLE_WINDOW:
-            md = self._metadata.with_orderable_window()
+            md = self._metadata.with_orderable_window(node)
         elif node.kind is ExprKind.ORDERABLE_FILTRATION:
-            md = self._metadata.with_orderable_filtration()
+            md = self._metadata.with_orderable_filtration(node)
         elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
-            md = self._metadata.with_orderable_aggregation()
+            md = self._metadata.with_orderable_aggregation(node)
         elif node.kind is ExprKind.WINDOW:
-            md = self._metadata.with_window()
+            md = self._metadata.with_window(node)
         elif node.kind is ExprKind.OVER:
             current_meta = self._metadata
             if node.kwargs["order_by"]:
@@ -128,7 +128,6 @@ class Expr:
         else:
             msg = "todo"
             raise NotImplementedError(msg)
-        md.nodes.append(node)
         return self.__class__(
             lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
                 *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],

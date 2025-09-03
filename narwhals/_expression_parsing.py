@@ -314,7 +314,7 @@ class ExprMetadata:
     def is_filtration(self) -> bool:
         return not self.preserves_length and not self.is_scalar_like
 
-    def with_aggregation(self) -> ExprMetadata:
+    def with_aggregation(self, node: ExprNode) -> ExprMetadata:
         if self.is_scalar_like:
             msg = "Can't apply aggregations to scalar-like expressions."
             raise InvalidOperationError(msg)
@@ -326,10 +326,10 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=True,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
-    def with_orderable_aggregation(self) -> ExprMetadata:
+    def with_orderable_aggregation(self, node: ExprNode) -> ExprMetadata:
         # Deprecated, used only in stable.v1.
         if self.is_scalar_like:  # pragma: no cover
             msg = "Can't apply aggregations to scalar-like expressions."
@@ -342,10 +342,10 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=True,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
-    def with_elementwise_op(self) -> ExprMetadata:
+    def with_elementwise_op(self, node: ExprNode) -> ExprMetadata:
         return ExprMetadata(
             self.expansion_kind,
             has_windows=self.has_windows,
@@ -354,10 +354,10 @@ class ExprMetadata:
             is_elementwise=self.is_elementwise,
             is_scalar_like=self.is_scalar_like,
             is_literal=self.is_literal,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
-    def with_window(self) -> ExprMetadata:
+    def with_window(self, node: ExprNode) -> ExprMetadata:
         # Window function which may (but doesn't have to) be used with `over(order_by=...)`.
         if self.is_scalar_like:
             msg = "Can't apply window (e.g. `rank`) to scalar-like expression."
@@ -372,10 +372,10 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
-    def with_orderable_window(self) -> ExprMetadata:
+    def with_orderable_window(self, node: ExprNode) -> ExprMetadata:
         # Window function which must be used with `over(order_by=...)`.
         if self.is_scalar_like:
             msg = "Can't apply orderable window (e.g. `diff`, `shift`) to scalar-like expression."
@@ -388,7 +388,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
     def with_ordered_over(self, node: ExprNode) -> ExprMetadata:
@@ -447,7 +447,7 @@ class ExprMetadata:
             nodes=[*self.nodes, node],
         )
 
-    def with_filtration(self) -> ExprMetadata:
+    def with_filtration(self, node: ExprNode) -> ExprMetadata:
         if self.is_scalar_like:
             msg = "Can't apply filtration (e.g. `drop_nulls`) to scalar-like expression."
             raise InvalidOperationError(msg)
@@ -459,10 +459,10 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
-    def with_orderable_filtration(self) -> ExprMetadata:
+    def with_orderable_filtration(self, node: ExprNode) -> ExprMetadata:
         if self.is_scalar_like:
             msg = "Can't apply filtration (e.g. `drop_nulls`) to scalar-like expression."
             raise InvalidOperationError(msg)
@@ -474,7 +474,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=self.nodes,
+            nodes=[*self.nodes, node],
         )
 
     def with_n_ary(self, name: str, *exprs: IntoExpr, **kwargs: Any) -> ExprMetadata:
@@ -682,57 +682,6 @@ def apply_n_ary_operation(
     return n_ary_function(*compliant_exprs)
 
 
-def with_node(
-    kind: ExprKind,
-) -> Callable[
-    [Callable[Concatenate[Expr, PS], Expr]], Callable[Concatenate[Expr, PS], Expr]
-]:
-    """Decorator that automatically creates tree nodes for expression methods."""
-
-    def decorator(
-        func: Callable[Concatenate[Expr, PS], Expr], /
-    ) -> Callable[Concatenate[Expr, PS], Expr]:
-        @wraps(func)
-        def wrapper(self: Expr, *args: PS.args, **kwargs: PS.kwargs) -> Expr:
-            # Extract the method name
-            name = func.__name__
-
-            result = func(self, *args, **kwargs)
-
-            if kind is ExprKind.ELEMENTWISE:
-                md = self._metadata.with_elementwise_op()
-            elif kind is ExprKind.AGGREGATION:
-                md = self._metadata.with_aggregation()
-            elif kind is ExprKind.LITERAL:
-                md = self._metadata.literal()
-            elif kind is ExprKind.ORDERABLE_WINDOW:
-                md = self._metadata.with_orderable_window()
-            elif kind is ExprKind.WINDOW:
-                md = self._metadata.with_window()
-            else:
-                # Assume for now that metadata has already been set.
-                md = result._metadata
-            result._metadata = md
-
-            # Get function signature and build complete kwargs including defaults
-            sig = inspect.signature(func)
-            bound_args = sig.bind(self, *args, **kwargs)
-            bound_args.apply_defaults()  # This fills in default values
-
-            # Remove 'self' from the arguments and get the rest as kwargs
-            all_kwargs = dict(bound_args.arguments)
-            all_kwargs.pop("self", None)  # Remove self parameter
-
-            node = ExprNode(kind, name, **all_kwargs)
-            md.nodes = [*self._metadata.nodes, node]
-
-            return result
-
-        return wrapper
-
-    return decorator
-
-
 def namespace_method_with_node(
     kind: ExprKind,
 ) -> Callable[
@@ -770,10 +719,5 @@ def namespace_method_with_node(
 
     return decorator
 
-
-with_elementwise = with_node(ExprKind.ELEMENTWISE)
-with_aggregation = with_node(ExprKind.AGGREGATION)
-with_orderable_window = with_node(ExprKind.ORDERABLE_WINDOW)
-with_window = with_node(ExprKind.WINDOW)
 
 elementwise_namespace_method = namespace_method_with_node(ExprKind.ELEMENTWISE)
