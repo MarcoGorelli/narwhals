@@ -424,6 +424,7 @@ class PandasLikeSeries(EagerSeries[Any]):
 
     def __add__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
+        breakpoint()
         return self._with_native(ser + other).alias(self.name)
 
     def __radd__(self, other: Any) -> Self:

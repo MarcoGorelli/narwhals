@@ -682,6 +682,26 @@ def all_exprs_are_scalar_like(*args: IntoExpr, **kwargs: IntoExpr) -> bool:
     exprs = chain(args, kwargs.values())
     return all(is_expr(x) and x._metadata.is_scalar_like for x in exprs)
 
+def apply_binary(
+    plx: CompliantNamespaceAny,
+    name: str,
+    ce: CompliantExprAny,
+    other: IntoExpr | NonNestedLiteral | _1DArray,
+) -> CompliantExprAny:
+    str_as_lit = True
+    parse = plx.parse_into_expr
+    other_compliant = parse(other, str_as_lit=str_as_lit)
+    compliant_exprs = [ce, other_compliant]
+    kinds = [ExprKind.from_expr(ce), ExprKind.from_into_expr(other, str_as_lit=True)]
+    broadcast = any(not kind.is_scalar_like for kind in kinds)
+    compliant_exprs = [
+        compliant_expr.broadcast(kind)
+        if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
+        else compliant_expr
+        for compliant_expr, kind in zip_strict(compliant_exprs, kinds)
+    ]
+    return getattr(compliant_exprs[0], name)(compliant_exprs[1])
+
 
 def apply_n_ary_operation(
     plx: CompliantNamespaceAny,
@@ -697,12 +717,12 @@ def apply_n_ary_operation(
     ]
 
     broadcast = any(not kind.is_scalar_like for kind in kinds)
-    compliant_exprs = (
+    compliant_exprs = [
         compliant_expr.broadcast(kind)
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
         else compliant_expr
         for compliant_expr, kind in zip_strict(compliant_exprs, kinds)
-    )
+    ]
     return n_ary_function(*compliant_exprs)
 
 

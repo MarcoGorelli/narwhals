@@ -8,6 +8,7 @@ from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
     ExprNode,
+    apply_binary,
     apply_n_ary_operation,
     is_expr,
 )
@@ -86,6 +87,108 @@ class Expr:
 
         self._to_compliant_expr: _ToCompliant = func
         self._opt_metadata = metadata
+    
+    def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
+        nodes = self._metadata.nodes
+        root = nodes[0]
+        ce = getattr(plx, root.name)
+        if root.kind is ExprKind.COL:
+            md = (
+                ExprMetadata.selector_single(root)
+                if len(root.kwargs["names"]) == 1
+                else ExprMetadata.selector_multi_named(root)
+            )
+        elif root.kind is ExprKind.NTH:
+            md = (
+                ExprMetadata.selector_single(root)
+                if len(root.kwargs["indices"]) == 1
+                else ExprMetadata.selector_multi_unnamed(root)
+            )
+        elif root.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
+            md = ExprMetadata.selector_multi_unnamed(root)
+        elif root.kind is ExprKind.AGGREGATION:
+            md = ExprMetadata.aggregation(root)
+        elif root.kind is ExprKind.LITERAL:
+            md = ExprMetadata.literal(root)
+        elif root.kind is ExprKind.N_ARY:
+            md = ExprMetadata.from_n_ary_op(root.name, *root.exprs)
+            other = node.exprs[0]
+            ce = lambda plx: apply_binary(
+                plx,
+                lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
+                other,
+                str_as_lit=False,
+            )
+        elif root.kind is ExprKind.SELECTOR:
+            md = ExprMetadata.selector_multi_unnamed(root)
+            ce = lambda plx: getattr(plx.selectors, root.name)(*root.exprs, **root.kwargs)
+        else:
+            msg = "todo"
+            raise NotImplementedError(msg)
+        ce = (
+            getattr(plx, root.name)(
+                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in root.exprs],
+                **root.kwargs,
+            ))
+        ce._metadata = md
+        for node in nodes[1:]:
+            if any(
+                x._metadata.expansion_kind.is_multi_output() for x in node.exprs if is_expr(x)
+            ):
+                msg = "multi-output expressions are not allowed as arguments to Expr methods."
+                raise MultiOutputExpressionError(msg)
+            if node.kind is ExprKind.AGGREGATION:
+                md = md.with_aggregation(node)
+            elif node.kind is ExprKind.BINARY:
+                other = next(iter(node.exprs))
+                md = ExprMetadata.from_binary_op(ce, other, node)
+                ce =(
+                    apply_binary(
+                        plx,
+                        node.name,
+                        ce,
+                        other,
+                    ))
+                ce._metadata = md
+                continue
+            elif node.kind is ExprKind.ELEMENTWISE:
+                md = md.with_elementwise_op(node)
+            elif node.kind is ExprKind.FILTRATION:
+                md = md.with_filtration(node)
+            elif node.kind is ExprKind.ORDERABLE_WINDOW:
+                md = md.with_orderable_window(node)
+            elif node.kind is ExprKind.ORDERABLE_FILTRATION:
+                md = md.with_orderable_filtration(node)
+            elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
+                md = md.with_orderable_aggregation(node)
+            elif node.kind is ExprKind.WINDOW:
+                md = md.with_window(node)
+            elif node.kind is ExprKind.OVER:
+                current_meta = md
+                if node.kwargs["order_by"]:
+                    md = current_meta.with_ordered_over(node)
+                elif not node.kwargs["partition_by"]:  # pragma: no cover
+                    msg = "At least one of `partition_by` or `order_by` must be specified."
+                    raise InvalidOperationError(msg)
+                else:
+                    md = current_meta.with_partitioned_over(node)
+                return self.__class__(
+                    lambda plx: self._to_compliant_expr(plx).over(
+                        node.kwargs["partition_by"], node.kwargs["order_by"]
+                    ),
+                    md,
+                )
+            else:
+                msg = f"Unexpected node kind: {node.kind}"
+                raise AssertionError(msg)
+            ce = (
+                getattr(self._to_compliant_expr(plx), node.name)(
+                    *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
+                    **node.kwargs,
+                )
+            )
+            ce._metadata = md
+        return ce
 
     @property
     def _metadata(self) -> ExprMetadata:

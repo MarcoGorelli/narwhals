@@ -65,7 +65,8 @@ class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
         self, data: Expr | NonNestedLiteral | Any, /, *, str_as_lit: bool
     ) -> CompliantExprT | NonNestedLiteral:
         if is_expr(data):
-            expr = data._to_compliant_expr(self)
+            expr = data(self)
+            # expr = data._to_compliant_expr(self)
             assert isinstance(expr, self._expr)  # noqa: S101
             return expr
         if isinstance(data, str) and not str_as_lit:
