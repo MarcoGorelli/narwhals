@@ -122,7 +122,6 @@ class Expr:
             **root.kwargs,
         )
         ce._metadata = md
-
         for node in nodes[1:]:
             if any(
                 x._metadata.expansion_kind.is_multi_output()

@@ -125,11 +125,11 @@ class BaseFrame(Generic[_FrameT]):
         for expr in flatten(exprs):
             compliant_expr = self._extract_compliant(expr)
             out_exprs.append(compliant_expr)
-            out_kinds.append(ExprKind.from_into_expr(expr, str_as_lit=False))
+            out_kinds.append(ExprKind.from_into_expr(compliant_expr, str_as_lit=False))
         for alias, expr in named_exprs.items():
             compliant_expr = self._extract_compliant(expr).alias(alias)
             out_exprs.append(compliant_expr)
-            out_kinds.append(ExprKind.from_into_expr(expr, str_as_lit=False))
+            out_kinds.append(ExprKind.from_into_expr(compliant_expr, str_as_lit=False))
         return out_exprs, out_kinds
 
     @abstractmethod

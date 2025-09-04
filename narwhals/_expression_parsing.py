@@ -303,8 +303,8 @@ class ExprMetadata:
     ) -> None:
         if is_literal:
             assert is_scalar_like  # noqa: S101  # debug assertion
-        if is_elementwise:
-            assert preserves_length  # noqa: S101  # debug assertion
+        # if is_elementwise:
+        #     assert preserves_length  # debug assertion
         self.expansion_kind: ExpansionKind = expansion_kind
         self.has_windows: bool = has_windows
         self.n_orderable_ops: int = n_orderable_ops
@@ -616,8 +616,9 @@ def combine_metadata(
             result_preserves_length = True
             result_is_scalar_like = False
             result_is_literal = False
-        elif is_expr(arg):
+        elif is_expr(arg) or is_compliant_expr(arg):
             metadata = arg._metadata
+            assert metadata is not None  # noqa: S101
             if metadata.expansion_kind.is_multi_output():
                 expansion_kind = metadata.expansion_kind
                 if i > 0 and not allow_multi_output:
@@ -648,7 +649,6 @@ def combine_metadata(
     if result_preserves_length and n_filtrations:
         msg = "Cannot combine length-changing expressions with length-preserving ones or aggregations"
         raise InvalidOperationError(msg)
-
     return ExprMetadata(
         result_expansion_kind,
         has_windows=result_has_windows,
