@@ -195,7 +195,8 @@ class BaseFrame(Generic[_FrameT]):
                 if error := self._check_columns_exist(flat_exprs):
                     raise error from e
                 raise
-        compliant_exprs, kinds = self._flatten_and_extract(*flat_exprs, **named_exprs)
+        compliant_exprs, _ = self._flatten_and_extract(*flat_exprs, **named_exprs)
+        kinds = [ExprKind.from_expr(x) for x in compliant_exprs]
         if compliant_exprs and all_exprs_are_scalar_like(*flat_exprs, **named_exprs):
             return self._with_compliant(self._compliant_frame.aggregate(*compliant_exprs))
         compliant_exprs = [

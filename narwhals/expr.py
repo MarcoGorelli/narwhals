@@ -172,7 +172,6 @@ class Expr:
                 **node.kwargs,
             )
             ce._metadata = md
-        breakpoint()
         return ce
 
     @property
