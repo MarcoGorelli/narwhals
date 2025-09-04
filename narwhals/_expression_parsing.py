@@ -675,12 +675,11 @@ def check_expressions_preserve_length(*args: IntoExpr, function_name: str) -> No
         raise InvalidOperationError(msg)
 
 
-def all_exprs_are_scalar_like(*args: IntoExpr, **kwargs: IntoExpr) -> bool:
+def all_exprs_are_scalar_like(mds) -> bool:
     # Raise if any argument in `args` isn't an aggregation or literal.
     # For Series input, we don't raise (yet), we let such checks happen later,
     # as this function works lazily and so can't evaluate lengths.
-    exprs = chain(args, kwargs.values())
-    return all(is_expr(x) and x._metadata.is_scalar_like for x in exprs)
+    return all(md.is_scalar_like for md in mds)
 
 
 def apply_binary(
@@ -697,7 +696,6 @@ def apply_binary(
         ExprKind.from_expr(ce),
         ExprKind.from_into_expr(other_compliant, str_as_lit=True),
     ]
-    breakpoint()
     broadcast = any(not kind.is_scalar_like for kind in kinds)
     compliant_exprs = [
         compliant_expr.broadcast(kind)
