@@ -697,6 +697,7 @@ def apply_binary(
         ExprKind.from_expr(ce),
         ExprKind.from_into_expr(other_compliant, str_as_lit=True),
     ]
+    breakpoint()
     broadcast = any(not kind.is_scalar_like for kind in kinds)
     compliant_exprs = [
         compliant_expr.broadcast(kind)
