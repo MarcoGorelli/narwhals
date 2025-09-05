@@ -114,8 +114,11 @@ class Expr:
         elif root.kind is ExprKind.SELECTOR:
             md = ExprMetadata.selector_multi_unnamed(root)
             ce = getattr(plx.selectors, root.name)(*root.exprs, **root.kwargs)
-        else:
+        elif root.kind is ExprKind.N_ARY:
             msg = "todo"
+            raise NotImplementedError(msg)
+        else:
+            msg = "unexpected kind, please report bug"
             raise NotImplementedError(msg)
         ce = getattr(plx, root.name)(
             *[plx.parse_into_expr(expr, str_as_lit=False) for expr in root.exprs],
