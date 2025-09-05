@@ -195,7 +195,7 @@ class BaseFrame(Generic[_FrameT]):
                     raise error from e
                 raise
         compliant_exprs, kinds = self._flatten_and_extract(*flat_exprs, **named_exprs)
-        if compliant_exprs and (x.is_scalar_like for x in kinds):
+        if compliant_exprs and all(x.is_scalar_like for x in kinds):
             return self._with_compliant(self._compliant_frame.aggregate(*compliant_exprs))
         compliant_exprs = [
             compliant_expr.broadcast(kind) if is_scalar_like(kind) else compliant_expr
