@@ -152,6 +152,9 @@ class Expr:
                 md = md.with_window(node)
             elif node.kind is ExprKind.OVER:
                 current_meta = md
+                if current_meta.is_filtration:
+                    msg = "todo"
+                    raise InvalidOperationError(msg)
                 if node.kwargs["order_by"]:
                     md = current_meta.with_ordered_over(node)
                 elif not node.kwargs["partition_by"]:  # pragma: no cover
@@ -167,7 +170,14 @@ class Expr:
             else:
                 msg = f"Unexpected node kind: {node.kind}"
                 raise AssertionError(msg)
-            ce = getattr(ce, node.name)(
+
+            if "." in node.name:
+                accessor, method = node.name.split(".")
+                func = getattr(getattr(ce, accessor), method)
+            else:
+                func = getattr(ce, node.name)
+
+            ce = func(
                 *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
                 **node.kwargs,
             )
