@@ -152,9 +152,6 @@ class Expr:
                 md = md.with_window(node)
             elif node.kind is ExprKind.OVER:
                 current_meta = md
-                if current_meta.is_filtration:
-                    msg = "todo"
-                    raise InvalidOperationError(msg)
                 if node.kwargs["order_by"]:
                     md = current_meta.with_ordered_over(node)
                 elif not node.kwargs["partition_by"]:  # pragma: no cover
