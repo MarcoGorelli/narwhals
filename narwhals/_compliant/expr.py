@@ -836,7 +836,9 @@ class LazyExpr(  # type: ignore[misc]
                 raise ValueError(msg)
             return [name]
 
-        return self._with_alias_output_names(fn)
+        ret = self._with_alias_output_names(fn)
+        ret._metadata = self._metadata
+        return ret
 
     @property
     def name(self) -> LazyExprNameNamespace[Self]:
