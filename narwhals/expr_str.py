@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
 from narwhals._expression_parsing import (
+    ExprKind,
+    ExprNode,
     apply_n_ary_operation,
     elementwise_namespace_method,
 )
@@ -326,7 +328,6 @@ class ExprStringNamespace(Generic[ExprT]):
             lambda plx: self._expr._to_compliant_expr(plx).str.slice(0, n)
         )
 
-    @elementwise_namespace_method
     def tail(self, n: int = 5) -> ExprT:
         r"""Take the last n elements of each string.
 
@@ -349,10 +350,8 @@ class ExprStringNamespace(Generic[ExprT]):
             lyrics: [["taata","taatatata","zukkyun"]]
             lyrics_tail: [["taata","atata","kkyun"]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.slice(
-                offset=-n, length=None
-            )
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "str.slice", offset=-n, length=None)
         )
 
     @elementwise_namespace_method
