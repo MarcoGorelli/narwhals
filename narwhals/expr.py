@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping, Sequence
-from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
@@ -31,7 +30,7 @@ from narwhals.translate import to_native
 if TYPE_CHECKING:
     from typing import NoReturn, TypeVar
 
-    from typing_extensions import Concatenate, ParamSpec, Self, TypeAlias
+    from typing_extensions import Concatenate, ParamSpec, Self
 
     from narwhals._compliant import CompliantExpr, CompliantNamespace
     from narwhals.dtypes import DType
@@ -50,9 +49,6 @@ if TYPE_CHECKING:
 
     PS = ParamSpec("PS")
     R = TypeVar("R")
-    _ToCompliant: TypeAlias = Callable[
-        [CompliantNamespace[Any, Any]], CompliantExpr[Any, Any]
-    ]
 
 _OP_SYMBOLS = {
     "__add__": "+",
@@ -76,21 +72,20 @@ _OP_SYMBOLS = {
 }
 
 
-class Expr:
-    def __init__(
-        self, to_compliant_expr: _ToCompliant, metadata: ExprMetadata | None = None
-    ) -> None:
-        # callable from CompliantNamespace to CompliantExpr
-        def func(plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
-            result = to_compliant_expr(plx)
-            result._metadata = self._metadata
-            return result
+def _parse_into_expr(expr: str | Expr | Any) -> Expr | Any:
+    if isinstance(expr, str):
+        from narwhals.functions import col
 
-        self._to_compliant_expr: _ToCompliant = func
-        self._opt_metadata = metadata
+        return col(expr)
+    return expr
+
+
+class Expr:
+    def __init__(self, *nodes: ExprNode) -> None:
+        self._nodes = nodes
 
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
-        nodes = self._metadata.nodes
+        nodes = self._nodes
         root = nodes[0]
         ce = getattr(plx, root.name)
         if root.kind is ExprKind.COL:
@@ -115,8 +110,17 @@ class Expr:
             md = ExprMetadata.selector_multi_unnamed(root)
             ce = getattr(plx.selectors, root.name)(*root.exprs, **root.kwargs)
         elif root.kind is ExprKind.N_ARY:
-            msg = "todo"
-            raise NotImplementedError(msg)
+            ces = [
+                plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
+                for x in root.exprs
+            ]
+            md = ExprMetadata.from_n_ary_op(root.name, *ces)
+            ce = apply_n_ary_operation(
+                plx,
+                lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
+                *ces,
+                str_as_lit=False,
+            )
         else:
             msg = "unexpected kind, please report bug"
             raise NotImplementedError(msg)
@@ -184,15 +188,6 @@ class Expr:
             ce._metadata = md
         return ce
 
-    @property
-    def _metadata(self) -> ExprMetadata:
-        assert self._opt_metadata is not None  # noqa: S101
-        return self._opt_metadata
-
-    @_metadata.setter
-    def _metadata(self, value: ExprMetadata, /) -> None:
-        self._opt_metadata = value
-
     @classmethod
     def _from_node(cls, node: ExprNode) -> Self:
         if node.kind is ExprKind.COL:
@@ -241,67 +236,8 @@ class Expr:
             md,
         )
 
-    def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912,C901
-        md = deepcopy(self._metadata)
-        md.nodes.append(node)
-        return self.__class__(self._to_compliant_expr, md)
-        if any(
-            x._metadata.expansion_kind.is_multi_output() for x in node.exprs if is_expr(x)
-        ):
-            msg = "multi-output expressions are not allowed as arguments to Expr methods."
-            raise MultiOutputExpressionError(msg)
-        if node.kind is ExprKind.AGGREGATION:
-            md = self._metadata.with_aggregation(node)
-        elif node.kind is ExprKind.BINARY:
-            other = next(iter(node.exprs))
-            md = ExprMetadata.from_binary_op(self, other, node)
-            return self.__class__(
-                lambda plx: apply_n_ary_operation(
-                    plx,
-                    lambda x, y: getattr(x, node.name)(y),
-                    self,
-                    other,
-                    str_as_lit=True,
-                ),
-                md,
-            )
-        elif node.kind is ExprKind.ELEMENTWISE:
-            md = self._metadata.with_elementwise_op(node)
-        elif node.kind is ExprKind.FILTRATION:
-            md = self._metadata.with_filtration(node)
-        elif node.kind is ExprKind.ORDERABLE_WINDOW:
-            md = self._metadata.with_orderable_window(node)
-        elif node.kind is ExprKind.ORDERABLE_FILTRATION:
-            md = self._metadata.with_orderable_filtration(node)
-        elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
-            md = self._metadata.with_orderable_aggregation(node)
-        elif node.kind is ExprKind.WINDOW:
-            md = self._metadata.with_window(node)
-        elif node.kind is ExprKind.OVER:
-            current_meta = self._metadata
-            if node.kwargs["order_by"]:
-                md = current_meta.with_ordered_over(node)
-            elif not node.kwargs["partition_by"]:  # pragma: no cover
-                msg = "At least one of `partition_by` or `order_by` must be specified."
-                raise InvalidOperationError(msg)
-            else:
-                md = current_meta.with_partitioned_over(node)
-            return self.__class__(
-                lambda plx: self._to_compliant_expr(plx).over(
-                    node.kwargs["partition_by"], node.kwargs["order_by"]
-                ),
-                md,
-            )
-        else:
-            msg = f"Unexpected node kind: {node.kind}"
-            raise AssertionError(msg)
-        return self.__class__(
-            lambda plx: getattr(self._to_compliant_expr(plx), node.name)(
-                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
-                **node.kwargs,
-            ),
-            md,
-        )
+    def _with_node(self, node: ExprNode) -> Self:
+        return self.__class__(*self._nodes, node)
 
     def _with_callable(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
         return self.__class__(to_compliant_expr, self._metadata)

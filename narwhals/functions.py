@@ -927,7 +927,7 @@ def col(*names: str | Iterable[str]) -> Expr:
         └──────────────────┘
     """
     flat_names = flatten(names)
-    return Expr._from_node(ExprNode(ExprKind.COL, "col", names=flat_names))
+    return Expr(ExprNode(ExprKind.COL, "col", names=flat_names))
 
 
 def exclude(*names: str | Iterable[str]) -> Expr:
@@ -961,7 +961,7 @@ def exclude(*names: str | Iterable[str]) -> Expr:
     """
     flat_names = flatten(names)
     exclude_names = frozenset(flat_names)
-    return Expr._from_node(ExprNode(ExprKind.EXCLUDE, "exclude", names=exclude_names))
+    return Expr(ExprNode(ExprKind.EXCLUDE, "exclude", names=exclude_names))
 
 
 def nth(*indices: int | Sequence[int]) -> Expr:
@@ -996,7 +996,7 @@ def nth(*indices: int | Sequence[int]) -> Expr:
     """
     flat_indices = flatten(indices)
     node = ExprNode(ExprKind.NTH, "nth", indices=flat_indices)
-    return Expr._from_node(node)
+    return Expr(node)
 
 
 # Add underscore so it doesn't conflict with builtin `all`
@@ -1021,7 +1021,7 @@ def all_() -> Expr:
         └──────────────────┘
     """
     node = ExprNode(ExprKind.ALL, "all")
-    return Expr._from_node(node)
+    return Expr(node)
 
 
 # Add underscore so it doesn't conflict with builtin `len`
@@ -1051,7 +1051,7 @@ def len_() -> Expr:
         └──────────────────┘
     """
     node = ExprNode(ExprKind.AGGREGATION, "len")
-    return Expr._from_node(node)
+    return Expr(node)
 
 
 def sum(*columns: str) -> Expr:
@@ -1215,7 +1215,7 @@ def _expr_with_n_ary_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
         msg = f"At least one expression must be passed to `{name}`"
         raise ValueError(msg)
     node = ExprNode(ExprKind.N_ARY, name, *exprs, **kwargs)
-    return Expr._from_node(node)
+    return Expr(node)
 
 
 def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1519,7 +1519,7 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
         raise NotImplementedError(msg)
 
     node = ExprNode(ExprKind.LITERAL, "lit", value=value, dtype=dtype)
-    return Expr._from_node(node)
+    return Expr(node)
 
 
 def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) -> Expr:
@@ -1718,4 +1718,4 @@ def coalesce(
         raise TypeError(msg)
 
     node = ExprNode(ExprKind.N_ARY, "coalesce", *flat_exprs)
-    return Expr._from_node(node)
+    return Expr(node)
