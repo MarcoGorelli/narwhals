@@ -617,15 +617,13 @@ class EagerExpr(
 
         # Define this one manually, so that we can
         # override `output_names` and not increase depth
-        ret = type(self)(
+        return type(self)(
             lambda df: [series.alias(name) for series in self(df)],
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=alias_output_names,
             implementation=self._implementation,
             version=self._version,
         )
-        ret._metadata = self._metadata
-        return ret
 
     def is_unique(self) -> Self:
         return self._reuse_series("is_unique")
@@ -838,9 +836,7 @@ class LazyExpr(  # type: ignore[misc]
                 raise ValueError(msg)
             return [name]
 
-        ret = self._with_alias_output_names(fn)
-        ret._metadata = self._metadata
-        return ret
+        return self._with_alias_output_names(fn)
 
     @property
     def name(self) -> LazyExprNameNamespace[Self]:

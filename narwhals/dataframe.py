@@ -18,7 +18,6 @@ from typing import (
 from narwhals._exceptions import issue_warning
 from narwhals._expression_parsing import (
     ExprKind,
-    all_exprs_are_scalar_like,
     check_expressions_preserve_length,
     is_into_expr_eager,
     is_scalar_like,
@@ -125,11 +124,11 @@ class BaseFrame(Generic[_FrameT]):
         for expr in flatten(exprs):
             compliant_expr = self._extract_compliant(expr)
             out_exprs.append(compliant_expr)
-            out_kinds.append(ExprKind.from_into_expr(compliant_expr, str_as_lit=False))
+            out_kinds.append(ExprKind.from_expr(compliant_expr))
         for alias, expr in named_exprs.items():
-            compliant_expr = self._extract_compliant(expr).alias(alias)
-            out_exprs.append(compliant_expr)
-            out_kinds.append(ExprKind.from_into_expr(compliant_expr, str_as_lit=False))
+            compliant_expr = self._extract_compliant(expr)
+            out_exprs.append(compliant_expr.alias(alias))
+            out_kinds.append(ExprKind.from_expr(compliant_expr))
         return out_exprs, out_kinds
 
     @abstractmethod
@@ -195,10 +194,8 @@ class BaseFrame(Generic[_FrameT]):
                 if error := self._check_columns_exist(flat_exprs):
                     raise error from e
                 raise
-        compliant_exprs, _ = self._flatten_and_extract(*flat_exprs, **named_exprs)
-        kinds = [ExprKind.from_expr(x) for x in compliant_exprs]
-        mds = [x._metadata for x in compliant_exprs]
-        if compliant_exprs and all_exprs_are_scalar_like(mds):
+        compliant_exprs, kinds = self._flatten_and_extract(*flat_exprs, **named_exprs)
+        if compliant_exprs and (x.is_scalar_like for x in kinds):
             return self._with_compliant(self._compliant_frame.aggregate(*compliant_exprs))
         compliant_exprs = [
             compliant_expr.broadcast(kind) if is_scalar_like(kind) else compliant_expr
