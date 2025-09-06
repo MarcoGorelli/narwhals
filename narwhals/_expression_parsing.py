@@ -613,7 +613,8 @@ def combine_metadata(
             result_preserves_length = True
             result_is_scalar_like = False
             result_is_literal = False
-        elif is_expr(arg) or is_compliant_expr(arg):
+        elif hasattr(arg, '_metadata'):
+            # todo: handle `WHEN` node here
             metadata = arg._metadata
             assert metadata is not None  # noqa: S101
             if metadata.expansion_kind.is_multi_output():

@@ -88,7 +88,10 @@ class Expr:
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
         nodes = self._nodes
         root = nodes[0]
-        ce = getattr(plx, root.name)
+        ce = getattr(plx, root.name)(
+            *[plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in root.exprs],
+            **root.kwargs,
+        )
         if root.kind is ExprKind.COL:
             md = (
                 ExprMetadata.selector_single(root)
@@ -115,7 +118,7 @@ class Expr:
                 plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
                 for x in root.exprs
             ]
-            md = ExprMetadata.from_n_ary_op("when", *ces)
+            md = ces[0]._metadata
             ce = apply_n_ary_operation(
                 plx,
                 lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
@@ -137,10 +140,6 @@ class Expr:
         else:
             msg = "unexpected kind, please report bug"
             raise NotImplementedError(msg)
-        ce = getattr(plx, root.name)(
-            *[plx.parse_into_expr(expr, str_as_lit=False) for expr in root.exprs],
-            **root.kwargs,
-        )
         ce._metadata = md
         for node in nodes[1:]:
             if node.kind is ExprKind.AGGREGATION:
@@ -165,9 +164,9 @@ class Expr:
             elif node.kind is ExprKind.WINDOW:
                 md = md.with_window(node)
             elif node.kind is ExprKind.THEN:
-                ces = [plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs]
+                ces = [plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in node.exprs]
                 md = combine_metadata(
-                    *ce._metadata.nodes[0].exprs,
+                    ce,
                     *ces,
                     str_as_lit=False,
                     allow_multi_output=False,
@@ -178,7 +177,7 @@ class Expr:
                 ce._metadata = md
                 continue
             elif node.kind is ExprKind.OTHERWISE:
-                ces = [plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs]
+                ces = [plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in node.exprs]
                 md = combine_metadata(
                     ce,
                     *ces,
@@ -214,7 +213,7 @@ class Expr:
             else:
                 func = getattr(ce, node.name)
 
-            ces = [plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs]
+            ces = [plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in node.exprs]
             if any(
                 ces._metadata.expansion_kind.is_multi_output()
                 for x in ces
