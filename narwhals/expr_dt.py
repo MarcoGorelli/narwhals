@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from narwhals._expression_parsing import elementwise_namespace_method
+from narwhals._expression_parsing import ExprKind, ExprNode
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -17,7 +17,6 @@ class ExprDateTimeNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 
-    @elementwise_namespace_method
     def date(self) -> ExprT:
         """Extract the date from underlying DateTime representation.
 
@@ -43,11 +42,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             │ 2027-12-13 │
             └────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.date()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.date"))
 
-    @elementwise_namespace_method
     def year(self) -> ExprT:
         """Extract year from underlying DateTime representation.
 
@@ -70,11 +66,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |1 2065-01-01  2065|
             └──────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.year()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.year"))
 
-    @elementwise_namespace_method
     def month(self) -> ExprT:
         """Extract month from underlying DateTime representation.
 
@@ -94,11 +87,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[1978-06-01 00:00:00.000000,2065-01-01 00:00:00.000000]]
             month: [[6,1]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.month()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.month"))
 
-    @elementwise_namespace_method
     def day(self) -> ExprT:
         """Extract day from underlying DateTime representation.
 
@@ -118,11 +108,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[1978-06-01 00:00:00.000000,2065-01-01 00:00:00.000000]]
             day: [[1,1]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.day()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.day"))
 
-    @elementwise_namespace_method
     def hour(self) -> ExprT:
         """Extract hour from underlying DateTime representation.
 
@@ -151,11 +138,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |└─────────────────────┴──────┘|
             └──────────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.hour()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.hour"))
 
-    @elementwise_namespace_method
     def minute(self) -> ExprT:
         """Extract minutes from underlying DateTime representation.
 
@@ -174,11 +158,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             0 1978-01-01 01:01:00       1
             1 2065-01-01 10:20:00      20
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.minute()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.minute"))
 
-    @elementwise_namespace_method
     def second(self) -> ExprT:
         """Extract seconds from underlying DateTime representation.
 
@@ -203,11 +184,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[1978-01-01 01:01:01.000000,2065-01-01 10:20:30.000000]]
             second: [[1,30]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.second()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.second"))
 
-    @elementwise_namespace_method
     def millisecond(self) -> ExprT:
         """Extract milliseconds from underlying DateTime representation.
 
@@ -234,11 +212,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[1978-01-01 01:01:01.000000,2065-01-01 10:20:30.067000]]
             millisecond: [[0,67]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.millisecond()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.millisecond"))
 
-    @elementwise_namespace_method
     def microsecond(self) -> ExprT:
         """Extract microseconds from underlying DateTime representation.
 
@@ -265,11 +240,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[1978-01-01 01:01:01.000000,2065-01-01 10:20:30.067000]]
             microsecond: [[0,67000]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.microsecond()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.microsecond"))
 
-    @elementwise_namespace_method
     def nanosecond(self) -> ExprT:
         """Extract Nanoseconds from underlying DateTime representation.
 
@@ -296,11 +268,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[1978-01-01 01:01:01.000000,2065-01-01 10:20:30.067000]]
             nanosecond: [[0,67000000]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.nanosecond()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.nanosecond"))
 
-    @elementwise_namespace_method
     def ordinal_day(self) -> ExprT:
         """Get ordinal day.
 
@@ -321,11 +290,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |1 2020-08-03            216|
             └───────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.ordinal_day()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.ordinal_day"))
 
-    @elementwise_namespace_method
     def weekday(self) -> ExprT:
         """Extract the week day from the underlying Date representation.
 
@@ -348,11 +314,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |1 2020-08-03           1|
             └────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.weekday()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.weekday"))
 
-    @elementwise_namespace_method
     def total_minutes(self) -> ExprT:
         """Get total minutes.
 
@@ -382,11 +345,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             │ 20m 40s      ┆ 20              │
             └──────────────┴─────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.total_minutes()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.total_minute"))
 
-    @elementwise_namespace_method
     def total_seconds(self) -> ExprT:
         """Get total seconds.
 
@@ -416,11 +376,8 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             │ 20s 40ms     ┆ 20              │
             └──────────────┴─────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.total_seconds()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.total_seconds"))
 
-    @elementwise_namespace_method
     def total_milliseconds(self) -> ExprT:
         """Get total milliseconds.
 
@@ -455,11 +412,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             │ 20040µs      ┆ 20                   │
             └──────────────┴──────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.total_milliseconds()
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.total_milliseconds")
         )
 
-    @elementwise_namespace_method
     def total_microseconds(self) -> ExprT:
         """Get total microseconds.
 
@@ -491,11 +447,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             a: [[10,1200]]
             a_total_microseconds: [[10,1200]]
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.total_microseconds()
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.total_microseconds")
         )
 
-    @elementwise_namespace_method
     def total_nanoseconds(self) -> ExprT:
         """Get total nanoseconds.
 
@@ -526,11 +481,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             0 2024-01-01 00:00:00.000000001                       NaN
             1 2024-01-01 00:00:00.000000002                       1.0
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.total_nanoseconds()
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.total_nanoseconds")
         )
 
-    @elementwise_namespace_method
     def to_string(self, format: str) -> ExprT:
         """Convert a Date/Time/Datetime column into a String column with the given format.
 
@@ -591,11 +545,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |└─────────────────────┘|
             └───────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.to_string(format)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.to_string", format=format)
         )
 
-    @elementwise_namespace_method
     def replace_time_zone(self, time_zone: str | None) -> ExprT:
         """Replace time zone.
 
@@ -620,11 +573,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             0 2024-01-01 00:00:00+05:45
             1 2024-01-02 00:00:00+05:45
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.replace_time_zone(time_zone)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.replace_time_zone", time_zone=time_zone)
         )
 
-    @elementwise_namespace_method
     def convert_time_zone(self, time_zone: str) -> ExprT:
         """Convert to a new time zone.
 
@@ -655,11 +607,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
         if time_zone is None:
             msg = "Target `time_zone` cannot be `None` in `convert_time_zone`. Please use `replace_time_zone(None)` if you want to remove the time zone."
             raise TypeError(msg)
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.convert_time_zone(time_zone)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.convert_time_zone", time_zone=time_zone)
         )
 
-    @elementwise_namespace_method
     def timestamp(self, time_unit: TimeUnit = "us") -> ExprT:
         """Return a timestamp in the given time unit.
 
@@ -696,11 +647,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
                 f"\n\nExpected one of {{'ns', 'us', 'ms'}}, got {time_unit!r}."
             )
             raise ValueError(msg)
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.timestamp(time_unit)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.timestamp", time_unit=time_unit)
         )
 
-    @elementwise_namespace_method
     def truncate(self, every: str) -> ExprT:
         """Divide the date/datetime range into buckets.
 
@@ -741,11 +691,10 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |└─────────────────────┴─────────────────────┘|
             └─────────────────────────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.truncate(every)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.truncate", every=every)
         )
 
-    @elementwise_namespace_method
     def offset_by(self, by: str) -> ExprT:
         """Offset this date by a relative time offset.
 
@@ -786,6 +735,6 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             |└─────────────────────┴───────────────────────┘|
             └───────────────────────────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).dt.offset_by(by)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "dt.offset_by", by=by)
         )

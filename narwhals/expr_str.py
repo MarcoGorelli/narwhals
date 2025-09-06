@@ -2,12 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
-from narwhals._expression_parsing import (
-    ExprKind,
-    ExprNode,
-    apply_n_ary_operation,
-    elementwise_namespace_method,
-)
+from narwhals._expression_parsing import ExprKind, ExprNode, apply_n_ary_operation
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -23,7 +18,6 @@ class ExprStringNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 
-    @elementwise_namespace_method
     def len_chars(self) -> ExprT:
         r"""Return the length of each string as the number of characters.
 
@@ -52,7 +46,6 @@ class ExprStringNamespace(Generic[ExprT]):
             lambda plx: self._expr._to_compliant_expr(plx).str.len_chars()
         )
 
-    @elementwise_namespace_method
     def replace(
         self, pattern: str, value: str | ExprT, *, literal: bool = False, n: int = 1
     ) -> ExprT:
@@ -92,7 +85,6 @@ class ExprStringNamespace(Generic[ExprT]):
             )
         )
 
-    @elementwise_namespace_method
     def replace_all(
         self, pattern: str, value: str | ExprT, *, literal: bool = False
     ) -> ExprT:
@@ -131,7 +123,6 @@ class ExprStringNamespace(Generic[ExprT]):
             )
         )
 
-    @elementwise_namespace_method
     def strip_chars(self, characters: str | None = None) -> ExprT:
         r"""Remove leading and trailing characters.
 
@@ -155,7 +146,6 @@ class ExprStringNamespace(Generic[ExprT]):
             lambda plx: self._expr._to_compliant_expr(plx).str.strip_chars(characters)
         )
 
-    @elementwise_namespace_method
     def starts_with(self, prefix: str) -> ExprT:
         r"""Check if string values start with a substring.
 
@@ -181,7 +171,6 @@ class ExprStringNamespace(Generic[ExprT]):
             lambda plx: self._expr._to_compliant_expr(plx).str.starts_with(prefix)
         )
 
-    @elementwise_namespace_method
     def ends_with(self, suffix: str) -> ExprT:
         r"""Check if string values end with a substring.
 
@@ -294,7 +283,6 @@ class ExprStringNamespace(Generic[ExprT]):
         """
         return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "str.split", by=by))
 
-    @elementwise_namespace_method
     def head(self, n: int = 5) -> ExprT:
         r"""Take the first n elements of each string.
 
@@ -389,7 +377,6 @@ class ExprStringNamespace(Generic[ExprT]):
             ExprNode(ExprKind.ELEMENTWISE, "str.to_datetime", format=format)
         )
 
-    @elementwise_namespace_method
     def to_date(self, format: str | None = None) -> ExprT:
         """Convert to date dtype.
 
@@ -415,11 +402,10 @@ class ExprStringNamespace(Generic[ExprT]):
             |a: [[2020-01-01,2020-01-02]]|
             └────────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_date(format=format)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "str.to_date", format=format)
         )
 
-    @elementwise_namespace_method
     def to_uppercase(self) -> ExprT:
         r"""Transform string to uppercase variant.
 
@@ -442,9 +428,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1   None      None|
             └──────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_uppercase()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "str.to_uppercase"))
 
     def to_lowercase(self) -> ExprT:
         r"""Transform string to lowercase variant.
@@ -463,9 +447,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |1   None      None|
             └──────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.to_lowercase()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "str.to_lowercase"))
 
     def zfill(self, width: int) -> ExprT:
         """Transform string to zero-padded variant.
@@ -491,6 +473,6 @@ class ExprStringNamespace(Generic[ExprT]):
             |3   None      None|
             └──────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.zfill(width)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "str.zfill", width=width)
         )

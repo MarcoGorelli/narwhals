@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from narwhals._expression_parsing import elementwise_namespace_method
+from narwhals._expression_parsing import ExprKind, ExprNode
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -17,7 +17,6 @@ class ExprListNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 
-    @elementwise_namespace_method
     def len(self) -> ExprT:
         """Return the number of elements in each list.
 
@@ -45,11 +44,8 @@ class ExprListNamespace(Generic[ExprT]):
             |└──────────────┴───────┘|
             └────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).list.len()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "list.len"))
 
-    @elementwise_namespace_method
     def unique(self) -> ExprT:
         """Get the unique/distinct values in the list.
 
@@ -77,11 +73,8 @@ class ExprListNamespace(Generic[ExprT]):
             |└──────────────┴───────────┘|
             └────────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).list.unique()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "list.unique"))
 
-    @elementwise_namespace_method
     def contains(self, item: NonNestedLiteral) -> ExprT:
         """Check if sublists contain the given item.
 
@@ -109,11 +102,10 @@ class ExprListNamespace(Generic[ExprT]):
             |└───────────┴──────────────┘|
             └────────────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).list.contains(item)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "list.contains", item=item)
         )
 
-    @elementwise_namespace_method
     def get(self, index: int) -> ExprT:
         """Return the value by index in each list.
 
@@ -153,6 +145,6 @@ class ExprListNamespace(Generic[ExprT]):
             msg = f"Index {index} is out of bounds: should be greater than or equal to 0."
             raise ValueError(msg)
 
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).list.get(index)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "list.get", index=index)
         )

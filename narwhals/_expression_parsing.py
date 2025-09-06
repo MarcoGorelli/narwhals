@@ -4,20 +4,8 @@
 # ! Any change to this module will trigger the pyspark and pyspark-connect tests in CI
 from __future__ import annotations
 
-import inspect
 from enum import Enum, auto
-from functools import wraps
-from itertools import chain
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Concatenate,
-    Literal,
-    ParamSpec,
-    Protocol,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, Protocol, TypeVar
 
 from narwhals._utils import is_compliant_expr, zip_strict
 from narwhals.dependencies import is_narwhals_series, is_numpy_array, is_numpy_array_1d
@@ -675,7 +663,7 @@ def check_expressions_preserve_length(*args: IntoExpr, function_name: str) -> No
         raise InvalidOperationError(msg)
 
 
-def all_exprs_are_scalar_like(mds) -> bool:
+def all_exprs_are_scalar_like(mds: Sequence[ExprMetadata]) -> bool:
     # Raise if any argument in `args` isn't an aggregation or literal.
     # For Series input, we don't raise (yet), we let such checks happen later,
     # as this function works lazily and so can't evaluate lengths.
@@ -727,44 +715,3 @@ def apply_n_ary_operation(
         for compliant_expr, kind in zip_strict(compliant_exprs, kinds)
     ]
     return n_ary_function(*compliant_exprs)
-
-
-def namespace_method_with_node(
-    kind: ExprKind,
-) -> Callable[
-    [Callable[Concatenate[ExprNamespaceT, PS], ExprT_co]],
-    Callable[Concatenate[ExprNamespaceT, PS], ExprT_co],
-]:
-    """Decorator that automatically creates tree nodes for expression methods."""
-
-    def decorator(
-        func: Callable[Concatenate[ExprNamespaceT, PS], ExprT_co], /
-    ) -> Callable[Concatenate[ExprNamespaceT, PS], ExprT_co]:
-        @wraps(func)
-        def wrapper(
-            self: ExprNamespaceT, *args: PS.args, **kwargs: PS.kwargs
-        ) -> ExprT_co:
-            name = f"{self._accessor}.{func.__name__}"
-
-            result = func(self, *args, **kwargs)
-            md = result._metadata
-
-            # Get function signature and build complete kwargs including defaults
-            sig = inspect.signature(func)
-            bound_args = sig.bind(self, *args, **kwargs)
-            bound_args.apply_defaults()  # This fills in default values
-
-            # Remove 'self' from the arguments and get the rest as kwargs
-            all_kwargs = dict(bound_args.arguments)
-            all_kwargs.pop("self", None)  # Remove self parameter
-
-            node = ExprNode(kind, name, **all_kwargs)
-            md.nodes = [*self._expr._metadata.nodes, node]
-            return result
-
-        return wrapper
-
-    return decorator
-
-
-elementwise_namespace_method = namespace_method_with_node(ExprKind.ELEMENTWISE)

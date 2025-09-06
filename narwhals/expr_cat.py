@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from narwhals._expression_parsing import elementwise_namespace_method
+from narwhals._expression_parsing import ExprKind, ExprNode
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -16,7 +16,6 @@ class ExprCatNamespace(Generic[ExprT]):
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 
-    @elementwise_namespace_method  # TODO(marco): should be filtration
     def get_categories(self) -> ExprT:
         """Get unique categories from column.
 
@@ -39,6 +38,4 @@ class ExprCatNamespace(Generic[ExprT]):
             │ mango  │
             └────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).cat.get_categories()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "cat.get_categories"))
