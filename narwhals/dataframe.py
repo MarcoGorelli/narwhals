@@ -69,6 +69,7 @@ if TYPE_CHECKING:
     from narwhals._compliant.typing import CompliantExprAny, EagerNamespaceAny
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import EagerAllowed, IntoBackend, LazyAllowed, Polars
+    from narwhals.expr import Expr
     from narwhals.group_by import GroupBy, LazyGroupBy
     from narwhals.typing import (
         AsofJoinStrategy,
@@ -98,6 +99,14 @@ R = TypeVar("R")
 
 MultiColSelector: TypeAlias = "_MultiColSelector[Series[Any]]"
 MultiIndexSelector: TypeAlias = "_MultiIndexSelector[Series[Any]]"
+
+
+def _parse_into_expr(expr: str | Expr | Any) -> Expr | Any:
+    if isinstance(expr, str):
+        from narwhals.functions import col
+
+        return col(expr)
+    return expr
 
 
 class BaseFrame(Generic[_FrameT]):
@@ -450,7 +459,7 @@ class DataFrame(BaseFrame[DataFrameT]):
     def _extract_compliant(self, arg: Any) -> Any:
         if is_into_expr_eager(arg):
             plx: EagerNamespaceAny = self.__narwhals_namespace__()
-            return plx.parse_into_expr(arg, str_as_lit=False)
+            return plx.parse_into_expr(_parse_into_expr(arg), str_as_lit=False)
         raise InvalidIntoExprError.from_invalid_type(type(arg))
 
     @property
@@ -2285,7 +2294,9 @@ class LazyFrame(BaseFrame[LazyFrameT]):
             msg = "Binary operations between Series and LazyFrame are not supported."
             raise TypeError(msg)
         if isinstance(arg, (Expr, str)):
-            res = self.__narwhals_namespace__().parse_into_expr(arg, str_as_lit=False)
+            res = self.__narwhals_namespace__().parse_into_expr(
+                _parse_into_expr(arg), str_as_lit=False
+            )
             if res._metadata.n_orderable_ops:
                 msg = (
                     "Order-dependent expressions are not supported for use in LazyFrame.\n\n"
