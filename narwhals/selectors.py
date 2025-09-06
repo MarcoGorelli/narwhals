@@ -91,7 +91,7 @@ def by_dtype(*dtypes: DType | type[DType] | Iterable[DType | type[DType]]) -> Se
         c: [[8.2,4.6]]
     """
     flattened = flatten(dtypes)
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "by_dtype", dtypes=flattened))
+    return Selector(ExprNode(ExprKind.SELECTOR, "by_dtype", dtypes=flattened))
 
 
 def matches(pattern: str) -> Selector:
@@ -119,7 +119,7 @@ def matches(pattern: str) -> Selector:
         0  123  2.0
         1  456  5.5
     """
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "matches", pattern=pattern))
+    return Selector(ExprNode(ExprKind.SELECTOR, "matches", pattern=pattern))
 
 
 def numeric() -> Selector:
@@ -148,7 +148,7 @@ def numeric() -> Selector:
         │ 4   ┆ 4.6 │
         └─────┴─────┘
     """
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "numeric"))
+    return Selector(ExprNode(ExprKind.SELECTOR, "numeric"))
 
 
 def boolean() -> Selector:
@@ -181,7 +181,7 @@ def boolean() -> Selector:
         |  └───────┘       |
         └──────────────────┘
     """
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "boolean"))
+    return Selector(ExprNode(ExprKind.SELECTOR, "boolean"))
 
 
 def string() -> Selector:
@@ -210,7 +210,7 @@ def string() -> Selector:
         │ y   │
         └─────┘
     """
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "string"))
+    return Selector(ExprNode(ExprKind.SELECTOR, "string"))
 
 
 def categorical() -> Selector:
@@ -241,7 +241,7 @@ def categorical() -> Selector:
         │ y   │
         └─────┘
     """
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "categorical"))
+    return Selector(ExprNode(ExprKind.SELECTOR, "categorical"))
 
 
 def all() -> Selector:
@@ -264,7 +264,7 @@ def all() -> Selector:
         0  1  x  False
         1  2  y   True
     """
-    return Selector._from_node(ExprNode(ExprKind.SELECTOR, "all"))
+    return Selector(ExprNode(ExprKind.SELECTOR, "all"))
 
 
 def datetime(
@@ -322,7 +322,7 @@ def datetime(
         ----
         tstamp_utc: [[2023-04-10 12:14:16.999000Z,2025-08-25 14:18:22.666000Z]]
     """
-    return Selector._from_node(
+    return Selector(
         ExprNode(ExprKind.SELECTOR, "datetime", time_unit=time_unit, time_zone=time_zone)
     )
 
