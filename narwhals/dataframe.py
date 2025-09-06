@@ -224,9 +224,11 @@ class BaseFrame(Generic[_FrameT]):
             from narwhals.functions import col
 
             flat_predicates = flatten(predicates)
-            check_expressions_preserve_length(*flat_predicates, function_name="filter")
             plx = self.__narwhals_namespace__()
             compliant_predicates, _kinds = self._flatten_and_extract(*flat_predicates)
+            check_expressions_preserve_length(
+                *compliant_predicates, function_name="filter"
+            )
             compliant_constraints = (
                 (col(name) == v)._to_compliant_expr(plx)
                 for name, v in constraints.items()

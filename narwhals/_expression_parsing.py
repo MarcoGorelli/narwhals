@@ -656,7 +656,8 @@ def check_expressions_preserve_length(*args: IntoExpr, function_name: str) -> No
     from narwhals.series import Series
 
     if not all(
-        (is_expr(x) and x._metadata.preserves_length) or isinstance(x, (str, Series))
+        ((is_expr(x) or is_compliant_expr(x)) and x._metadata.preserves_length)
+        or isinstance(x, (str, Series))
         for x in args
     ):
         msg = f"Expressions which aggregate or change length cannot be passed to '{function_name}'."
