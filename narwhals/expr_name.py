@@ -50,7 +50,9 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.map(renaming_func)).columns
             ['oof', 'RAB']
         """
-        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "name.map"))
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "name.map", function=function)
+        )
 
     def prefix(self, prefix: str) -> ExprT:
         r"""Add a prefix to the root column name of the expression.
@@ -69,7 +71,9 @@ class ExprNameNamespace(Generic[ExprT]):
             >>> df.select(nw.col("foo", "BAR").name.prefix("with_prefix")).columns
             ['with_prefixfoo', 'with_prefixBAR']
         """
-        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "name.prefix"))
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "name.prefix", prefix=prefix)
+        )
 
     def suffix(self, suffix: str) -> ExprT:
         r"""Add a suffix to the root column name of the expression.

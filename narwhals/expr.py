@@ -10,7 +10,7 @@ from narwhals._expression_parsing import (
     ExprNode,
     apply_binary,
     apply_n_ary_operation,
-    is_expr,
+    is_compliant_expr,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
@@ -130,19 +130,13 @@ class Expr:
         )
         ce._metadata = md
         for node in nodes[1:]:
-            if any(
-                x._metadata.expansion_kind.is_multi_output()
-                for x in node.exprs
-                if is_expr(x)
-            ):
-                msg = "multi-output expressions are not allowed as arguments to Expr methods."
-                raise MultiOutputExpressionError(msg)
             if node.kind is ExprKind.AGGREGATION:
                 md = md.with_aggregation(node)
             elif node.kind is ExprKind.BINARY:
                 other = next(iter(node.exprs))
-                md = ExprMetadata.from_binary_op(ce, other, node)
-                ce = apply_binary(plx, node.name, ce, other)
+                other_ce = plx.parse_into_expr(_parse_into_expr(other), str_as_lit=True)
+                md = ExprMetadata.from_binary_op(ce, other_ce, node)
+                ce = apply_binary(plx, node.name, ce, other_ce)
                 ce._metadata = md
                 continue
             elif node.kind is ExprKind.ELEMENTWISE:
@@ -181,10 +175,15 @@ class Expr:
             else:
                 func = getattr(ce, node.name)
 
-            ce = func(
-                *[plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs],
-                **node.kwargs,
-            )
+            ces = [plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs]
+            if any(
+                ces._metadata.expansion_kind.is_multi_output()
+                for x in ces
+                if is_compliant_expr(x)
+            ):
+                msg = "multi-output expressions are not allowed as arguments to Expr methods."
+                raise MultiOutputExpressionError(msg)
+            ce = func(*ces, **node.kwargs)
             ce._metadata = md
         return ce
 

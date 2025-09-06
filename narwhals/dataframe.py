@@ -238,9 +238,8 @@ class BaseFrame(Generic[_FrameT]):
             check_expressions_preserve_length(
                 *compliant_predicates, function_name="filter"
             )
-            compliant_constraints = (
-                (col(name) == v)._to_compliant_expr(plx)
-                for name, v in constraints.items()
+            compliant_constraints, _ = self._flatten_and_extract(
+                *[col(name) == v for name, v in constraints.items()]
             )
             predicate = plx.all_horizontal(
                 *chain(compliant_predicates, compliant_constraints), ignore_nulls=False

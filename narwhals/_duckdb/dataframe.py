@@ -218,8 +218,8 @@ class DuckDBLazyFrame(
         mask = predicate(self)[0]
         try:
             return self._with_native(self.native.filter(mask))
-        except Exception as e:  # noqa: BLE001
-            raise catch_duckdb_exception(e, self) from None
+        except Exception as e:
+            raise catch_duckdb_exception(e, self) from e
 
     @property
     def schema(self) -> dict[str, DType]:
