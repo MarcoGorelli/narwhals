@@ -162,6 +162,15 @@ class ExprKind(Enum):
     N_ARY = auto()
     """Results from n-ary expression (like `nw.sum_horizontal`)."""
 
+    WHEN = auto()
+    """Results from when expression."""
+
+    THEN = auto()
+    """Results from then expression."""
+
+    OTHERWISE = auto()
+    """Results from otherwise expression."""
+
     UNKNOWN = auto()
     """Based on the information we have, we can't determine the ExprKind."""
 

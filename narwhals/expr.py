@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from narwhals._expression_parsing import (
     ExprKind,
+    combine_metadata,
     ExprMetadata,
     ExprNode,
     apply_binary,
@@ -109,6 +110,19 @@ class Expr:
         elif root.kind is ExprKind.SELECTOR:
             md = ExprMetadata.selector_multi_unnamed(root)
             ce = getattr(plx.selectors, root.name)(*root.exprs, **root.kwargs)
+        elif root.kind is ExprKind.WHEN:
+            ces = [
+                plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
+                for x in root.exprs
+            ]
+            md = ExprMetadata.from_n_ary_op('when', *ces)
+            ce = apply_n_ary_operation(
+                plx,
+                lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
+                *ces,
+                str_as_lit=False,
+            )
+            breakpoint()
         elif root.kind is ExprKind.N_ARY:
             ces = [
                 plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
@@ -151,6 +165,12 @@ class Expr:
                 md = md.with_orderable_aggregation(node)
             elif node.kind is ExprKind.WINDOW:
                 md = md.with_window(node)
+            elif node.kind is ExprKind.THEN:
+                ces = [plx.parse_into_expr(expr, str_as_lit=False) for expr in node.exprs]
+                md = combine_metadata(root, *ces, str_as_lit=False, allow_multi_output=False, to_single_output=True, nodes=[*ce._metadata.nodes, node])
+                ce = ce.then(*ces)
+                ce._metadata = md
+                continue
             elif node.kind is ExprKind.OVER:
                 current_meta = md
                 if node.kwargs["order_by"]:
