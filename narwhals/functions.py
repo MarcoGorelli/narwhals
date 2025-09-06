@@ -1333,8 +1333,8 @@ class When:
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
 
     def then(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Then:
-        when_node = ExprNode(ExprKind.WHEN, 'when', self._predicate)
-        then_node = ExprNode(ExprKind.THEN, 'then', value)
+        when_node = ExprNode(ExprKind.WHEN, "when", self._predicate)
+        then_node = ExprNode(ExprKind.THEN, "then", value)
         return Then(when_node, then_node)
         kind = ExprKind.from_into_expr(value, str_as_lit=False)
         if self._predicate._metadata.is_scalar_like and not kind.is_scalar_like:
@@ -1365,8 +1365,8 @@ class When:
 
 class Then(Expr):
     def otherwise(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Expr:
-        node = ExprNode(ExprKind.OTHERWISE, 'otherwise', value=value)
-        return Expr(node)
+        node = ExprNode(ExprKind.OTHERWISE, "otherwise", value)
+        return self._with_node(node)
         kind = ExprKind.from_into_expr(value, str_as_lit=False)
         if self._metadata.is_scalar_like and not is_scalar_like(kind):
             msg = (
