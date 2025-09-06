@@ -133,8 +133,8 @@ class Expr:
             if node.kind is ExprKind.AGGREGATION:
                 md = md.with_aggregation(node)
             elif node.kind is ExprKind.BINARY:
-                other = next(iter(node.exprs))
-                other_ce = plx.parse_into_expr(_parse_into_expr(other), str_as_lit=True)
+                other = node.kwargs["other"]
+                other_ce = plx.parse_into_expr(other, str_as_lit=True)
                 md = ExprMetadata.from_binary_op(ce, other_ce, node)
                 ce = apply_binary(plx, node.name, ce, other_ce)
                 ce._metadata = md
@@ -244,7 +244,7 @@ class Expr:
     def __repr__(self) -> str:
         """Pretty-print the expression by combining all nodes in the metadata."""
         result: str = "nw"
-        for node in self._metadata.nodes:
+        for node in self._nodes:
             args_str = []
             exprs_repr = ", ".join(str(x) for x in node.exprs)
             kwargs_repr = ", ".join(
@@ -360,7 +360,7 @@ class Expr:
 
     # --- binary ---
     def _with_binary(self, attr: str, other: Self | Any) -> Self:
-        node = ExprNode(ExprKind.BINARY, attr, other)
+        node = ExprNode(ExprKind.BINARY, attr, other=other)
         return self._with_node(node)
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]

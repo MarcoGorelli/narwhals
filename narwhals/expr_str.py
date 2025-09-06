@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
-from narwhals._expression_parsing import ExprKind, ExprNode, apply_n_ary_operation
+from narwhals._expression_parsing import ExprKind, ExprNode
 
 if TYPE_CHECKING:
     from narwhals.expr import Expr
@@ -42,9 +42,7 @@ class ExprStringNamespace(Generic[ExprT]):
             |└───────┴───────────┘|
             └─────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.len_chars()
-        )
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "str.len_chars"))
 
     def replace(
         self, pattern: str, value: str | ExprT, *, literal: bool = False, n: int = 1
@@ -71,17 +69,14 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123   abc123|
             └──────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: (
-                apply_n_ary_operation(
-                    plx,
-                    lambda self, value: self.str.replace(
-                        pattern, value, literal=literal, n=n
-                    ),
-                    self._expr,
-                    value,
-                    str_as_lit=True,
-                )
+        return self._expr._with_node(
+            ExprNode(
+                ExprKind.ELEMENTWISE,
+                "str.replace",
+                value,
+                pattern=pattern,
+                literal=literal,
+                n=n,
             )
         )
 
@@ -109,17 +104,13 @@ class ExprStringNamespace(Generic[ExprT]):
             |1  abc abc123      123|
             └──────────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: (
-                apply_n_ary_operation(
-                    plx,
-                    lambda self, value: self.str.replace_all(
-                        pattern, value, literal=literal
-                    ),
-                    self._expr,
-                    value,
-                    str_as_lit=True,
-                )
+        return self._expr._with_node(
+            ExprNode(
+                ExprKind.ELEMENTWISE,
+                "str.replace_all",
+                value,
+                pattern=pattern,
+                literal=literal,
             )
         )
 
@@ -142,8 +133,8 @@ class ExprStringNamespace(Generic[ExprT]):
             ... )
             {'fruits': ['apple', '\nmango'], 'stripped': ['apple', 'mango']}
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.strip_chars(characters)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "str.strip_chars", characters=characters)
         )
 
     def starts_with(self, prefix: str) -> ExprT:
@@ -167,8 +158,8 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.starts_with(prefix)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "str.starts_with", prefix=prefix)
         )
 
     def ends_with(self, suffix: str) -> ExprT:
@@ -192,8 +183,8 @@ class ExprStringNamespace(Generic[ExprT]):
             |2   None       None|
             └───────────────────┘
         """
-        return self._expr._with_callable(
-            lambda plx: self._expr._to_compliant_expr(plx).str.ends_with(suffix)
+        return self._expr._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "str.ends_with", suffix=suffix)
         )
 
     def contains(self, pattern: str, *, literal: bool = False) -> ExprT:
