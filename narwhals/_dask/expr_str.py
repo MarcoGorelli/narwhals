@@ -38,7 +38,7 @@ class DaskExprStringNamespace(LazyExprNamespace["DaskExpr"], StringNamespace["Da
             _replace, "replace", pattern=pattern, value=value, literal=literal, n=n
         )
 
-    def replace_all(self, pattern: str, value: str, *, literal: bool) -> DaskExpr:
+    def replace_all(self, value: str, pattern: str, *, literal: bool) -> DaskExpr:
         def _replace_all(
             expr: dx.Series, pattern: str, value: str, *, literal: bool
         ) -> dx.Series:

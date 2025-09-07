@@ -249,7 +249,7 @@ class Expr:
                 for expr in node.exprs
             ]
             if any(
-                ces._metadata.expansion_kind.is_multi_output()
+                x._metadata.expansion_kind.is_multi_output()
                 for x in ces
                 if is_compliant_expr(x)
             ):

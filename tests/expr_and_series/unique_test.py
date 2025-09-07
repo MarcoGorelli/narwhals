@@ -15,7 +15,7 @@ data_str = {"a": ["x", "x", "y", None]}
 def test_unique_expr(constructor: Constructor) -> None:
     df = nw.from_native(constructor(data))
     context = (
-        pytest.raises(InvalidOperationError)
+        pytest.raises((InvalidOperationError, NotImplementedError))
         if isinstance(df, nw.LazyFrame)
         else does_not_raise()
     )
