@@ -89,7 +89,10 @@ class Expr:
         nodes = self._nodes
         root = nodes[0]
         ce = getattr(plx, root.name)(
-            *[plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in root.exprs],
+            *[
+                plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
+                for expr in root.exprs
+            ],
             **root.kwargs,
         )
         if root.kind is ExprKind.COL:
@@ -164,7 +167,10 @@ class Expr:
             elif node.kind is ExprKind.WINDOW:
                 md = md.with_window(node)
             elif node.kind is ExprKind.THEN:
-                ces = [plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in node.exprs]
+                ces = [
+                    plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
+                    for expr in node.exprs
+                ]
                 md = combine_metadata(
                     ce,
                     *ces,
@@ -173,11 +179,25 @@ class Expr:
                     to_single_output=False,
                     nodes=[*ce._metadata.nodes, node],
                 )
+                if (
+                    ce._metadata.is_scalar_like
+                    and not ExprKind.from_into_expr(
+                        ces[0], str_as_lit=False
+                    ).is_scalar_like
+                ):
+                    msg = (
+                        "If you pass a scalar-like predicate to `nw.when`, then "
+                        "the `then` value must also be scalar-like."
+                    )
+                    raise InvalidOperationError(msg)
                 ce = ce.then(*ces)
                 ce._metadata = md
                 continue
             elif node.kind is ExprKind.OTHERWISE:
-                ces = [plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in node.exprs]
+                ces = [
+                    plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
+                    for expr in node.exprs
+                ]
                 md = combine_metadata(
                     ce,
                     *ces,
@@ -186,6 +206,17 @@ class Expr:
                     to_single_output=False,
                     nodes=[*ce._metadata.nodes, node],
                 )
+                if (
+                    ce._metadata.is_scalar_like
+                    and not ExprKind.from_into_expr(
+                        ces[0], str_as_lit=False
+                    ).is_scalar_like
+                ):
+                    msg = (
+                        "If you pass a scalar-like predicate to `nw.when`, then "
+                        "the `otherwise` value must also be scalar-like."
+                    )
+                    raise InvalidOperationError(msg)
                 ce = ce.otherwise(*ces)
                 ce._metadata = md
                 continue
@@ -213,7 +244,10 @@ class Expr:
             else:
                 func = getattr(ce, node.name)
 
-            ces = [plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False) for expr in node.exprs]
+            ces = [
+                plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
+                for expr in node.exprs
+            ]
             if any(
                 ces._metadata.expansion_kind.is_multi_output()
                 for x in ces
