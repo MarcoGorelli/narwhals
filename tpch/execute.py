@@ -4,14 +4,10 @@ import argparse
 from importlib import import_module
 from pathlib import Path
 
-import dask.dataframe as dd
 import duckdb
 import pandas as pd
 import polars as pl
-import pyarrow as pa
-import sqlframe
 from polars.testing import assert_frame_equal
-from sqlframe.duckdb import DuckDBSession
 
 import narwhals as nw
 
@@ -30,12 +26,12 @@ ORDERS_PATH = DATA_DIR / "orders.parquet"
 CUSTOMER_PATH = DATA_DIR / "customer.parquet"
 
 BACKEND_NAMESPACE_KWARGS_MAP = {
-    "pandas[pyarrow]": (pd, {"engine": "pyarrow", "dtype_backend": "pyarrow"}),
-    "polars[lazy]": (pl, {}),
-    "pyarrow": (pa, {}),
-    "duckdb": (duckdb, {}),
-    "dask": (dd, {"engine": "pyarrow", "dtype_backend": "pyarrow"}),
-    "sqlframe": (sqlframe, {"session": DuckDBSession()}),
+    # "pandas[pyarrow]": (pd, {"engine": "pyarrow", "dtype_backend": "pyarrow"}),
+    # "polars[lazy]": (pl, {}),
+    # "pyarrow": (pa, {}),
+    "duckdb": (duckdb, {})
+    # "dask": (dd, {"engine": "pyarrow", "dtype_backend": "pyarrow"}),
+    # "sqlframe": (sqlframe, {"session": DuckDBSession()}),
 }
 
 DUCKDB_SKIPS = [

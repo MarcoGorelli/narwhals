@@ -167,7 +167,15 @@ class LazyGroupBy(Generic[LazyFrameT]):
             └───────────────────┘
         """
         flat_aggs = tuple(flatten(aggs))
-        if not all_exprs_are_scalar_like(*flat_aggs, **named_aggs):
+        plx = self._df.__narwhals_namespace__()
+        compliant_aggs = (
+            *(plx.parse_into_expr(x, str_as_lit=False) for x in flat_aggs),
+            *(
+                plx.parse_into_expr(value.alias(key), str_as_lit=False)
+                for key, value in named_aggs.items()
+            ),
+        )
+        if not all_exprs_are_scalar_like(compliant_aggs):
             msg = (
                 "Found expression which does not aggregate.\n\n"
                 "All expressions passed to GroupBy.agg must aggregate.\n"
@@ -175,12 +183,4 @@ class LazyGroupBy(Generic[LazyFrameT]):
                 "but `df.group_by('a').agg(nw.col('b'))` is not."
             )
             raise InvalidOperationError(msg)
-        plx = self._df.__narwhals_namespace__()
-        compliant_aggs = (
-            *(x._to_compliant_expr(plx) for x in flat_aggs),
-            *(
-                value.alias(key)._to_compliant_expr(plx)
-                for key, value in named_aggs.items()
-            ),
-        )
         return self._df._with_compliant(self._grouped.agg(*compliant_aggs))
