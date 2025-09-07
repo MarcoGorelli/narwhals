@@ -262,9 +262,6 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         return self.__class__(*self._nodes, node)
 
-    def _with_callable(self, to_compliant_expr: Callable[[Any], Any]) -> Self:
-        return self.__class__(to_compliant_expr, self._metadata)
-
     def __repr__(self) -> str:
         """Pretty-print the expression by combining all nodes in the metadata."""
         result: str = "nw"
