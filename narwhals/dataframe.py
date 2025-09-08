@@ -48,6 +48,7 @@ from narwhals.dependencies import is_numpy_array_1d, is_numpy_array_2d, is_pyarr
 from narwhals.exceptions import (
     ColumnNotFoundError,
     InvalidIntoExprError,
+    InvalidOperationError,
     PerformanceWarning,
 )
 from narwhals.functions import _from_dict_no_backend, _is_into_schema, col, new_series
@@ -162,6 +163,32 @@ class BaseFrame(Generic[_FrameT]):
             ce = expr(ns)
             out_exprs.append(ce)
             out_kinds.append(ExprKind.from_expr(ce))
+
+            if isinstance(self, LazyFrame):
+                assert ce._metadata is not None  # noqa: S101
+                if ce._metadata.n_orderable_ops:
+                    msg = (
+                        "Order-dependent expressions are not supported for use in LazyFrame.\n\n"
+                        "Hint: To make the expression valid, use `.over` with `order_by` specified.\n\n"
+                        "For example, if you wrote `nw.col('price').cum_sum()` and you have a column\n"
+                        "`'date'` which orders your data, then replace:\n\n"
+                        "   nw.col('price').cum_sum()\n\n"
+                        " with:\n\n"
+                        "   nw.col('price').cum_sum().over(order_by='date')\n"
+                        "                            ^^^^^^^^^^^^^^^^^^^^^^\n\n"
+                        "See https://narwhals-dev.github.io/narwhals/concepts/order_dependence/."
+                    )
+                    raise InvalidOperationError(msg)
+                if ce._metadata.is_filtration:
+                    msg = (
+                        "Length-changing expressions are not supported for use in LazyFrame, unless\n"
+                        "followed by an aggregation.\n\n"
+                        "Hints:\n"
+                        "- Instead of `lf.select(nw.col('a').head())`, use `lf.select('a').head()\n"
+                        "- Instead of `lf.select(nw.col('a').drop_nulls()).select(nw.sum('a'))`,\n"
+                        "  use `lf.select(nw.col('a').drop_nulls().sum())\n"
+                    )
+                    raise InvalidOperationError(msg)
         return out_exprs, out_kinds
 
     @abstractmethod
