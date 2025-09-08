@@ -8,7 +8,7 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, Protocol, TypeVar
 
 from narwhals._utils import is_compliant_expr, zip_strict
-from narwhals.dependencies import is_narwhals_series, is_numpy_array, is_numpy_array_1d
+from narwhals.dependencies import is_narwhals_series, is_numpy_array
 from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
 
 if TYPE_CHECKING:
@@ -53,13 +53,6 @@ def is_series(obj: Any) -> TypeIs[Series[Any]]:
     from narwhals.series import Series
 
     return isinstance(obj, Series)
-
-
-def is_into_expr_eager(obj: Any) -> TypeIs[Expr | Series[Any] | str | _1DArray]:
-    from narwhals.expr import Expr
-    from narwhals.series import Series
-
-    return isinstance(obj, (Series, Expr, str)) or is_numpy_array_1d(obj)
 
 
 def combine_evaluate_output_names(
@@ -613,8 +606,8 @@ def combine_metadata(
             result_preserves_length = True
             result_is_scalar_like = False
             result_is_literal = False
-        elif hasattr(arg, '_metadata'):
-            # todo: handle `WHEN` node here
+        elif hasattr(arg, "_metadata"):
+            # TODO(marco): handle `WHEN` node here
             metadata = arg._metadata
             assert metadata is not None  # noqa: S101
             if metadata.expansion_kind.is_multi_output():

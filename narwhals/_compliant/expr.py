@@ -28,7 +28,12 @@ from narwhals._compliant.typing import (
     LazyExprT,
     NativeExprT,
 )
-from narwhals._utils import _StoresCompliant, qualified_type_name, zip_strict
+from narwhals._utils import (
+    _StoresCompliant,
+    not_implemented,
+    qualified_type_name,
+    zip_strict,
+)
 from narwhals.dependencies import is_numpy_array, is_numpy_scalar
 
 if TYPE_CHECKING:
@@ -109,13 +114,6 @@ class CompliantExpr(
     def broadcast(
         self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]
     ) -> Self: ...
-    @staticmethod
-    def _eval_names_indices(indices: Sequence[int], /) -> EvalNames[CompliantFrameT]:
-        def fn(df: CompliantFrameT) -> Sequence[str]:
-            column_names = df.columns
-            return [column_names[i] for i in indices]
-
-        return fn
 
     # NOTE: `polars`
     def all(self) -> Self: ...
@@ -152,6 +150,14 @@ class ImplExpr(
     CompliantExpr[CompliantFrameT, CompliantSeriesOrNativeExprT_co],
     Protocol[CompliantFrameT, CompliantSeriesOrNativeExprT_co],
 ):
+    @staticmethod
+    def _eval_names_indices(indices: Sequence[int], /) -> EvalNames[CompliantFrameT]:
+        def fn(df: CompliantFrameT) -> Sequence[str]:
+            column_names = df.columns
+            return [column_names[i] for i in indices]
+
+        return fn
+
     def _evaluate_aliases(self, frame: CompliantFrameT, /) -> Sequence[str]:
         # NOTE: Ignore intermittent [False Negative]
         # Argument of type "CompliantFrameT@ImplExpr" cannot be assigned to parameter of type "CompliantFrameT@ImplExpr"
@@ -165,7 +171,7 @@ class DepthTrackingExpr(
     Protocol[CompliantFrameT, CompliantSeriesOrNativeExprT_co],
 ):
     @classmethod
-    def from_column_names(
+    def from_column_names(  # pyright: ignore[reportIncompatibleMethodOverride]
         cls: type[Self],
         evaluate_column_names: EvalNames[CompliantFrameT],
         /,
@@ -845,6 +851,12 @@ class LazyExpr(  # type: ignore[misc]
     @property
     def name(self) -> LazyExprNameNamespace[Self]:
         return LazyExprNameNamespace(self)
+
+    ewm_mean = not_implemented()  # type: ignore[misc]
+    map_batches = not_implemented()  # type: ignore[misc]
+    replace_strict = not_implemented()  # type: ignore[misc]
+
+    cat: not_implemented = not_implemented()  # type: ignore[assignment]
 
 
 class _ExprNamespace(  # type: ignore[misc]

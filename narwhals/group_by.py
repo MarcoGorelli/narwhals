@@ -72,7 +72,7 @@ class GroupBy(Generic[DataFrameT]):
             3  c  3  1
         """
         compliant_aggs, kinds = self._df._flatten_and_extract(*aggs, **named_aggs)
-        if not all(kind.is_scalar_like for kind in kinds):
+        if not all(x.is_scalar_like for x in kinds):
             msg = (
                 "Found expression which does not aggregate.\n\n"
                 "All expressions passed to GroupBy.agg must aggregate.\n"
@@ -158,7 +158,7 @@ class LazyGroupBy(Generic[LazyFrameT]):
             └───────────────────┘
         """
         compliant_aggs, kinds = self._df._flatten_and_extract(*aggs, **named_aggs)
-        if not all(kind.is_scalar_like for kind in kinds):
+        if not all(x.is_scalar_like for x in kinds):
             msg = (
                 "Found expression which does not aggregate.\n\n"
                 "All expressions passed to GroupBy.agg must aggregate.\n"
