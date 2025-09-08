@@ -238,6 +238,7 @@ class ExpansionKind(Enum):
 
 
 class ExprNode:
+    # Do we also need a `str_as_lit` param?
     def __init__(self, kind: ExprKind, name: str, /, *exprs: Any, **kwargs: Any) -> None:
         self.kind = kind
         self.name = name
