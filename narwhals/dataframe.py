@@ -104,14 +104,6 @@ MultiColSelector: TypeAlias = "_MultiColSelector[Series[Any]]"
 MultiIndexSelector: TypeAlias = "_MultiIndexSelector[Series[Any]]"
 
 
-def _parse_into_expr(expr: str | Expr | Any) -> Expr | Any:
-    if isinstance(expr, str):
-        from narwhals.functions import col
-
-        return col(expr)
-    return expr
-
-
 class BaseFrame(Generic[_FrameT]):
     _compliant_frame: Any
     _level: Literal["full", "lazy", "interchange"]

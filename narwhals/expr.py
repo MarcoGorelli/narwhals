@@ -88,65 +88,69 @@ class Expr:
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
         nodes = self._nodes
         root = nodes[0]
-        if "." in root.name:
-            module, method = root.name.split(".")
-            func = getattr(getattr(plx, module), method)
+        if root.kind is ExprKind.SERIES:
+            md = ExprMetadata.selector_single(root)
+            ce = root.exprs[0]
         else:
-            func = getattr(plx, root.name)
-        ce = func(
-            *[
-                plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
-                for expr in root.exprs
-            ],
-            **root.kwargs,
-        )
-        if root.kind is ExprKind.COL:
-            md = (
-                ExprMetadata.selector_single(root)
-                if len(root.kwargs["names"]) == 1
-                else ExprMetadata.selector_multi_named(root)
+            if "." in root.name:
+                module, method = root.name.split(".")
+                func = getattr(getattr(plx, module), method)
+            else:
+                func = getattr(plx, root.name)
+            ce = func(
+                *[
+                    plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
+                    for expr in root.exprs
+                ],
+                **root.kwargs,
             )
-        elif root.kind is ExprKind.NTH:
-            md = (
-                ExprMetadata.selector_single(root)
-                if len(root.kwargs["indices"]) == 1
-                else ExprMetadata.selector_multi_unnamed(root)
-            )
-        elif root.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
-            md = ExprMetadata.selector_multi_unnamed(root)
-        elif root.kind is ExprKind.AGGREGATION:
-            md = ExprMetadata.aggregation(root)
-        elif root.kind is ExprKind.LITERAL:
-            md = ExprMetadata.literal(root)
-        elif root.kind is ExprKind.SELECTOR:
-            md = ExprMetadata.selector_multi_unnamed(root)
-        elif root.kind is ExprKind.WHEN:
-            ces = [
-                plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
-                for x in root.exprs
-            ]
-            md = ces[0]._metadata
-            ce = apply_n_ary_operation(
-                plx,
-                lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
-                *ces,
-                str_as_lit=False,
-            )
-        elif root.kind is ExprKind.N_ARY:
-            ces = [
-                plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
-                for x in root.exprs
-            ]
-            md = ExprMetadata.from_n_ary_op(root.name, *ces)
-            ce = apply_n_ary_operation(
-                plx,
-                lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
-                *ces,
-                str_as_lit=False,
-            )
-        else:
-            msg = "unexpected kind, please report bug"
-            raise NotImplementedError(msg)
+            if root.kind is ExprKind.COL:
+                md = (
+                    ExprMetadata.selector_single(root)
+                    if len(root.kwargs["names"]) == 1
+                    else ExprMetadata.selector_multi_named(root)
+                )
+            elif root.kind is ExprKind.NTH:
+                md = (
+                    ExprMetadata.selector_single(root)
+                    if len(root.kwargs["indices"]) == 1
+                    else ExprMetadata.selector_multi_unnamed(root)
+                )
+            elif root.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
+                md = ExprMetadata.selector_multi_unnamed(root)
+            elif root.kind is ExprKind.AGGREGATION:
+                md = ExprMetadata.aggregation(root)
+            elif root.kind is ExprKind.LITERAL:
+                md = ExprMetadata.literal(root)
+            elif root.kind is ExprKind.SELECTOR:
+                md = ExprMetadata.selector_multi_unnamed(root)
+            elif root.kind is ExprKind.WHEN:
+                ces = [
+                    plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
+                    for x in root.exprs
+                ]
+                md = ces[0]._metadata
+                ce = apply_n_ary_operation(
+                    plx,
+                    lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
+                    *ces,
+                    str_as_lit=False,
+                )
+            elif root.kind is ExprKind.N_ARY:
+                ces = [
+                    plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
+                    for x in root.exprs
+                ]
+                md = ExprMetadata.from_n_ary_op(root.name, *ces)
+                ce = apply_n_ary_operation(
+                    plx,
+                    lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
+                    *ces,
+                    str_as_lit=False,
+                )
+            else:
+                msg = "unexpected kind, please report bug"
+                raise NotImplementedError(msg)
         ce._metadata = md
         for node in nodes[1:]:
             if node.kind is ExprKind.AGGREGATION:

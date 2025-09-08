@@ -4,7 +4,7 @@ import math
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, Literal, overload
 
-from narwhals._expression_parsing import ExprMetadata
+from narwhals._expression_parsing import ExprKind, ExprNode
 from narwhals._utils import (
     Implementation,
     Version,
@@ -92,8 +92,8 @@ class Series(Generic[IntoSeriesT]):
         return DataFrame
 
     def _to_expr(self) -> Expr:
-        md = ExprMetadata.selector_single()
-        return Expr(lambda _plx: self._compliant._to_expr(), md)
+        node = ExprNode(ExprKind.SERIES, "", self._compliant._to_expr())
+        return Expr(node)
 
     def __init__(
         self, series: Any, *, level: Literal["full", "lazy", "interchange"]

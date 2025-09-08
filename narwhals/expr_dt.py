@@ -345,7 +345,7 @@ class ExprDateTimeNamespace(Generic[ExprT]):
             │ 20m 40s      ┆ 20              │
             └──────────────┴─────────────────┘
         """
-        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.total_minute"))
+        return self._expr._with_node(ExprNode(ExprKind.ELEMENTWISE, "dt.total_minutes"))
 
     def total_seconds(self) -> ExprT:
         """Get total seconds.

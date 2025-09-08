@@ -164,6 +164,9 @@ class ExprKind(Enum):
     OTHERWISE = auto()
     """Results from otherwise expression."""
 
+    SERIES = auto()
+    """Results from converting a Series to Expr."""
+
     UNKNOWN = auto()
     """Based on the information we have, we can't determine the ExprKind."""
 
