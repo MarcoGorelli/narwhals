@@ -88,7 +88,12 @@ class Expr:
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
         nodes = self._nodes
         root = nodes[0]
-        ce = getattr(plx, root.name)(
+        if "." in root.name:
+            module, method = root.name.split(".")
+            func = getattr(getattr(plx, module), method)
+        else:
+            func = getattr(plx, root.name)
+        ce = func(
             *[
                 plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
                 for expr in root.exprs
@@ -115,7 +120,6 @@ class Expr:
             md = ExprMetadata.literal(root)
         elif root.kind is ExprKind.SELECTOR:
             md = ExprMetadata.selector_multi_unnamed(root)
-            ce = getattr(plx.selectors, root.name)(*root.exprs, **root.kwargs)
         elif root.kind is ExprKind.WHEN:
             ces = [
                 plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)

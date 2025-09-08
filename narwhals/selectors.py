@@ -119,7 +119,7 @@ def matches(pattern: str) -> Selector:
         0  123  2.0
         1  456  5.5
     """
-    return Selector(ExprNode(ExprKind.SELECTOR, "matches", pattern=pattern))
+    return Selector(ExprNode(ExprKind.SELECTOR, "selectors.matches", pattern=pattern))
 
 
 def numeric() -> Selector:
@@ -148,7 +148,7 @@ def numeric() -> Selector:
         │ 4   ┆ 4.6 │
         └─────┴─────┘
     """
-    return Selector(ExprNode(ExprKind.SELECTOR, "numeric"))
+    return Selector(ExprNode(ExprKind.SELECTOR, "selectors.numeric"))
 
 
 def boolean() -> Selector:
