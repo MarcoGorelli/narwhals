@@ -12,6 +12,7 @@ from narwhals._expression_parsing import (
     apply_n_ary_operation,
     combine_metadata,
     is_compliant_expr,
+    is_expr,
     is_scalar_like,
     is_series,
 )
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import Concatenate, ParamSpec, Self
 
+    from narwhals import Series
     from narwhals._compliant import CompliantExpr, CompliantNamespace
     from narwhals.dtypes import DType
     from narwhals.typing import (
@@ -48,6 +50,7 @@ if TYPE_CHECKING:
         RankMethod,
         RollingInterpolationMethod,
         TemporalLiteral,
+        _1DArray,
     )
 
     PS = ParamSpec("PS")
@@ -75,14 +78,18 @@ _OP_SYMBOLS = {
 }
 
 
-def _parse_into_expr(expr: str | Expr | Any, *, str_as_lit: bool = False) -> Expr | Any:
-    if isinstance(expr, str) and not str_as_lit:
-        from narwhals.functions import col
+def _parse_into_expr(
+    arg: Expr | Series[Any] | _1DArray | str, *, str_as_lit: bool = False
+) -> Expr:
+    from narwhals.functions import col
 
-        return col(expr)
-    if is_series(expr):
-        return expr._to_expr()
-    return expr
+    if isinstance(arg, str) and not str_as_lit:
+        return col(arg)
+    if is_series(arg):
+        return arg._to_expr()
+    if is_expr(arg):
+        return arg
+    return arg
 
 
 class Expr:

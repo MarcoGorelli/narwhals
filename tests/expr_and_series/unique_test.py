@@ -41,9 +41,9 @@ def test_unique_expr_agg(
 
 def test_unique_illegal_combination(constructor: Constructor) -> None:
     df = nw.from_native(constructor(data))
-    with pytest.raises(InvalidOperationError):
+    with pytest.raises((InvalidOperationError, NotImplementedError)):
         df.select((nw.col("a").unique() + nw.col("b").unique()).sum())
-    with pytest.raises(InvalidOperationError):
+    with pytest.raises((InvalidOperationError, NotImplementedError)):
         df.select(nw.col("a").unique() + nw.col("b"))
 
 

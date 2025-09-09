@@ -104,7 +104,9 @@ class DuckDBExpr(SQLExpr["DuckDBLazyFrame", "Expression"]):
         if self._backend_version < (1, 3):
             msg = "At least version 1.3 of DuckDB is required for binary operations between aggregates and columns."
             raise NotImplementedError(msg)
-        return self.over([lit(1)], [])
+        ret = self.over([lit(1)], [])
+        ret._metadata = self._metadata
+        return ret
 
     @classmethod
     def from_column_names(

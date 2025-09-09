@@ -78,12 +78,14 @@ class DaskExpr(
             #   that raised a KeyError for result[0] during collection.
             return [result.loc[0][0] for result in self(df)]
 
-        return self.__class__(
+        ret = self.__class__(
             func,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,
         )
+        ret._metadata = self._metadata
+        return ret
 
     @classmethod
     def from_column_names(
