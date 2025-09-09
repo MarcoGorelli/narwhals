@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Callable, Literal, ParamSpec, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, Protocol, TypeVar
 
 from narwhals._utils import is_compliant_expr, zip_strict
 from narwhals.dependencies import is_narwhals_series, is_numpy_array
@@ -697,38 +697,4 @@ def apply_binary(
     parse = plx.parse_into_expr
     other_compliant = parse(other, str_as_lit=str_as_lit)
     compliant_exprs = [ce, other_compliant]
-    kinds = [
-        ExprKind.from_expr(ce),
-        ExprKind.from_into_expr(other_compliant, str_as_lit=True),
-    ]
-    broadcast = any(not kind.is_scalar_like for kind in kinds)
-    compliant_exprs = [
-        compliant_expr.broadcast(kind)
-        if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
-        else compliant_expr
-        for compliant_expr, kind in zip_strict(compliant_exprs, kinds)
-    ]
     return getattr(compliant_exprs[0], name)(compliant_exprs[1])
-
-
-def apply_n_ary_operation(
-    plx: CompliantNamespaceAny,
-    n_ary_function: Callable[..., CompliantExprAny],
-    *comparands: IntoExpr | NonNestedLiteral | _1DArray,
-    str_as_lit: bool,
-) -> CompliantExprAny:
-    parse = plx.parse_into_expr
-    compliant_exprs = (parse(into, str_as_lit=str_as_lit) for into in comparands)
-    kinds = [
-        ExprKind.from_into_expr(comparand, str_as_lit=str_as_lit)
-        for comparand in comparands
-    ]
-
-    broadcast = any(not kind.is_scalar_like for kind in kinds)
-    compliant_exprs = [
-        compliant_expr.broadcast(kind)
-        if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
-        else compliant_expr
-        for compliant_expr, kind in zip_strict(compliant_exprs, kinds)
-    ]
-    return n_ary_function(*compliant_exprs)

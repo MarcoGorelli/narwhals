@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from narwhals._expression_parsing import (
     ExprKind,
     ExprNode,
-    apply_n_ary_operation,
     combine_metadata,
     is_scalar_like,
 )
@@ -1336,31 +1335,6 @@ class When:
         when_node = ExprNode(ExprKind.WHEN, "when", self._predicate)
         then_node = ExprNode(ExprKind.THEN, "then", value)
         return Then(when_node, then_node)
-        kind = ExprKind.from_into_expr(value, str_as_lit=False)
-        if self._predicate._metadata.is_scalar_like and not kind.is_scalar_like:
-            msg = (
-                "If you pass a scalar-like predicate to `nw.when`, then "
-                "the `then` value must also be scalar-like."
-            )
-            raise InvalidOperationError(msg)
-
-        return Then(
-            lambda plx: apply_n_ary_operation(
-                plx,
-                lambda *args: plx.when(args[0]).then(args[1]),
-                self._predicate,
-                value,
-                str_as_lit=False,
-            ),
-            combine_metadata(
-                self._predicate,
-                value,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[],
-            ),
-        )
 
 
 class Then(Expr):

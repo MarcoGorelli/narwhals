@@ -9,7 +9,6 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     apply_binary,
-    apply_n_ary_operation,
     combine_metadata,
     is_compliant_expr,
     is_expr,
@@ -145,20 +144,10 @@ class Expr:
                 md = ExprMetadata.selector_multi_unnamed(root)
             elif root.kind is ExprKind.WHEN:
                 md = ces[0]._metadata
-                ce = apply_n_ary_operation(
-                    plx,
-                    lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
-                    *ces,
-                    str_as_lit=False,
-                )
+                ce = getattr(plx, root.name)(*ces, **root.kwargs)
             elif root.kind is ExprKind.N_ARY:
                 md = ExprMetadata.from_n_ary_op(root.name, *ces)
-                ce = apply_n_ary_operation(
-                    plx,
-                    lambda *exprs: getattr(plx, root.name)(*exprs, **root.kwargs),
-                    *ces,
-                    str_as_lit=False,
-                )
+                ce = getattr(plx, root.name)(*ces, **root.kwargs)
             else:
                 msg = "unexpected kind, please report bug"
                 raise NotImplementedError(msg)
