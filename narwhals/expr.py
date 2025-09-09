@@ -15,7 +15,13 @@ from narwhals._expression_parsing import (
     is_scalar_like,
     is_series,
 )
-from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten, zip_strict
+from narwhals._utils import (
+    _validate_rolling_arguments,
+    ensure_type,
+    flatten,
+    is_numpy_array_1d,
+    zip_strict,
+)
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import (
     ComputeError,
@@ -78,12 +84,18 @@ _OP_SYMBOLS = {
 
 
 def _parse_into_expr(
-    arg: Expr | Series[Any] | _1DArray | str, *, str_as_lit: bool = False
+    arg: Expr | Series[Any] | _1DArray | str,
+    *,
+    str_as_lit: bool = False,
+    backend: Any = None,
 ) -> Expr:
-    from narwhals.functions import col
+    from narwhals.functions import col, new_series
 
     if isinstance(arg, str) and not str_as_lit:
         return col(arg)
+    # need to deal with array here somehow. backend from plx?
+    if is_numpy_array_1d(arg):
+        return new_series("", arg, backend=backend)._to_expr()
     if is_series(arg):
         return arg._to_expr()
     if is_expr(arg):
@@ -112,14 +124,18 @@ class Expr:
             ce = func(
                 *[
                     plx.parse_into_expr(
-                        _parse_into_expr(expr), str_as_lit=root.str_as_lit
+                        _parse_into_expr(expr, backend=plx._implementation),
+                        str_as_lit=root.str_as_lit,
                     )
                     for expr in root.exprs
                 ],
                 **root.kwargs,
             )
             ces = [
-                plx.parse_into_expr(_parse_into_expr(x), str_as_lit=root.str_as_lit)
+                plx.parse_into_expr(
+                    _parse_into_expr(x, backend=plx._implementation),
+                    str_as_lit=root.str_as_lit,
+                )
                 for x in root.exprs
             ]
             if root.kind is ExprKind.COL:
@@ -157,7 +173,9 @@ class Expr:
         for node in nodes[1:]:
             ces = [
                 plx.parse_into_expr(
-                    _parse_into_expr(expr, str_as_lit=node.str_as_lit),
+                    _parse_into_expr(
+                        expr, str_as_lit=node.str_as_lit, backend=plx._implementation
+                    ),
                     str_as_lit=node.str_as_lit,
                 )
                 for expr in node.exprs
