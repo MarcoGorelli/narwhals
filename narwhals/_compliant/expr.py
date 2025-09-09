@@ -405,13 +405,15 @@ class EagerExpr(
                 results.append(result)
             return results
 
-        return type(self)(
+        ret = type(self)(
             func,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             implementation=self._implementation,
             version=self._version,
         )
+        ret._metadata = self._metadata
+        return ret
 
     def cast(self, dtype: IntoDType) -> Self:
         return self._reuse_series("cast", dtype=dtype)

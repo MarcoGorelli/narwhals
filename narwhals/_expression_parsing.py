@@ -239,11 +239,20 @@ class ExpansionKind(Enum):
 
 class ExprNode:
     # Do we also need a `str_as_lit` param?
-    def __init__(self, kind: ExprKind, name: str, /, *exprs: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        kind: ExprKind,
+        name: str,
+        /,
+        *exprs: Any,
+        str_as_lit: bool = False,
+        **kwargs: Any,
+    ) -> None:
         self.kind = kind
         self.name = name
         self.exprs = exprs
         self.kwargs = kwargs
+        self.str_as_lit = str_as_lit
 
     def __repr__(self) -> str:
         arg_str = []

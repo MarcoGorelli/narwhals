@@ -12,8 +12,9 @@ from narwhals._expression_parsing import (
     apply_n_ary_operation,
     combine_metadata,
     is_compliant_expr,
+    is_scalar_like,
 )
-from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
+from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten, zip_strict
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import (
     ComputeError,
@@ -73,8 +74,8 @@ _OP_SYMBOLS = {
 }
 
 
-def _parse_into_expr(expr: str | Expr | Any) -> Expr | Any:
-    if isinstance(expr, str):
+def _parse_into_expr(expr: str | Expr | Any, *, str_as_lit: bool = False) -> Expr | Any:
+    if isinstance(expr, str) and not str_as_lit:
         from narwhals.functions import col
 
         return col(expr)
@@ -153,11 +154,30 @@ class Expr:
                 raise NotImplementedError(msg)
         ce._metadata = md
         for node in nodes[1:]:
+            ces = [
+                plx.parse_into_expr(
+                    _parse_into_expr(expr, str_as_lit=node.str_as_lit),
+                    str_as_lit=node.str_as_lit,
+                )
+                for expr in node.exprs
+            ]
+            kinds = [
+                ExprKind.from_into_expr(comparand, str_as_lit=node.str_as_lit)
+                for comparand in [ce, *ces]
+            ]
+            broadcast = any(not kind.is_scalar_like for kind in kinds)
+            ce, *ces = [
+                compliant_expr.broadcast(kind)
+                if broadcast
+                and is_compliant_expr(compliant_expr)
+                and is_scalar_like(kind)
+                else compliant_expr
+                for compliant_expr, kind in zip_strict([ce, *ces], kinds)
+            ]
             if node.kind is ExprKind.AGGREGATION:
                 md = md.with_aggregation(node)
             elif node.kind is ExprKind.BINARY:
-                other = node.kwargs["other"]
-                other_ce = plx.parse_into_expr(other, str_as_lit=True)
+                other_ce = ces[0]
                 md = ExprMetadata.from_binary_op(ce, other_ce, node)
                 ce = apply_binary(plx, node.name, ce, other_ce)
                 ce._metadata = md
@@ -175,10 +195,6 @@ class Expr:
             elif node.kind is ExprKind.WINDOW:
                 md = md.with_window(node)
             elif node.kind is ExprKind.THEN:
-                ces = [
-                    plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
-                    for expr in node.exprs
-                ]
                 md = combine_metadata(
                     ce,
                     *ces,
@@ -202,10 +218,6 @@ class Expr:
                 ce._metadata = md
                 continue
             elif node.kind is ExprKind.OTHERWISE:
-                ces = [
-                    plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
-                    for expr in node.exprs
-                ]
                 md = combine_metadata(
                     ce,
                     *ces,
@@ -252,10 +264,6 @@ class Expr:
             else:
                 func = getattr(ce, node.name)
 
-            ces = [
-                plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
-                for expr in node.exprs
-            ]
             if any(
                 x._metadata.expansion_kind.is_multi_output()
                 for x in ces
@@ -1348,7 +1356,12 @@ class Expr:
             )
         else:
             node = ExprNode(
-                ExprKind.ELEMENTWISE, "fill_null", value, strategy=strategy, limit=limit
+                ExprKind.ELEMENTWISE,
+                "fill_null",
+                value,
+                strategy=strategy,
+                limit=limit,
+                str_as_lit=True,
             )
         return self._with_node(node)
 

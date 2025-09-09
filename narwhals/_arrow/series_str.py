@@ -28,7 +28,7 @@ class ArrowSeriesStringNamespace(ArrowSeriesNamespace):
             raise
         return self.with_native(arr)
 
-    def replace_all(self, pattern: str, value: str, *, literal: bool) -> ArrowSeries:
+    def replace_all(self, value: str, pattern: str, *, literal: bool) -> ArrowSeries:
         try:
             return self.replace(pattern, value, literal=literal, n=-1)
         except TypeError as e:
