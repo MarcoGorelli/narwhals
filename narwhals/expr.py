@@ -397,7 +397,7 @@ class Expr:
 
     # --- binary ---
     def _with_binary(self, attr: str, other: Self | Any) -> Self:
-        node = ExprNode(ExprKind.BINARY, attr, other=other)
+        node = ExprNode(ExprKind.BINARY, attr, other, str_as_lit=True)
         return self._with_node(node)
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]
