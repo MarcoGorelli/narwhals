@@ -91,8 +91,10 @@ class PolarsNamespace:
             # NOTE: To avoid `pl.lit(None)` failing this `None` check
             # https://github.com/pola-rs/polars/blob/58dd8e5770f16a9bef9009a1c05f00e15a5263c7/py-polars/polars/expr/expr.py#L2870-L2872
             return data
+        if isinstance(data, PolarsExpr):
+            return data
         if is_expr(data):
-            expr = data._to_compliant_expr(self)
+            expr = data(self)
             assert isinstance(expr, self._expr)  # noqa: S101
             return expr
         if isinstance(data, str) and not str_as_lit:
