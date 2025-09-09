@@ -13,6 +13,7 @@ from narwhals._expression_parsing import (
     combine_metadata,
     is_compliant_expr,
     is_scalar_like,
+    is_series,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten, zip_strict
 from narwhals.dtypes import _validate_dtype
@@ -79,6 +80,8 @@ def _parse_into_expr(expr: str | Expr | Any, *, str_as_lit: bool = False) -> Exp
         from narwhals.functions import col
 
         return col(expr)
+    if is_series(expr):
+        return expr._to_expr()
     return expr
 
 
@@ -88,6 +91,8 @@ class Expr:
 
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
         nodes = self._nodes
+
+        # Parse root
         root = nodes[0]
         if root.kind is ExprKind.SERIES:
             md = ExprMetadata.selector_single(root)
@@ -100,11 +105,17 @@ class Expr:
                 func = getattr(plx, root.name)
             ce = func(
                 *[
-                    plx.parse_into_expr(_parse_into_expr(expr), str_as_lit=False)
+                    plx.parse_into_expr(
+                        _parse_into_expr(expr), str_as_lit=root.str_as_lit
+                    )
                     for expr in root.exprs
                 ],
                 **root.kwargs,
             )
+            ces = [
+                plx.parse_into_expr(_parse_into_expr(x), str_as_lit=root.str_as_lit)
+                for x in root.exprs
+            ]
             if root.kind is ExprKind.COL:
                 md = (
                     ExprMetadata.selector_single(root)
@@ -126,10 +137,6 @@ class Expr:
             elif root.kind is ExprKind.SELECTOR:
                 md = ExprMetadata.selector_multi_unnamed(root)
             elif root.kind is ExprKind.WHEN:
-                ces = [
-                    plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
-                    for x in root.exprs
-                ]
                 md = ces[0]._metadata
                 ce = apply_n_ary_operation(
                     plx,
@@ -138,10 +145,6 @@ class Expr:
                     str_as_lit=False,
                 )
             elif root.kind is ExprKind.N_ARY:
-                ces = [
-                    plx.parse_into_expr(_parse_into_expr(x), str_as_lit=False)
-                    for x in root.exprs
-                ]
                 md = ExprMetadata.from_n_ary_op(root.name, *ces)
                 ce = apply_n_ary_operation(
                     plx,
@@ -153,6 +156,8 @@ class Expr:
                 msg = "unexpected kind, please report bug"
                 raise NotImplementedError(msg)
         ce._metadata = md
+
+        # Parse next nodes.
         for node in nodes[1:]:
             ces = [
                 plx.parse_into_expr(
