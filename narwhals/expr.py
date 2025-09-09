@@ -137,6 +137,19 @@ class Expr:
                 )
                 for x in root.exprs
             ]
+            kinds = [
+                ExprKind.from_into_expr(comparand, str_as_lit=root.str_as_lit)
+                for comparand in ces
+            ]
+            broadcast = any(not kind.is_scalar_like for kind in kinds)
+            ces = [
+                compliant_expr.broadcast(kind)
+                if broadcast
+                and is_compliant_expr(compliant_expr)
+                and is_scalar_like(kind)
+                else compliant_expr
+                for compliant_expr, kind in zip_strict(ces, kinds)
+            ]
             if root.kind is ExprKind.COL:
                 md = (
                     ExprMetadata.selector_single(root)
