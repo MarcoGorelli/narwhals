@@ -1056,7 +1056,7 @@ class EagerExprStringNamespace(
     def len_chars(self) -> EagerExprT:
         return self.compliant._reuse_series_namespace("str", "len_chars")
 
-    def replace(self, pattern: str, value: str, *, literal: bool, n: int) -> EagerExprT:
+    def replace(self, value: str, pattern: str, *, literal: bool, n: int) -> EagerExprT:
         return self.compliant._reuse_series_namespace(
             "str", "replace", pattern=pattern, value=value, literal=literal, n=n
         )

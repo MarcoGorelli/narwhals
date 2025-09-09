@@ -77,6 +77,7 @@ class ExprStringNamespace(Generic[ExprT]):
                 pattern=pattern,
                 literal=literal,
                 n=n,
+                str_as_lit=True,
             )
         )
 
@@ -111,6 +112,7 @@ class ExprStringNamespace(Generic[ExprT]):
                 value,
                 pattern=pattern,
                 literal=literal,
+                str_as_lit=True,
             )
         )
 

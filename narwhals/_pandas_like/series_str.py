@@ -16,7 +16,7 @@ class PandasLikeSeriesStringNamespace(
         return self.with_native(self.native.str.len())
 
     def replace(
-        self, pattern: str, value: str, *, literal: bool, n: int
+        self, value: str, pattern: str, *, literal: bool, n: int
     ) -> PandasLikeSeries:
         try:
             series = self.native.str.replace(

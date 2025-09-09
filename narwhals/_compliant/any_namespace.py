@@ -74,7 +74,7 @@ class StringNamespace(_StoresCompliant[CompliantT_co], Protocol[CompliantT_co]):
 
     def len_chars(self) -> CompliantT_co: ...
     def replace(
-        self, pattern: str, value: str, *, literal: bool, n: int
+        self, value: str, pattern: str, *, literal: bool, n: int
     ) -> CompliantT_co: ...
     def replace_all(
         self, value: str, pattern: str, *, literal: bool

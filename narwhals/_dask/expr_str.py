@@ -20,7 +20,7 @@ class DaskExprStringNamespace(LazyExprNamespace["DaskExpr"], StringNamespace["Da
     def len_chars(self) -> DaskExpr:
         return self.compliant._with_callable(lambda expr: expr.str.len(), "len")
 
-    def replace(self, pattern: str, value: str, *, literal: bool, n: int) -> DaskExpr:
+    def replace(self, value: str, pattern: str, *, literal: bool, n: int) -> DaskExpr:
         def _replace(
             expr: dx.Series, pattern: str, value: str, *, literal: bool, n: int
         ) -> dx.Series:
