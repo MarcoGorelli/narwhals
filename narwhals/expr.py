@@ -109,7 +109,6 @@ class Expr:
 
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
         nodes = self._nodes
-
         # Parse root
         root = nodes[0]
         if root.kind is ExprKind.SERIES:
@@ -168,7 +167,6 @@ class Expr:
                 msg = "unexpected kind, please report bug"
                 raise NotImplementedError(msg)
         ce._metadata = md
-
         # Parse next nodes.
         for node in nodes[1:]:
             ces = [
@@ -233,7 +231,30 @@ class Expr:
                         "the `then` value must also be scalar-like."
                     )
                     raise InvalidOperationError(msg)
-                ce = ce.then(*ces)
+                ce = ce.then(ces[0])
+                ce._metadata = md
+                continue
+            elif node.kind is ExprKind.THEN_OTHERWISE:
+                md = combine_metadata(
+                    ce,
+                    *ces,
+                    str_as_lit=False,
+                    allow_multi_output=False,
+                    to_single_output=False,
+                    nodes=[*ce._metadata.nodes, node],
+                )
+                if (
+                    ce._metadata.is_scalar_like
+                    and not ExprKind.from_into_expr(
+                        ces[0], str_as_lit=False
+                    ).is_scalar_like
+                ):
+                    msg = (
+                        "If you pass a scalar-like predicate to `nw.when`, then "
+                        "the `then` value must also be scalar-like."
+                    )
+                    raise InvalidOperationError(msg)
+                ce = ce.then(ces[0]).otherwise(ces[1])
                 ce._metadata = md
                 continue
             elif node.kind is ExprKind.OTHERWISE:

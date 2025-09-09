@@ -5,18 +5,12 @@ import sys
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from narwhals._expression_parsing import (
-    ExprKind,
-    ExprNode,
-    combine_metadata,
-    is_scalar_like,
-)
+from narwhals._expression_parsing import ExprKind, ExprNode
 from narwhals._utils import (
     Implementation,
     Version,
     deprecate_native_namespace,
     flatten,
-    is_compliant_expr,
     is_eager_allowed,
     is_sequence_but_not_str,
     supports_arrow_c_stream,
@@ -38,7 +32,6 @@ if TYPE_CHECKING:
 
     from typing_extensions import TypeAlias, TypeIs
 
-    from narwhals._compliant import CompliantExpr, CompliantNamespace
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import Backend, EagerAllowed, IntoBackend
     from narwhals.dataframe import DataFrame, LazyFrame
@@ -1339,38 +1332,10 @@ class When:
 
 class Then(Expr):
     def otherwise(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Expr:
-        node = ExprNode(ExprKind.OTHERWISE, "otherwise", value)
-        return self._with_node(node)
-        kind = ExprKind.from_into_expr(value, str_as_lit=False)
-        if self._metadata.is_scalar_like and not is_scalar_like(kind):
-            msg = (
-                "If you pass a scalar-like predicate to `nw.when`, then "
-                "the `otherwise` value must also be scalar-like."
-            )
-            raise InvalidOperationError(msg)
-
-        def func(plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
-            compliant_expr = self._to_compliant_expr(plx)
-            compliant_value = plx.parse_into_expr(value, str_as_lit=False)
-            if (
-                not self._metadata.is_scalar_like
-                and is_scalar_like(kind)
-                and is_compliant_expr(compliant_value)
-            ):
-                compliant_value = compliant_value.broadcast(kind)
-            return compliant_expr.otherwise(compliant_value)  # type: ignore[attr-defined, no-any-return]
-
-        return Expr(
-            func,
-            combine_metadata(
-                self,
-                value,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[],
-            ),
-        )
+        # Replace last (`THEN`) node to include `otherwise`.
+        *nodes, then_node = self._nodes
+        node = ExprNode(ExprKind.THEN_OTHERWISE, "then", *then_node.exprs, value)
+        return Expr(*nodes, node)
 
 
 def when(*predicates: IntoExpr | Iterable[IntoExpr]) -> When:

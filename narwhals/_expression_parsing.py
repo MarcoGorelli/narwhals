@@ -161,6 +161,9 @@ class ExprKind(Enum):
     THEN = auto()
     """Results from then expression."""
 
+    THEN_OTHERWISE = auto()
+    """Results from then expression."""
+
     OTHERWISE = auto()
     """Results from otherwise expression."""
 
@@ -193,7 +196,7 @@ class ExprKind(Enum):
     def from_into_expr(
         cls, obj: IntoExpr | NonNestedLiteral | _1DArray, *, str_as_lit: bool
     ) -> ExprKind:
-        if is_expr(obj) or is_compliant_expr(obj):
+        if hasattr(obj, "_metadata"):
             return cls.from_expr(obj)
         if (
             is_narwhals_series(obj)
