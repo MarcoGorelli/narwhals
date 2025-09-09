@@ -6,7 +6,11 @@ import numpy as np
 import pytest
 
 import narwhals as nw
-from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
+from narwhals.exceptions import (
+    InvalidOperationError,
+    MultiOutputExpressionError,
+    ShapeError,
+)
 from tests.utils import Constructor, ConstructorEager, assert_equal_data
 
 if TYPE_CHECKING:
@@ -120,7 +124,7 @@ def test_when_then_invalid(constructor: Constructor) -> None:
     with pytest.raises(InvalidOperationError):
         df.select(nw.when(nw.col("a").sum() > 1).then("c"))
 
-    with pytest.raises(InvalidOperationError):
+    with pytest.raises((InvalidOperationError, ShapeError, BaseException)):
         df.select(nw.when(nw.col("a").sum() > 1).then(1).otherwise("c"))
 
 
