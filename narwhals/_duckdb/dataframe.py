@@ -24,7 +24,6 @@ from narwhals._utils import (
     ValidateBackendVersion,
     Version,
     generate_temporary_column_name,
-    not_implemented,
     parse_columns_to_drop,
     requires,
     zip_strict,
@@ -533,10 +532,3 @@ class DuckDBLazyFrame(
             (FORMAT parquet)
             """  # noqa: S608
         duckdb.sql(query)
-
-    gather_every = not_implemented.deprecated(
-        "`LazyFrame.gather_every` is deprecated and will be removed in a future version."
-    )
-    tail = not_implemented.deprecated(
-        "`LazyFrame.tail` is deprecated and will be removed in a future version."
-    )
