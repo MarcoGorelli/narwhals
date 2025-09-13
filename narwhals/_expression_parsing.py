@@ -725,12 +725,12 @@ def evaluate_into_exprs(
 
 def maybe_broadcast_ces(
     *ces: CompliantExprAny | NonNestedLiteral,
-) -> Iterator[CompliantExprAny | NonNestedLiteral]:
+) -> list[CompliantExprAny | NonNestedLiteral]:
     kinds = [ExprKind.from_into_expr(comparand) for comparand in ces]
     broadcast = any(not kind.is_scalar_like for kind in kinds)
-    return (
+    return [
         compliant_expr.broadcast(kind)
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
         else compliant_expr
         for compliant_expr, kind in zip_strict(ces, kinds)
-    )
+    ]
