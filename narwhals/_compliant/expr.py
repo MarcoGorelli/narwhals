@@ -112,7 +112,7 @@ class CompliantExpr(
         md = ce._metadata
         assert md is not None  # noqa: S101
         ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
-        ce, *ces = maybe_broadcast_ces(ce, *ces, str_as_lit=node.str_as_lit)
+        ce, *ces = maybe_broadcast_ces(ce, *ces)
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:

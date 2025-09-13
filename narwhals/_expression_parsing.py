@@ -7,8 +7,7 @@ from __future__ import annotations
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, ParamSpec, Protocol, TypeVar
 
-from narwhals._utils import is_compliant_expr, zip_strict
-from narwhals.dependencies import is_narwhals_series, is_numpy_array
+from narwhals._utils import is_compliant_expr, is_numpy_array_1d, zip_strict
 from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
 
 if TYPE_CHECKING:
@@ -179,8 +178,9 @@ class ExprKind(Enum):
         return self in {ExprKind.ORDERABLE_WINDOW, ExprKind.ORDERABLE_AGGREGATION}
 
     @classmethod
-    def from_expr(cls, obj: Expr) -> ExprKind:
+    def from_expr(cls, obj: CompliantExprAny) -> ExprKind:
         meta = obj._metadata
+        assert meta is not None  # noqa: S101
         if meta.is_literal:
             return ExprKind.LITERAL
         if meta.is_scalar_like:
@@ -190,17 +190,9 @@ class ExprKind(Enum):
         return ExprKind.UNKNOWN
 
     @classmethod
-    def from_into_expr(
-        cls, obj: IntoExpr | NonNestedLiteral | _1DArray, *, str_as_lit: bool
-    ) -> ExprKind:
-        if hasattr(obj, "_metadata"):
+    def from_into_expr(cls, obj: CompliantExprAny | NonNestedLiteral) -> ExprKind:
+        if is_compliant_expr(obj):
             return cls.from_expr(obj)
-        if (
-            is_narwhals_series(obj)
-            or is_numpy_array(obj)
-            or (isinstance(obj, str) and not str_as_lit)
-        ):
-            return ExprKind.ELEMENTWISE
         return ExprKind.LITERAL
 
 
@@ -693,36 +685,52 @@ def apply_binary(
     ce: CompliantExprAny,
     other: IntoExpr | NonNestedLiteral | _1DArray,
 ) -> CompliantExprAny:
-    str_as_lit = True
     parse = plx.evaluate_expr
-    other_compliant = parse(other, str_as_lit=str_as_lit)
+    other_compliant = parse(other)
     compliant_exprs = [ce, other_compliant]
     return getattr(compliant_exprs[0], name)(compliant_exprs[1])
 
 
-def evaluate_into_exprs(
-    *exprs: IntoExpr, ns: CompliantNamespaceAny, str_as_lit: bool
-) -> list[CompliantExprAny]:
-    from narwhals.expr import _parse_into_expr
+def _parse_into_expr(
+    arg: IntoExpr | NonNestedLiteral | _1DArray,
+    *,
+    str_as_lit: bool = False,
+    backend: Any = None,
+) -> Expr | NonNestedLiteral:
+    from narwhals.functions import col, new_series
 
-    return [
+    if isinstance(arg, str) and not str_as_lit:
+        return col(arg)
+    if is_numpy_array_1d(arg):
+        return new_series("", arg, backend=backend)._to_expr()
+    if is_series(arg):
+        return arg._to_expr()
+    if is_expr(arg):
+        return arg
+    return arg
+
+
+def evaluate_into_exprs(
+    *exprs: IntoExpr | NonNestedLiteral | _1DArray,
+    ns: CompliantNamespaceAny,
+    str_as_lit: bool,
+) -> Iterator[CompliantExprAny | NonNestedLiteral]:
+    return (
         ns.evaluate_expr(
             _parse_into_expr(expr, str_as_lit=str_as_lit, backend=ns._implementation)
         )
         for expr in exprs
-    ]
+    )
 
 
 def maybe_broadcast_ces(
-    *ces: CompliantExprAny, str_as_lit: bool
-) -> list[CompliantExprAny]:
-    kinds = [
-        ExprKind.from_into_expr(comparand, str_as_lit=str_as_lit) for comparand in ces
-    ]
+    *ces: CompliantExprAny | NonNestedLiteral,
+) -> Iterator[CompliantExprAny | NonNestedLiteral]:
+    kinds = [ExprKind.from_into_expr(comparand) for comparand in ces]
     broadcast = any(not kind.is_scalar_like for kind in kinds)
-    return [
+    return (
         compliant_expr.broadcast(kind)
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
         else compliant_expr
         for compliant_expr, kind in zip_strict(ces, kinds)
-    ]
+    )

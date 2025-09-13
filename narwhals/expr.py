@@ -9,16 +9,9 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     evaluate_into_exprs,
-    is_expr,
-    is_series,
     maybe_broadcast_ces,
 )
-from narwhals._utils import (
-    _validate_rolling_arguments,
-    ensure_type,
-    flatten,
-    is_numpy_array_1d,
-)
+from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import ComputeError
 from narwhals.expr_cat import ExprCatNamespace
@@ -34,7 +27,6 @@ if TYPE_CHECKING:
 
     from typing_extensions import Concatenate, ParamSpec, Self
 
-    from narwhals import Series
     from narwhals._compliant import CompliantExpr, CompliantNamespace
     from narwhals.dtypes import DType
     from narwhals.typing import (
@@ -48,7 +40,6 @@ if TYPE_CHECKING:
         RankMethod,
         RollingInterpolationMethod,
         TemporalLiteral,
-        _1DArray,
     )
 
     PS = ParamSpec("PS")
@@ -76,26 +67,6 @@ _OP_SYMBOLS = {
 }
 
 
-def _parse_into_expr(
-    arg: Expr | Series[Any] | _1DArray | str,
-    *,
-    str_as_lit: bool = False,
-    backend: Any = None,
-) -> Expr:
-    from narwhals.functions import col, new_series
-
-    if isinstance(arg, str) and not str_as_lit:
-        return col(arg)
-    # need to deal with array here somehow. backend from plx?
-    if is_numpy_array_1d(arg):
-        return new_series("", arg, backend=backend)._to_expr()
-    if is_series(arg):
-        return arg._to_expr()
-    if is_expr(arg):
-        return arg
-    return arg
-
-
 class Expr:
     def __init__(self, *nodes: ExprNode) -> None:
         self._nodes = nodes
@@ -113,8 +84,7 @@ class Expr:
             else:
                 func = getattr(ns, node.name)
             ces = maybe_broadcast_ces(
-                *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit),
-                str_as_lit=node.str_as_lit,
+                *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
             )
             ce = func(*ces, **node.kwargs)
             if node.kind is ExprKind.COL:
