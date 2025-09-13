@@ -161,9 +161,6 @@ class ExprKind(Enum):
     THEN = auto()
     """Results from then expression."""
 
-    THEN_OTHERWISE = auto()
-    """Results from then expression."""
-
     OTHERWISE = auto()
     """Results from otherwise expression."""
 

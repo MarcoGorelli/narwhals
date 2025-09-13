@@ -147,7 +147,7 @@ class CompliantExpr(
             md = md.with_orderable_aggregation(node)
         elif node.kind is ExprKind.WINDOW:
             md = md.with_window(node)
-        elif node.kind is ExprKind.THEN:
+        elif node.kind is ExprKind.THEN or node.kind is ExprKind.OTHERWISE:
             md = combine_metadata(
                 ce,
                 *ces,
@@ -165,30 +165,6 @@ class CompliantExpr(
                     "the `then` value must also be scalar-like."
                 )
                 raise InvalidOperationError(msg)
-            ce = ce.then(ces[0])
-            ce._metadata = md
-            return ce
-        elif node.kind is ExprKind.THEN_OTHERWISE:
-            md = combine_metadata(
-                ce,
-                *ces,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[*ce._metadata.nodes, node],
-            )
-            if (
-                ce._metadata.is_scalar_like
-                and not ExprKind.from_into_expr(ces[0], str_as_lit=False).is_scalar_like
-            ):
-                msg = (
-                    "If you pass a scalar-like predicate to `nw.when`, then "
-                    "the `then` value must also be scalar-like."
-                )
-                raise InvalidOperationError(msg)
-            ce = ce.then(ces[0]).otherwise(ces[1])
-            ce._metadata = md
-            return ce
         elif node.kind is ExprKind.OVER:
             current_meta = md
             if node.kwargs["order_by"]:
