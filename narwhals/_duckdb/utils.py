@@ -73,7 +73,7 @@ def evaluate_exprs(
 ) -> list[tuple[str, Expression]]:
     native_results: list[tuple[str, Expression]] = []
     for expr in exprs:
-        native_series_list = expr._call(df)
+        native_series_list = expr(df)
         output_names = expr._evaluate_output_names(df)
         if expr._alias_output_names is not None:
             output_names = expr._alias_output_names(output_names)

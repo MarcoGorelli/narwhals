@@ -94,7 +94,6 @@ class SQLThen(
     ) -> Self:
         when._then_value = then
         obj = cls.__new__(cls)
-        obj._call = when
         obj._window_function = when._window_function
         obj._when_value = when
         obj._evaluate_output_names = getattr(
@@ -104,3 +103,6 @@ class SQLThen(
         obj._implementation = when._implementation
         obj._version = when._version
         return obj
+
+    def __call__(self, df: SQLLazyFrameT) -> Sequence[NativeExprT]:
+        return self._when_value(df)

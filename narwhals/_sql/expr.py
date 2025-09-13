@@ -44,7 +44,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     _alias_output_names: AliasNames | None
     _version: Version
     _implementation: Implementation
-    _metadata: ExprMetadata | None
+    _opt_metadata: ExprMetadata | None
     _window_function: WindowFunction[SQLLazyFrameT, NativeExprT] | None
 
     def __init__(

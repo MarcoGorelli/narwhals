@@ -39,7 +39,7 @@ IntoExpr: TypeAlias = "SeriesT | ExprT | NonNestedLiteral | Scalar"
 """Anything that is convertible into a `CompliantExpr`."""
 
 
-class CompliantWhen(CompliantExpr[FrameT, ExprT], Protocol[FrameT, SeriesT, ExprT]):
+class CompliantWhen(CompliantExpr[FrameT, Any], Protocol[FrameT, SeriesT, ExprT]):
     _condition: ExprT
     _then_value: IntoExpr[SeriesT, ExprT]
     _otherwise_value: IntoExpr[SeriesT, ExprT] | None
@@ -52,7 +52,6 @@ class CompliantWhen(CompliantExpr[FrameT, ExprT], Protocol[FrameT, SeriesT, Expr
 
     @property
     def _then(self) -> type[CompliantThen[FrameT, SeriesT, ExprT, Self]]: ...
-    def __call__(self, compliant_frame: FrameT, /) -> Sequence[SeriesT]: ...
     def then(
         self, value: IntoExpr[SeriesT, ExprT], /
     ) -> CompliantThen[FrameT, SeriesT, ExprT, Self]:
@@ -86,7 +85,6 @@ class CompliantThen(
     def from_when(cls, when: WhenT_contra, then: IntoExpr[SeriesT, ExprT], /) -> Self:
         when._then_value = then
         obj = cls.__new__(cls)
-        obj._call = when
         obj._when_value = when
         obj._evaluate_output_names = getattr(
             then, "_evaluate_output_names", lambda _df: ["literal"]
@@ -113,7 +111,7 @@ class EagerWhen(
         /,
     ) -> NativeSeriesT: ...
 
-    def __call__(self, df: EagerDataFrameT, /) -> Sequence[EagerSeriesT]:
+    def __call__(self, df: EagerDataFrameT) -> Sequence[EagerSeriesT]:
         is_expr = self._condition._is_expr
         when: EagerSeriesT = self._condition(df)[0]
         then: EagerSeriesT
@@ -122,7 +120,7 @@ class EagerWhen(
         if is_expr(self._then_value):
             then = self._then_value(df)[0]
         else:
-            then = when.alias("literal")._from_scalar(self._then_value)
+            then = when._alias("literal")._from_scalar(self._then_value)
             then._broadcast = True
 
         if is_expr(self._otherwise_value):
