@@ -9,6 +9,7 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     evaluate_into_exprs,
+    is_compliant_expr,
     maybe_broadcast_ces,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
@@ -108,13 +109,14 @@ class Expr:
             elif node.kind is ExprKind.SELECTOR:
                 md = ExprMetadata.selector_multi_unnamed(node)
             elif node.kind is ExprKind.WHEN:
+                assert is_compliant_expr(ces[0])  # noqa: S101
                 md = ces[0]._metadata
             elif node.kind is ExprKind.N_ARY:
                 md = ExprMetadata.from_n_ary_op(node.name, *ces)
             else:
                 msg = "unexpected kind, please report bug"
                 raise NotImplementedError(msg)
-        ce._metadata = md
+        ce._opt_metadata = md
         return ce
 
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:

@@ -62,7 +62,7 @@ class DaskExpr(
         self._evaluate_output_names = evaluate_output_names
         self._alias_output_names = alias_output_names
         self._version = version
-        self._metadata: ExprMetadata | None = None
+        self._opt_metadata: ExprMetadata | None = None
 
     def __call__(self, df: DaskLazyFrame) -> Sequence[dx.Series]:
         return self._call(df)

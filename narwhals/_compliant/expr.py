@@ -178,7 +178,7 @@ class CompliantExpr(
             msg = "multi-output expressions are not allowed as arguments to Expr methods."
             raise MultiOutputExpressionError(msg)
         ce = func(*ces, **node.kwargs)
-        ce._metadata = md
+        ce._opt_metadata = md
         return ce
 
     def __narwhals_namespace__(self) -> CompliantNamespace[CompliantFrameT, Self]: ...
@@ -929,7 +929,7 @@ class LazyExpr(  # type: ignore[misc]
             return [name]
 
         ret = self._with_alias_output_names(fn)
-        ret._metadata = self._metadata
+        ret._opt_metadata = self._metadata
         return ret
 
     @property
