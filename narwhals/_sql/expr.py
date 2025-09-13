@@ -359,7 +359,9 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         return self._with_binary(lambda expr, other: expr.__sub__(other), other)
 
     def __rsub__(self, other: Self) -> Self:
-        return self._with_binary(lambda expr, other: other - expr, other).alias("literal")
+        return self._with_binary(lambda expr, other: other - expr, other)._alias(
+            "literal"
+        )
 
     def __mul__(self, other: Self) -> Self:
         return self._with_binary(lambda expr, other: expr.__mul__(other), other)
@@ -368,13 +370,15 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         return self._with_binary(lambda expr, other: expr.__truediv__(other), other)
 
     def __rtruediv__(self, other: Self) -> Self:
-        return self._with_binary(lambda expr, other: other / expr, other).alias("literal")
+        return self._with_binary(lambda expr, other: other / expr, other)._alias(
+            "literal"
+        )
 
     def __floordiv__(self, other: Self) -> Self:
         return self._with_binary(lambda expr, other: expr.__floordiv__(other), other)
 
     def __rfloordiv__(self, other: Self) -> Self:
-        return self._with_binary(lambda expr, other: other // expr, other).alias(
+        return self._with_binary(lambda expr, other: other // expr, other)._alias(
             "literal"
         )
 
@@ -382,13 +386,15 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         return self._with_binary(lambda expr, other: expr.__pow__(other), other)
 
     def __rpow__(self, other: Self) -> Self:
-        return self._with_binary(lambda expr, other: other**expr, other).alias("literal")
+        return self._with_binary(lambda expr, other: other**expr, other)._alias("literal")
 
     def __mod__(self, other: Self) -> Self:
         return self._with_binary(lambda expr, other: expr.__mod__(other), other)
 
     def __rmod__(self, other: Self) -> Self:
-        return self._with_binary(lambda expr, other: other % expr, other).alias("literal")
+        return self._with_binary(lambda expr, other: other % expr, other)._alias(
+            "literal"
+        )
 
     def __ge__(self, other: Self) -> Self:
         return self._with_binary(lambda expr, other: expr.__ge__(other), other)
