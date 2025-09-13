@@ -32,7 +32,6 @@ from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
     ExprNode,
-    apply_binary,
     combine_metadata,
     is_compliant_expr,
     is_scalar_like,
@@ -136,11 +135,7 @@ class CompliantExpr(
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:
-            other_ce = ces[0]
-            md = ExprMetadata.from_binary_op(ce, other_ce, node)
-            ce = apply_binary(ns, node.name, ce, other_ce)
-            ce._metadata = md
-            return ce
+            md = ExprMetadata.from_binary_op(ce, *ces, node)
         elif node.kind is ExprKind.ELEMENTWISE:
             md = md.with_elementwise_op(node)
         elif node.kind is ExprKind.FILTRATION:

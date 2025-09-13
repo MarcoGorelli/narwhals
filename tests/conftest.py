@@ -124,6 +124,7 @@ def cudf_constructor(obj: Data) -> NativeDataFrame:  # pragma: no cover
 
 
 def polars_eager_constructor(obj: Data) -> pl.DataFrame:
+    pytest.importorskip("polars")
     import polars as pl
 
     return pl.DataFrame(obj)
@@ -207,6 +208,8 @@ def _ibis_backend() -> IbisDuckDBBackend:  # pragma: no cover
 
 
 def ibis_lazy_constructor(obj: Data) -> ibis.Table:  # pragma: no cover
+    pytest.importorskip("polars")
+    pytest.importorskip("ibis")
     import polars as pl
 
     ldf = pl.from_dict(obj).lazy()
