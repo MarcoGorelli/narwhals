@@ -179,7 +179,7 @@ class Expr:
         nodes = self._nodes
         ce = self._evaluate_node(nodes[0], plx)
         for node in nodes[1:]:
-            ce = ce.with_node(node)
+            ce = ce.with_node(node, plx)
         return ce
 
     def _with_node(self, node: ExprNode) -> Self:

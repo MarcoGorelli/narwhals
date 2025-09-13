@@ -107,17 +107,16 @@ class CompliantExpr(
     def __narwhals_expr__(self) -> Self:  # pragma: no cover
         return self
 
-    def with_node(self, node: ExprNode) -> Self:  # noqa: PLR0915,PLR0912,C901
+    def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:  # noqa: PLR0915,PLR0912,C901
         from narwhals.expr import _parse_into_expr
 
-        plx = self.__narwhals_namespace__()
         ce = self
         md = ce._metadata
         assert md is not None  # noqa: S101
         ces = [
-            plx.parse_into_expr(
+            ns.parse_into_expr(
                 _parse_into_expr(
-                    expr, str_as_lit=node.str_as_lit, backend=plx._implementation
+                    expr, str_as_lit=node.str_as_lit, backend=ns._implementation
                 ),
                 str_as_lit=node.str_as_lit,
             )
@@ -139,7 +138,7 @@ class CompliantExpr(
         elif node.kind is ExprKind.BINARY:
             other_ce = ces[0]
             md = ExprMetadata.from_binary_op(ce, other_ce, node)
-            ce = apply_binary(plx, node.name, ce, other_ce)
+            ce = apply_binary(ns, node.name, ce, other_ce)
             ce._metadata = md
             return ce
         elif node.kind is ExprKind.ELEMENTWISE:
