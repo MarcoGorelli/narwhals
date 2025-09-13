@@ -353,7 +353,7 @@ class PandasLikeSeries(EagerSeries[Any]):
             res = ser.ge(lower_bound) & ser.le(upper_bound)
         else:
             assert_never(closed)
-        return self._with_native(res)._alias(ser.name)
+        return self._with_native(res).alias(ser.name)
 
     def is_in(self, other: Any) -> Self:
         return self._with_native(self.native.isin(other))
@@ -378,107 +378,105 @@ class PandasLikeSeries(EagerSeries[Any]):
             _, other_native = align_and_extract_native(self, predicate)
         else:
             other_native = predicate
-        return self._with_native(self.native.loc[other_native])._alias(self.name)
+        return self._with_native(self.native.loc[other_native]).alias(self.name)
 
     def __eq__(self, other: object) -> Self:  # type: ignore[override]
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser == other)._alias(self.name)
+        return self._with_native(ser == other).alias(self.name)
 
     def __ne__(self, other: object) -> Self:  # type: ignore[override]
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser != other)._alias(self.name)
+        return self._with_native(ser != other).alias(self.name)
 
     def __ge__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser >= other)._alias(self.name)
+        return self._with_native(ser >= other).alias(self.name)
 
     def __gt__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser > other)._alias(self.name)
+        return self._with_native(ser > other).alias(self.name)
 
     def __le__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser <= other)._alias(self.name)
+        return self._with_native(ser <= other).alias(self.name)
 
     def __lt__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser < other)._alias(self.name)
+        return self._with_native(ser < other).alias(self.name)
 
     def __and__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser & other)._alias(self.name)
+        return self._with_native(ser & other).alias(self.name)
 
     def __rand__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
         ser = cast("pd.Series[Any]", ser)
-        return self._with_native(ser.__and__(other))._alias(self.name)
+        return self._with_native(ser.__and__(other)).alias(self.name)
 
     def __or__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser | other)._alias(self.name)
+        return self._with_native(ser | other).alias(self.name)
 
     def __ror__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
         ser = cast("pd.Series[Any]", ser)
-        return self._with_native(ser.__or__(other))._alias(self.name)
+        return self._with_native(ser.__or__(other)).alias(self.name)
 
     def __add__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser + other)._alias(self.name)
+        return self._with_native(ser + other).alias(self.name)
 
     def __radd__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__radd__(other_native))._alias(self.name)
+        return self._with_native(self.native.__radd__(other_native)).alias(self.name)
 
     def __sub__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser - other)._alias(self.name)
+        return self._with_native(ser - other).alias(self.name)
 
     def __rsub__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__rsub__(other_native))._alias(self.name)
+        return self._with_native(self.native.__rsub__(other_native)).alias(self.name)
 
     def __mul__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser * other)._alias(self.name)
+        return self._with_native(ser * other).alias(self.name)
 
     def __rmul__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__rmul__(other_native))._alias(self.name)
+        return self._with_native(self.native.__rmul__(other_native)).alias(self.name)
 
     def __truediv__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser / other)._alias(self.name)
+        return self._with_native(ser / other).alias(self.name)
 
     def __rtruediv__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__rtruediv__(other_native))._alias(self.name)
+        return self._with_native(self.native.__rtruediv__(other_native)).alias(self.name)
 
     def __floordiv__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser // other)._alias(self.name)
+        return self._with_native(ser // other).alias(self.name)
 
     def __rfloordiv__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__rfloordiv__(other_native))._alias(
-            self.name
-        )
+        return self._with_native(self.native.__rfloordiv__(other_native)).alias(self.name)
 
     def __pow__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser**other)._alias(self.name)
+        return self._with_native(ser**other).alias(self.name)
 
     def __rpow__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__rpow__(other_native))._alias(self.name)
+        return self._with_native(self.native.__rpow__(other_native)).alias(self.name)
 
     def __mod__(self, other: Any) -> Self:
         ser, other = align_and_extract_native(self, other)
-        return self._with_native(ser % other)._alias(self.name)
+        return self._with_native(ser % other).alias(self.name)
 
     def __rmod__(self, other: Any) -> Self:
         _, other_native = align_and_extract_native(self, other)
-        return self._with_native(self.native.__rmod__(other_native))._alias(self.name)
+        return self._with_native(self.native.__rmod__(other_native)).alias(self.name)
 
     # Unary
 
@@ -669,7 +667,7 @@ class PandasLikeSeries(EagerSeries[Any]):
         )
         result = self._with_native(
             self.native.to_frame().merge(other, on=self.name, how="left")[tmp_name]
-        )._alias(self.name)
+        ).alias(self.name)
         if result.is_null().sum() != self.is_null().sum():
             msg = (
                 "replace_strict did not replace all non-null values.\n\n"
@@ -682,9 +680,9 @@ class PandasLikeSeries(EagerSeries[Any]):
         na_position = "last" if nulls_last else "first"
         return self._with_native(
             self.native.sort_values(ascending=not descending, na_position=na_position)
-        )._alias(self.name)
+        ).alias(self.name)
 
-    def _alias(self, name: str | Hashable) -> Self:
+    def alias(self, name: str | Hashable) -> Self:
         if name != self.name:
             return self._with_native(
                 rename(self.native, name, implementation=self._implementation),
@@ -733,16 +731,16 @@ class PandasLikeSeries(EagerSeries[Any]):
 
     # --- descriptive ---
     def is_unique(self) -> Self:
-        return self._with_native(~self.native.duplicated(keep=False))._alias(self.name)
+        return self._with_native(~self.native.duplicated(keep=False)).alias(self.name)
 
     def null_count(self) -> int:
         return self.native.isna().sum()
 
     def is_first_distinct(self) -> Self:
-        return self._with_native(~self.native.duplicated(keep="first"))._alias(self.name)
+        return self._with_native(~self.native.duplicated(keep="first")).alias(self.name)
 
     def is_last_distinct(self) -> Self:
-        return self._with_native(~self.native.duplicated(keep="last"))._alias(self.name)
+        return self._with_native(~self.native.duplicated(keep="last")).alias(self.name)
 
     def is_sorted(self, *, descending: bool) -> bool:
         if not isinstance(descending, bool):
@@ -959,7 +957,7 @@ class PandasLikeSeries(EagerSeries[Any]):
             plx = self.__narwhals_namespace__()
             df = (
                 self.to_frame()
-                .with_columns(plx._expr._from_series(null_mask)._alias(mask_name))
+                .with_columns(plx._expr._from_series(null_mask).alias(mask_name))
                 .native
             )
             return self._with_native(
@@ -971,7 +969,7 @@ class PandasLikeSeries(EagerSeries[Any]):
                     pct=False,
                 )
                 .iloc[:, 0]
-            )._alias(self.name)
+            ).alias(self.name)
         return self._with_native(
             self.native.rank(
                 method=pd_method, na_option="keep", ascending=not descending, pct=False

@@ -205,11 +205,7 @@ class CompliantExpr(
     ) -> Self: ...
 
     # NOTE: `polars`
-    def alias(self, name: str) -> Self:
-        ret = self._alias(name)
-        ret._opt_metadata = self._metadata
-        return ret
-
+    def alias(self, name: str) -> Self: ...
     def all(self) -> Self: ...
     def any(self) -> Self: ...
     def count(self) -> Self: ...
@@ -358,13 +354,13 @@ class EagerExpr(
         def func(df: EagerDataFrameT) -> list[EagerSeriesT]:
             if alias_output_names:
                 return [
-                    series._alias(name)
+                    series.alias(name)
                     for series, name in zip_strict(
                         self(df), alias_output_names(self._evaluate_output_names(df))
                     )
                 ]
             return [
-                series._alias(name)
+                series.alias(name)
                 for series, name in zip_strict(self(df), self._evaluate_output_names(df))
             ]
 
@@ -707,17 +703,15 @@ class EagerExpr(
             "sample", n=n, fraction=fraction, with_replacement=with_replacement, seed=seed
         )
 
-    def _alias(self, name: str) -> Self:
+    def alias(self, name: str) -> Self:
         def alias_output_names(names: Sequence[str]) -> Sequence[str]:
             if len(names) != 1:
                 msg = f"Expected function with single output, found output names: {names}"
                 raise ValueError(msg)
             return [name]
 
-        # Define this one manually, so that we can
-        # override `output_names` and not increase depth
         return type(self)(
-            lambda df: [series._alias(name) for series in self(df)],
+            lambda df: [series.alias(name) for series in self(df)],
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=alias_output_names,
             implementation=self._implementation,
@@ -816,12 +810,12 @@ class EagerExpr(
             it = zip_strict(udf_series_out, output_names)
             if is_numpy_array(_first_out) or is_numpy_scalar(_first_out):
                 from_numpy = partial(_first_in.from_numpy, context=self)
-                result = tuple(from_numpy(arr)._alias(out_name) for arr, out_name in it)
+                result = tuple(from_numpy(arr).alias(out_name) for arr, out_name in it)
             elif isinstance(_first_out, _first_in.__class__):  # compliant series
-                result = tuple(series._alias(out_name) for series, out_name in it)
+                result = tuple(series.alias(out_name) for series, out_name in it)
             else:  # If everything else fails, assume scalar case
                 from_scalar = _first_in._from_scalar
-                result = tuple(from_scalar(val)._alias(out_name) for val, out_name in it)
+                result = tuple(from_scalar(val).alias(out_name) for val, out_name in it)
 
             if return_dtype is not None:
                 result = tuple(series.cast(return_dtype) for series in result)
@@ -928,7 +922,7 @@ class LazyExpr(  # type: ignore[misc]
     ImplExpr[CompliantLazyFrameT, NativeExprT], Protocol[CompliantLazyFrameT, NativeExprT]
 ):
     def _with_alias_output_names(self, func: AliasNames | None, /) -> Self: ...
-    def _alias(self, name: str) -> Self:
+    def alias(self, name: str) -> Self:
         def fn(names: Sequence[str]) -> Sequence[str]:
             if len(names) != 1:
                 msg = f"Expected function with single output, found output names: {names}"
@@ -1199,6 +1193,6 @@ class EagerExprStructNamespace(
     _accessor = "struct"
 
     def field(self, name: str) -> EagerExprT:
-        return self.compliant._reuse_series_namespace(
-            "struct", "field", name=name
-        )._alias(name)
+        return self.compliant._reuse_series_namespace("struct", "field", name=name).alias(
+            name
+        )

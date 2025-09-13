@@ -18,4 +18,4 @@ class DuckDBExprStructNamespace(
     def field(self, name: str) -> DuckDBExpr:
         return self.compliant._with_elementwise(
             lambda expr: F("struct_extract", expr, lit(name))
-        )._alias(name)
+        ).alias(name)

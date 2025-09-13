@@ -123,7 +123,7 @@ class EagerWhen(
         if is_expr(self._then_value):
             then = self._then_value(df)[0]
         else:
-            then = when._alias("literal")._from_scalar(self._then_value)
+            then = when.alias("literal")._from_scalar(self._then_value)
             then._broadcast = True
 
         if is_expr(self._otherwise_value):

@@ -488,7 +488,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
     def to_numpy(self, dtype: Any = None, *, copy: bool | None = None) -> _1DArray:
         return self.native.to_numpy()
 
-    def _alias(self, name: str) -> Self:
+    def alias(self, name: str) -> Self:
         return self.__class__(self.native, name=name, version=self._version)
 
     @property
@@ -712,7 +712,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         return cast("pl.Series", pl.from_arrow(self.native))
 
     def is_unique(self) -> ArrowSeries:
-        return self.to_frame().is_unique()._alias(self.name)
+        return self.to_frame().is_unique().alias(self.name)
 
     def is_first_distinct(self) -> Self:
         import numpy as np  # ignore-banned-import

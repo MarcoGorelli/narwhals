@@ -354,7 +354,7 @@ def test_not_implemented() -> None:
     class DummyCompliant(Protocol):
         _implementation: nw.Implementation
 
-        def _alias(self, name: str) -> str: ...
+        def alias(self, name: str) -> str: ...
         def unique(self) -> Self: ...
 
         # NOTE property option (1)
@@ -371,7 +371,7 @@ def test_not_implemented() -> None:
         def __init__(self) -> None:
             self._implementation = nw.Implementation.POLARS
 
-        def _alias(self, name: str) -> str:
+        def alias(self, name: str) -> str:
             return name
 
         unique = not_implemented()
