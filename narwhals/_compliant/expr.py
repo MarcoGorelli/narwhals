@@ -141,6 +141,7 @@ class CompliantExpr(
             md = ExprMetadata.from_binary_op(ce, other_ce, node)
             ce = apply_binary(plx, node.name, ce, other_ce)
             ce._metadata = md
+            return ce
         elif node.kind is ExprKind.ELEMENTWISE:
             md = md.with_elementwise_op(node)
         elif node.kind is ExprKind.FILTRATION:
@@ -173,6 +174,7 @@ class CompliantExpr(
                 raise InvalidOperationError(msg)
             ce = ce.then(ces[0])
             ce._metadata = md
+            return ce
         elif node.kind is ExprKind.THEN_OTHERWISE:
             md = combine_metadata(
                 ce,
@@ -193,6 +195,7 @@ class CompliantExpr(
                 raise InvalidOperationError(msg)
             ce = ce.then(ces[0]).otherwise(ces[1])
             ce._metadata = md
+            return ce
         elif node.kind is ExprKind.OTHERWISE:
             md = combine_metadata(
                 ce,
@@ -213,6 +216,7 @@ class CompliantExpr(
                 raise InvalidOperationError(msg)
             ce = ce.otherwise(*ces)
             ce._metadata = md
+            return ce
         elif node.kind is ExprKind.OVER:
             current_meta = md
             if node.kwargs["order_by"]:
@@ -224,6 +228,7 @@ class CompliantExpr(
                 md = current_meta.with_partitioned_over(node)
             ce = ce.over(node.kwargs["partition_by"], node.kwargs["order_by"])
             ce._metadata = md
+            return ce
         else:
             msg = f"Unexpected node kind: {node.kind}"
             raise AssertionError(msg)

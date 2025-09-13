@@ -38,7 +38,7 @@ IntoExpr: TypeAlias = "SeriesT | ExprT | NonNestedLiteral | Scalar"
 """Anything that is convertible into a `CompliantExpr`."""
 
 
-class CompliantWhen(Protocol[FrameT, SeriesT, ExprT]):
+class CompliantWhen(CompliantExpr, Protocol[FrameT, SeriesT, ExprT]):
     _condition: ExprT
     _then_value: IntoExpr[SeriesT, ExprT]
     _otherwise_value: IntoExpr[SeriesT, ExprT] | None
