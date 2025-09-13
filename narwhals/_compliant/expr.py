@@ -174,9 +174,6 @@ class CompliantExpr(
                 raise InvalidOperationError(msg)
             else:
                 md = current_meta.with_partitioned_over(node)
-            ce = ce.over(node.kwargs["partition_by"], node.kwargs["order_by"])
-            ce._metadata = md
-            return ce
         else:
             msg = f"Unexpected node kind: {node.kind}"
             raise AssertionError(msg)
