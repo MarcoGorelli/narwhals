@@ -818,7 +818,7 @@ class EagerExpr(
                 from_numpy = partial(_first_in.from_numpy, context=self)
                 result = tuple(from_numpy(arr)._alias(out_name) for arr, out_name in it)
             elif isinstance(_first_out, _first_in.__class__):  # compliant series
-                result = tuple(series.alias(out_name) for series, out_name in it)
+                result = tuple(series._alias(out_name) for series, out_name in it)
             else:  # If everything else fails, assume scalar case
                 from_scalar = _first_in._from_scalar
                 result = tuple(from_scalar(val)._alias(out_name) for val, out_name in it)

@@ -712,7 +712,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         return cast("pl.Series", pl.from_arrow(self.native))
 
     def is_unique(self) -> ArrowSeries:
-        return self.to_frame().is_unique().alias(self.name)
+        return self.to_frame().is_unique()._alias(self.name)
 
     def is_first_distinct(self) -> Self:
         import numpy as np  # ignore-banned-import

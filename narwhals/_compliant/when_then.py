@@ -93,10 +93,12 @@ class CompliantThen(
         return obj
 
     def otherwise(self, otherwise: IntoExpr[SeriesT, ExprT], /) -> ExprT:
-        self._when_value._otherwise_value = otherwise
+        # TODO(marco): sort out type
+        ret = self.from_when(self._when_value, self._when_value._then_value)  # type: ignore[arg-type]
+        ret._when_value._otherwise_value = otherwise
         return cast("ExprT", self)
 
-    def _call(self, df: FrameT) -> Sequence[SeriesT]:
+    def _call(self, df: FrameT, /) -> Sequence[SeriesT]:
         return self._when_value(df)
 
 

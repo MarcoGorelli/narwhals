@@ -1177,7 +1177,7 @@ class Series(Generic[IntoSeriesT]):
             2    3
             Name: bar, dtype: int64
         """
-        return self._with_compliant(self._compliant_series.alias(name=name))
+        return self._with_compliant(self._compliant_series._alias(name=name))
 
     def rename(self, name: str) -> Self:
         """Rename the Series.
