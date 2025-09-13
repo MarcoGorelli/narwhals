@@ -134,7 +134,7 @@ class CompliantExpr(
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:
-            md = ExprMetadata.from_binary_op(ce, *ces, node=node)
+            md = ExprMetadata.from_binary_op(ce, ces[0], node=node)
         elif node.kind is ExprKind.ELEMENTWISE:
             md = md.with_elementwise_op(node)
         elif node.kind is ExprKind.FILTRATION:
