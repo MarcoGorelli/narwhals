@@ -115,19 +115,13 @@ class Expr:
                 func = getattr(ns, node.name)
             ce = func(
                 *[
-                    ns.parse_into_expr(
-                        _parse_into_expr(expr, backend=ns._implementation),
-                        str_as_lit=node.str_as_lit,
-                    )
+                    ns.evaluate_expr(_parse_into_expr(expr, backend=ns._implementation))
                     for expr in node.exprs
                 ],
                 **node.kwargs,
             )
             ces = [
-                ns.parse_into_expr(
-                    _parse_into_expr(x, backend=ns._implementation),
-                    str_as_lit=node.str_as_lit,
-                )
+                ns.evaluate_expr(_parse_into_expr(x, backend=ns._implementation))
                 for x in node.exprs
             ]
             kinds = [

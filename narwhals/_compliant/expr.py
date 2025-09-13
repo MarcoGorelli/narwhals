@@ -113,11 +113,10 @@ class CompliantExpr(
         md = ce._metadata
         assert md is not None  # noqa: S101
         ces = [
-            ns.parse_into_expr(
+            ns.evaluate_expr(
                 _parse_into_expr(
                     expr, str_as_lit=node.str_as_lit, backend=ns._implementation
-                ),
-                str_as_lit=node.str_as_lit,
+                )
             )
             for expr in node.exprs
         ]
@@ -135,7 +134,7 @@ class CompliantExpr(
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:
-            md = ExprMetadata.from_binary_op(ce, *ces, node)
+            md = ExprMetadata.from_binary_op(ce, *ces, node=node)
         elif node.kind is ExprKind.ELEMENTWISE:
             md = md.with_elementwise_op(node)
         elif node.kind is ExprKind.FILTRATION:
@@ -188,27 +187,6 @@ class CompliantExpr(
                 )
                 raise InvalidOperationError(msg)
             ce = ce.then(ces[0]).otherwise(ces[1])
-            ce._metadata = md
-            return ce
-        elif node.kind is ExprKind.OTHERWISE:
-            md = combine_metadata(
-                ce,
-                *ces,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[*ce._metadata.nodes, node],
-            )
-            if (
-                ce._metadata.is_scalar_like
-                and not ExprKind.from_into_expr(ces[0], str_as_lit=False).is_scalar_like
-            ):
-                msg = (
-                    "If you pass a scalar-like predicate to `nw.when`, then "
-                    "the `otherwise` value must also be scalar-like."
-                )
-                raise InvalidOperationError(msg)
-            ce = ce.otherwise(*ces)
             ce._metadata = md
             return ce
         elif node.kind is ExprKind.OVER:

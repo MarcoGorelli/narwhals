@@ -697,7 +697,7 @@ def apply_binary(
     other: IntoExpr | NonNestedLiteral | _1DArray,
 ) -> CompliantExprAny:
     str_as_lit = True
-    parse = plx.parse_into_expr
+    parse = plx.evaluate_expr
     other_compliant = parse(other, str_as_lit=str_as_lit)
     compliant_exprs = [ce, other_compliant]
     return getattr(compliant_exprs[0], name)(compliant_exprs[1])
