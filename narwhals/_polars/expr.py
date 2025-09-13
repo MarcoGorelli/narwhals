@@ -75,7 +75,7 @@ class PolarsExpr:
     def _with_native(self, expr: pl.Expr) -> Self:
         return self.__class__(expr, self._version)
 
-    def _broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
+    def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Let Polars do its thing.
         return self
 

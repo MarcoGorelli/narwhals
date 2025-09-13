@@ -117,7 +117,7 @@ class IbisExpr(SQLExpr["IbisLazyFrame", "ir.Value"]):
 
         return IbisNamespace(version=self._version)
 
-    def _broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
+    def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Ibis does its own broadcasting.
         return self
 

@@ -96,7 +96,7 @@ class SparkLikeExpr(SQLExpr["SparkLikeLazyFrame", "Column"]):
             window = window.rowsBetween(rows_start, self._Window.unboundedFollowing)
         return expr.over(window)
 
-    def _broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
+    def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         if kind is ExprKind.LITERAL:
             return self
         return self.over([self._F.lit(1)], [])

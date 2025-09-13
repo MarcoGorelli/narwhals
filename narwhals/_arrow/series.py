@@ -867,7 +867,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         )
         result = counts.filter(
             plx.col([col_token])
-            == plx.col([col_token]).max()._broadcast(kind=ExprKind.AGGREGATION)
+            == plx.col([col_token]).max().broadcast(kind=ExprKind.AGGREGATION)
         ).get_column(self.name)
         return result.head(1) if keep == "any" else result
 

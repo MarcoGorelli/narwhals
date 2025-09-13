@@ -45,7 +45,7 @@ class CompliantWhen(CompliantExpr[FrameT, Any], Protocol[FrameT, SeriesT, ExprT]
     _implementation: Implementation
     _version: Version
 
-    def _broadcast(self, kind: ExprKind) -> Self:
+    def broadcast(self, kind: ExprKind) -> Self:
         # TODO(marco): We can probably do better than this.
         return self
 

@@ -195,12 +195,7 @@ class CompliantExpr(
         *,
         context: _LimitedContext,
     ) -> Self: ...
-    def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
-        ret = self._broadcast(kind)
-        ret._opt_metadata = self._metadata
-        return ret
-
-    def _broadcast(
+    def broadcast(
         self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]
     ) -> Self: ...
 
@@ -483,7 +478,7 @@ class EagerExpr(
             context=self,
         )
 
-    def _broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
+    def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Mark the resulting Series with `_broadcast = True`.
         # Then, when extracting native objects, `extract_native` will
         # know what to do.
