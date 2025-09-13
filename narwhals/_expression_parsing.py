@@ -614,8 +614,7 @@ def combine_metadata(
             result_preserves_length = True
             result_is_scalar_like = False
             result_is_literal = False
-        elif hasattr(arg, "_metadata"):
-            # TODO(marco): handle `WHEN` node here
+        elif is_compliant_expr(arg):
             metadata = arg._metadata
             assert metadata is not None  # noqa: S101
             if metadata.expansion_kind.is_multi_output():
@@ -667,7 +666,7 @@ def check_expressions_preserve_length(*args: IntoExpr, function_name: str) -> No
     from narwhals.series import Series
 
     if not all(
-        ((is_expr(x) or is_compliant_expr(x)) and x._metadata.preserves_length)
+        (is_compliant_expr(x) and x._metadata.preserves_length)
         or isinstance(x, (str, Series))
         for x in args
     ):
