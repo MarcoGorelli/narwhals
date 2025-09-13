@@ -103,6 +103,3 @@ class SQLThen(
         obj._implementation = when._implementation
         obj._version = when._version
         return obj
-
-    def __call__(self, df: SQLLazyFrameT) -> Sequence[NativeExprT]:
-        return self._when_value(df)

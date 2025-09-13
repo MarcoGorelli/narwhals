@@ -58,7 +58,7 @@ class SparkLikeExpr(SQLExpr["SparkLikeLazyFrame", "Column"]):
         self._alias_output_names = alias_output_names
         self._version = version
         self._implementation = implementation
-        self._metadata: ExprMetadata | None = None
+        self._opt_metadata: ExprMetadata | None = None
         self._window_function: SparkWindowFunction | None = window_function
 
     _REMAP_RANK_METHOD: ClassVar[Mapping[RankMethod, NativeRankMethod]] = {

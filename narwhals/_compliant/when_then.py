@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self, TypeAlias
 
-    from narwhals._compliant.typing import EvalSeries
     from narwhals._expression_parsing import ExprKind
     from narwhals._utils import Implementation, Version, _LimitedContext
     from narwhals.typing import NonNestedLiteral
@@ -76,7 +75,6 @@ WhenT_contra = TypeVar(
 class CompliantThen(
     CompliantExpr[FrameT, SeriesT], Protocol[FrameT, SeriesT, ExprT, WhenT_contra]
 ):
-    _call: EvalSeries[FrameT, SeriesT]
     _when_value: CompliantWhen[FrameT, SeriesT, ExprT]
     _implementation: Implementation
     _version: Version
@@ -97,6 +95,9 @@ class CompliantThen(
     def otherwise(self, otherwise: IntoExpr[SeriesT, ExprT], /) -> ExprT:
         self._when_value._otherwise_value = otherwise
         return cast("ExprT", self)
+
+    def _call(self, df: FrameT) -> Sequence[SeriesT]:
+        return self._when_value(df)
 
 
 class EagerWhen(
