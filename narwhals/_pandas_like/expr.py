@@ -126,7 +126,7 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
         self._alias_output_names = alias_output_names
         self._implementation = implementation
         self._version = version
-        self._metadata: ExprMetadata | None = None
+        self._opt_metadata: ExprMetadata | None = None
 
     def __narwhals_namespace__(self) -> PandasLikeNamespace:
         from narwhals._pandas_like.namespace import PandasLikeNamespace
@@ -206,7 +206,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
     def over(  # noqa: C901, PLR0915
         self, partition_by: Sequence[str], order_by: Sequence[str]
     ) -> Self:
-        assert self._metadata is not None  # noqa: S101
         nodes = self._metadata.nodes  # skip last node, as we know it's `over`
         if not partition_by:
             # e.g. `nw.col('a').cum_sum().order_by(key)`
@@ -246,7 +245,6 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
                     f"and {', '.join(PandasLikeGroupBy._REMAP_AGGS)}."
                 )
                 raise NotImplementedError(msg)
-            assert self._metadata is not None  # noqa: S101
             scalar_kwargs = leaf_node.kwargs
             pandas_kwargs = window_kwargs_to_pandas_equivalent(
                 function_name, scalar_kwargs

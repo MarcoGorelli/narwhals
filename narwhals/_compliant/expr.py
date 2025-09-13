@@ -99,7 +99,12 @@ class CompliantExpr(
     _implementation: Implementation
     _evaluate_output_names: EvalNames[CompliantFrameT]
     _alias_output_names: AliasNames | None
-    _metadata: ExprMetadata | None
+    _opt_metadata: ExprMetadata | None
+
+    @property
+    def _metadata(self) -> ExprMetadata:
+        assert self._opt_metadata is not None  # noqa: S101
+        return self._opt_metadata
 
     def __call__(
         self, df: CompliantFrameT
@@ -110,12 +115,12 @@ class CompliantExpr(
     def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:  # noqa: PLR0912, C901
         ce = self
         md = ce._metadata
-        assert md is not None  # noqa: S101
         ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
         ce, *ces = maybe_broadcast_ces(ce, *ces)
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:
+            assert is_compliant_expr(ce)  # noqa: S101
             md = ExprMetadata.from_binary_op(ce, ces[0], node=node)
         elif node.kind is ExprKind.ELEMENTWISE:
             md = md.with_elementwise_op(node)
@@ -273,7 +278,6 @@ class DepthTrackingExpr(
         Elementary expressions are the only ones supported properly in
         pandas, PyArrow, and Dask.
         """
-        assert self._metadata is not None  # noqa: S101
         return len(list(self._metadata.op_nodes_reversed())) <= 2
 
 
@@ -490,7 +494,7 @@ class EagerExpr(
             implementation=self._implementation,
             version=self._version,
         )
-        ret._metadata = self._metadata
+        ret._opt_metadata = self._metadata
         return ret
 
     def cast(self, dtype: IntoDType) -> Self:
@@ -710,7 +714,7 @@ class EagerExpr(
             implementation=self._implementation,
             version=self._version,
         )
-        ret._metadata = self._metadata
+        ret._opt_metadata = self._metadata
         return ret
 
     def is_unique(self) -> Self:

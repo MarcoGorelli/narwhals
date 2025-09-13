@@ -90,16 +90,14 @@ def evaluate_output_names_and_aliases(
         if expr._alias_output_names is None
         else expr._alias_output_names(output_names)
     )
-    if exclude:
-        assert expr._metadata is not None  # noqa: S101
-        if expr._metadata.expansion_kind.is_multi_unnamed():
-            output_names, aliases = zip_strict(
-                *[
-                    (x, alias)
-                    for x, alias in zip_strict(output_names, aliases)
-                    if x not in exclude
-                ]
-            )
+    if exclude and expr._metadata.expansion_kind.is_multi_unnamed():
+        output_names, aliases = zip_strict(
+            *[
+                (x, alias)
+                for x, alias in zip_strict(output_names, aliases)
+                if x not in exclude
+            ]
+        )
     return output_names, aliases
 
 
@@ -541,7 +539,12 @@ class ExprMetadata:
         return ExprMetadata(ExpansionKind.MULTI_UNNAMED, nodes=[node])
 
     @classmethod
-    def from_binary_op(cls, lhs: Expr, rhs: IntoExpr, node: ExprNode) -> ExprMetadata:
+    def from_binary_op(
+        cls,
+        lhs: CompliantExprAny,
+        rhs: CompliantExprAny | NonNestedLiteral,
+        node: ExprNode,
+    ) -> ExprMetadata:
         # We may be able to allow multi-output rhs in the future:
         # https://github.com/narwhals-dev/narwhals/issues/2244.
         return combine_metadata(

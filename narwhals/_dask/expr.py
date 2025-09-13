@@ -585,7 +585,6 @@ class DaskExpr(
                         category=UserWarning,
                     )
                     grouped = df.native.groupby(partition_by)
-                    assert self._metadata is not None  # noqa: S101
                     kwargs = next(self._metadata.op_nodes_reversed()).kwargs
                     if dask_function_name == "size":
                         if len(output_names) != 1:  # pragma: no cover

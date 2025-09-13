@@ -291,7 +291,6 @@ class DaskWhen(CompliantWhen[DaskLazyFrame, "dx.Series", DaskExpr]):  # pyright:
         condition = self._condition(df)[0]
         # re-evaluate DataFrame if the condition aggregates to force
         #   then/otherwise to be evaluated against the aggregated frame
-        assert self._condition._metadata is not None  # noqa: S101
         if self._condition._metadata.is_scalar_like:
             new_df = df._with_native(condition.to_frame())
             condition = self._condition.broadcast(ExprKind.AGGREGATION)(df)[0]

@@ -343,7 +343,6 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
             nw.all().sum().
         """
-        assert self._metadata is not None  # noqa: S101
         return self._metadata.expansion_kind.is_multi_unnamed()
 
     # Binary

@@ -165,7 +165,6 @@ class BaseFrame(Generic[_FrameT]):
             out_kinds.append(ExprKind.from_expr(ce))
 
             if isinstance(self, LazyFrame):
-                assert ce._metadata is not None  # noqa: S101
                 if ce._metadata.n_orderable_ops:
                     msg = (
                         "Order-dependent expressions are not supported for use in LazyFrame.\n\n"

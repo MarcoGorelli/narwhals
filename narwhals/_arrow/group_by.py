@@ -71,7 +71,6 @@ class ArrowGroupBy(EagerGroupBy["ArrowDataFrame", "ArrowExpr", "Aggregation"]):
             output_names, aliases = evaluate_output_names_and_aliases(
                 expr, self.compliant, exclude
             )
-            assert expr._metadata is not None  # noqa: S101
             if len(list(expr._metadata.op_nodes_reversed())) == 1:
                 # e.g. `agg(nw.len())`
                 if (
@@ -87,7 +86,6 @@ class ArrowGroupBy(EagerGroupBy["ArrowDataFrame", "ArrowExpr", "Aggregation"]):
 
             function_name = self._leaf_name(expr)
             if function_name in {"std", "var"}:
-                assert expr._metadata is not None  # noqa: S101
                 last_node = next(expr._metadata.op_nodes_reversed())
                 option: Any = pc.VarianceOptions(**last_node.kwargs)
             elif function_name in {"len", "n_unique"}:

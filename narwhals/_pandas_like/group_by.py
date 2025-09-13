@@ -118,7 +118,6 @@ class AggExpr:
             )
         elif self.is_mode():
             compliant = group_by.compliant
-            assert self.expr._metadata is not None  # noqa: S101
             kwargs = next(self.expr._metadata.op_nodes_reversed()).kwargs
             if (keep := kwargs.get("keep")) != "any":  # pragma: no cover
                 msg = (
@@ -157,7 +156,6 @@ class AggExpr:
         return result
 
     def is_len(self) -> bool:
-        assert self.expr._metadata is not None  # noqa: S101
         return next(self.expr._metadata.op_nodes_reversed()).name == "len"
 
     def is_mode(self) -> bool:
@@ -165,7 +163,6 @@ class AggExpr:
 
     def is_top_level_function(self) -> bool:
         # e.g. `nw.len()`.
-        assert self.expr._metadata is not None  # noqa: S101
         return len(list(self.expr._metadata.op_nodes_reversed())) == 1
 
     @property
@@ -177,7 +174,6 @@ class AggExpr:
 
     def native_agg(self) -> _NativeAgg:
         """Return a partial `DataFrameGroupBy` method, missing only `self`."""
-        assert self.expr._metadata is not None  # noqa: S101
         last_node = next(self.expr._metadata.op_nodes_reversed())
         return _native_agg(
             PandasLikeGroupBy._remap_expr_name(self.leaf_name), **last_node.kwargs

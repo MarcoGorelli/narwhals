@@ -126,7 +126,6 @@ class DaskLazyGroupBy(DepthTrackingGroupBy["DaskLazyFrame", "DaskExpr", Aggregat
             output_names, aliases = evaluate_output_names_and_aliases(
                 expr, self.compliant, exclude
             )
-            assert expr._metadata is not None  # noqa: S101
             last_node = next(expr._metadata.op_nodes_reversed())
             if len(list(expr._metadata.op_nodes_reversed())) == 1:
                 # e.g. `agg(nw.len())`
