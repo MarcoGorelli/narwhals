@@ -557,7 +557,9 @@ class ExprMetadata:
         )
 
     @classmethod
-    def from_n_ary_op(cls, name: str, *exprs: IntoExpr) -> ExprMetadata:
+    def from_n_ary_op(
+        cls, name: str, *exprs: CompliantExprAny | NonNestedLiteral
+    ) -> ExprMetadata:
         node = ExprNode(ExprKind.N_ARY, name, *exprs)
         return combine_metadata(
             *exprs,

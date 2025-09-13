@@ -72,20 +72,18 @@ class DaskExpr(
 
         return DaskNamespace(version=self._version)
 
-    def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
+    def _broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         def func(df: DaskLazyFrame) -> list[dx.Series]:
             # result.loc[0][0] is a workaround for dask~<=2024.10.0/dask_expr~<=1.1.16
             #   that raised a KeyError for result[0] during collection.
             return [result.loc[0][0] for result in self(df)]
 
-        ret = self.__class__(
+        return self.__class__(
             func,
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,
         )
-        ret._metadata = self._metadata
-        return ret
 
     @classmethod
     def from_column_names(
