@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self, TypeAlias
 
     from narwhals._compliant.typing import EvalSeries
+    from narwhals._expression_parsing import ExprKind
     from narwhals._utils import Implementation, Version, _LimitedContext
     from narwhals.typing import NonNestedLiteral
 
@@ -38,12 +39,16 @@ IntoExpr: TypeAlias = "SeriesT | ExprT | NonNestedLiteral | Scalar"
 """Anything that is convertible into a `CompliantExpr`."""
 
 
-class CompliantWhen(CompliantExpr, Protocol[FrameT, SeriesT, ExprT]):
+class CompliantWhen(CompliantExpr[FrameT, ExprT], Protocol[FrameT, SeriesT, ExprT]):
     _condition: ExprT
     _then_value: IntoExpr[SeriesT, ExprT]
     _otherwise_value: IntoExpr[SeriesT, ExprT] | None
     _implementation: Implementation
     _version: Version
+
+    def broadcast(self, kind: ExprKind) -> Self:
+        # TODO(marco): We can probably do better than this.
+        return self
 
     @property
     def _then(self) -> type[CompliantThen[FrameT, SeriesT, ExprT, Self]]: ...
