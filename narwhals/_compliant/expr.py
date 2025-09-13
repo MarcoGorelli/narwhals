@@ -1199,6 +1199,6 @@ class EagerExprStructNamespace(
     _accessor = "struct"
 
     def field(self, name: str) -> EagerExprT:
-        return self.compliant._reuse_series_namespace("struct", "field", name=name).alias(
-            name
-        )
+        return self.compliant._reuse_series_namespace(
+            "struct", "field", name=name
+        )._alias(name)

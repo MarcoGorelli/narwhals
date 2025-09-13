@@ -30,7 +30,7 @@ class PandasLikeSeriesListNamespace(
             implementation,
             self.version,
         )
-        return self.with_native(result.astype(dtype)).alias(self.native.name)
+        return self.with_native(result.astype(dtype))._alias(self.native.name)
 
     unique = not_implemented()
 
