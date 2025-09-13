@@ -682,7 +682,7 @@ class PandasLikeSeries(EagerSeries[Any]):
             self.native.sort_values(ascending=not descending, na_position=na_position)
         ).alias(self.name)
 
-    def alias(self, name: str | Hashable) -> Self:
+    def _alias(self, name: str | Hashable) -> Self:
         if name != self.name:
             return self._with_native(
                 rename(self.native, name, implementation=self._implementation),

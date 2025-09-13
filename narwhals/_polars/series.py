@@ -268,7 +268,7 @@ class PolarsSeries:
     def native(self) -> pl.Series:
         return self._native_series
 
-    def alias(self, name: str) -> Self:
+    def _alias(self, name: str) -> Self:
         return self._from_native_object(self.native.alias(name))
 
     def __getitem__(self, item: MultiIndexSelector[Self]) -> Any | Self:
