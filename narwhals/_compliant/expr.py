@@ -103,6 +103,8 @@ class CompliantExpr(
 
     @property
     def _metadata(self) -> ExprMetadata:
+        # This should be set with extreme care, and only at the Narwhals level or in
+        # `_expression_parsing.py`, and never from within any compliant class.
         assert self._opt_metadata is not None  # noqa: S101
         return self._opt_metadata
 

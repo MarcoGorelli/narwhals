@@ -98,7 +98,7 @@ class CompliantThen(
         ret._when_value._otherwise_value = otherwise
         return cast("ExprT", self)
 
-    def _call(self, df: FrameT, /) -> Sequence[SeriesT]:
+    def _call(self, df: FrameT) -> Sequence[SeriesT]:
         return self._when_value(df)
 
 
