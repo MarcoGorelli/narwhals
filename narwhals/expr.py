@@ -113,13 +113,6 @@ class Expr:
                 func = getattr(getattr(ns, module), method)
             else:
                 func = getattr(ns, node.name)
-            ce = func(
-                *[
-                    ns.evaluate_expr(_parse_into_expr(expr, backend=ns._implementation))
-                    for expr in node.exprs
-                ],
-                **node.kwargs,
-            )
             ces = [
                 ns.evaluate_expr(_parse_into_expr(x, backend=ns._implementation))
                 for x in node.exprs
@@ -137,6 +130,7 @@ class Expr:
                 else compliant_expr
                 for compliant_expr, kind in zip_strict(ces, kinds)
             ]
+            ce = func(*ces, **node.kwargs)
             if node.kind is ExprKind.COL:
                 md = (
                     ExprMetadata.selector_single(node)
@@ -159,10 +153,8 @@ class Expr:
                 md = ExprMetadata.selector_multi_unnamed(node)
             elif node.kind is ExprKind.WHEN:
                 md = ces[0]._metadata
-                ce = getattr(ns, node.name)(*ces, **node.kwargs)
             elif node.kind is ExprKind.N_ARY:
                 md = ExprMetadata.from_n_ary_op(node.name, *ces)
-                ce = getattr(ns, node.name)(*ces, **node.kwargs)
             else:
                 msg = "unexpected kind, please report bug"
                 raise NotImplementedError(msg)
