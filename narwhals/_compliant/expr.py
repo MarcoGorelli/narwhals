@@ -28,6 +28,15 @@ from narwhals._compliant.typing import (
     LazyExprT,
     NativeExprT,
 )
+from narwhals._expression_parsing import (
+    ExprKind,
+    ExprMetadata,
+    ExprNode,
+    apply_binary,
+    combine_metadata,
+    is_compliant_expr,
+    is_scalar_like,
+)
 from narwhals._utils import (
     _StoresCompliant,
     not_implemented,
@@ -35,6 +44,7 @@ from narwhals._utils import (
     zip_strict,
 )
 from narwhals.dependencies import is_numpy_array, is_numpy_scalar
+from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -44,7 +54,6 @@ if TYPE_CHECKING:
     from narwhals._compliant.namespace import CompliantNamespace, EagerNamespace
     from narwhals._compliant.series import CompliantSeries
     from narwhals._compliant.typing import AliasNames, EvalNames, EvalSeries
-    from narwhals._expression_parsing import ExprKind, ExprMetadata
     from narwhals._utils import Implementation, Version, _LimitedContext
     from narwhals.typing import (
         ClosedInterval,
@@ -97,6 +106,143 @@ class CompliantExpr(
     ) -> Sequence[CompliantSeriesOrNativeExprT_co]: ...
     def __narwhals_expr__(self) -> Self:  # pragma: no cover
         return self
+
+    def with_node(self, node: ExprNode) -> Self:  # noqa: PLR0915,PLR0912,C901
+        from narwhals.expr import _parse_into_expr
+
+        plx = self.__narwhals_namespace__()
+        ce = self
+        md = ce._metadata
+        assert md is not None  # noqa: S101
+        ces = [
+            plx.parse_into_expr(
+                _parse_into_expr(
+                    expr, str_as_lit=node.str_as_lit, backend=plx._implementation
+                ),
+                str_as_lit=node.str_as_lit,
+            )
+            for expr in node.exprs
+        ]
+        kinds = [
+            ExprKind.from_into_expr(comparand, str_as_lit=node.str_as_lit)
+            for comparand in [ce, *ces]
+        ]
+        broadcast = any(not kind.is_scalar_like for kind in kinds)
+        ce, *ces = [
+            compliant_expr.broadcast(kind)
+            if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
+            else compliant_expr
+            for compliant_expr, kind in zip_strict([ce, *ces], kinds)
+        ]
+        if node.kind is ExprKind.AGGREGATION:
+            md = md.with_aggregation(node)
+        elif node.kind is ExprKind.BINARY:
+            other_ce = ces[0]
+            md = ExprMetadata.from_binary_op(ce, other_ce, node)
+            ce = apply_binary(plx, node.name, ce, other_ce)
+            ce._metadata = md
+        elif node.kind is ExprKind.ELEMENTWISE:
+            md = md.with_elementwise_op(node)
+        elif node.kind is ExprKind.FILTRATION:
+            md = md.with_filtration(node)
+        elif node.kind is ExprKind.ORDERABLE_WINDOW:
+            md = md.with_orderable_window(node)
+        elif node.kind is ExprKind.ORDERABLE_FILTRATION:
+            md = md.with_orderable_filtration(node)
+        elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
+            md = md.with_orderable_aggregation(node)
+        elif node.kind is ExprKind.WINDOW:
+            md = md.with_window(node)
+        elif node.kind is ExprKind.THEN:
+            md = combine_metadata(
+                ce,
+                *ces,
+                str_as_lit=False,
+                allow_multi_output=False,
+                to_single_output=False,
+                nodes=[*ce._metadata.nodes, node],
+            )
+            if (
+                ce._metadata.is_scalar_like
+                and not ExprKind.from_into_expr(ces[0], str_as_lit=False).is_scalar_like
+            ):
+                msg = (
+                    "If you pass a scalar-like predicate to `nw.when`, then "
+                    "the `then` value must also be scalar-like."
+                )
+                raise InvalidOperationError(msg)
+            ce = ce.then(ces[0])
+            ce._metadata = md
+        elif node.kind is ExprKind.THEN_OTHERWISE:
+            md = combine_metadata(
+                ce,
+                *ces,
+                str_as_lit=False,
+                allow_multi_output=False,
+                to_single_output=False,
+                nodes=[*ce._metadata.nodes, node],
+            )
+            if (
+                ce._metadata.is_scalar_like
+                and not ExprKind.from_into_expr(ces[0], str_as_lit=False).is_scalar_like
+            ):
+                msg = (
+                    "If you pass a scalar-like predicate to `nw.when`, then "
+                    "the `then` value must also be scalar-like."
+                )
+                raise InvalidOperationError(msg)
+            ce = ce.then(ces[0]).otherwise(ces[1])
+            ce._metadata = md
+        elif node.kind is ExprKind.OTHERWISE:
+            md = combine_metadata(
+                ce,
+                *ces,
+                str_as_lit=False,
+                allow_multi_output=False,
+                to_single_output=False,
+                nodes=[*ce._metadata.nodes, node],
+            )
+            if (
+                ce._metadata.is_scalar_like
+                and not ExprKind.from_into_expr(ces[0], str_as_lit=False).is_scalar_like
+            ):
+                msg = (
+                    "If you pass a scalar-like predicate to `nw.when`, then "
+                    "the `otherwise` value must also be scalar-like."
+                )
+                raise InvalidOperationError(msg)
+            ce = ce.otherwise(*ces)
+            ce._metadata = md
+        elif node.kind is ExprKind.OVER:
+            current_meta = md
+            if node.kwargs["order_by"]:
+                md = current_meta.with_ordered_over(node)
+            elif not node.kwargs["partition_by"]:  # pragma: no cover
+                msg = "At least one of `partition_by` or `order_by` must be specified."
+                raise InvalidOperationError(msg)
+            else:
+                md = current_meta.with_partitioned_over(node)
+            ce = ce.over(node.kwargs["partition_by"], node.kwargs["order_by"])
+            ce._metadata = md
+        else:
+            msg = f"Unexpected node kind: {node.kind}"
+            raise AssertionError(msg)
+        if "." in node.name:
+            accessor, method = node.name.split(".")
+            func = getattr(getattr(ce, accessor), method)
+        else:
+            func = getattr(ce, node.name)
+
+        if any(
+            x._metadata.expansion_kind.is_multi_output()
+            for x in ces
+            if is_compliant_expr(x)
+        ):
+            msg = "multi-output expressions are not allowed as arguments to Expr methods."
+            raise MultiOutputExpressionError(msg)
+        ce = func(*ces, **node.kwargs)
+        ce._metadata = md
+        return ce
 
     def __narwhals_namespace__(self) -> CompliantNamespace[CompliantFrameT, Self]: ...
     @classmethod

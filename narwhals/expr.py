@@ -8,8 +8,6 @@ from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
     ExprNode,
-    apply_binary,
-    combine_metadata,
     is_compliant_expr,
     is_expr,
     is_scalar_like,
@@ -23,11 +21,7 @@ from narwhals._utils import (
     zip_strict,
 )
 from narwhals.dtypes import _validate_dtype
-from narwhals.exceptions import (
-    ComputeError,
-    InvalidOperationError,
-    MultiOutputExpressionError,
-)
+from narwhals.exceptions import ComputeError
 from narwhals.expr_cat import ExprCatNamespace
 from narwhals.expr_dt import ExprDateTimeNamespace
 from narwhals.expr_list import ExprListNamespace
@@ -107,38 +101,37 @@ class Expr:
     def __init__(self, *nodes: ExprNode) -> None:
         self._nodes = nodes
 
-    def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:  # noqa: PLR0915,PLR0912,C901
-        nodes = self._nodes
-        # Parse root
-        root = nodes[0]
-        if root.kind is ExprKind.SERIES:
-            md = ExprMetadata.selector_single(root)
-            ce = root.exprs[0]
+    def _evaluate_node(  # noqa: PLR0912,C901
+        self, node: ExprNode, ns: CompliantNamespace[Any, Any]
+    ) -> CompliantExpr[Any, Any]:
+        if node.kind is ExprKind.SERIES:
+            md = ExprMetadata.selector_single(node)
+            ce = node.exprs[0]
         else:
-            if "." in root.name:
-                module, method = root.name.split(".")
-                func = getattr(getattr(plx, module), method)
+            if "." in node.name:
+                module, method = node.name.split(".")
+                func = getattr(getattr(ns, module), method)
             else:
-                func = getattr(plx, root.name)
+                func = getattr(ns, node.name)
             ce = func(
                 *[
-                    plx.parse_into_expr(
-                        _parse_into_expr(expr, backend=plx._implementation),
-                        str_as_lit=root.str_as_lit,
+                    ns.parse_into_expr(
+                        _parse_into_expr(expr, backend=ns._implementation),
+                        str_as_lit=node.str_as_lit,
                     )
-                    for expr in root.exprs
+                    for expr in node.exprs
                 ],
-                **root.kwargs,
+                **node.kwargs,
             )
             ces = [
-                plx.parse_into_expr(
-                    _parse_into_expr(x, backend=plx._implementation),
-                    str_as_lit=root.str_as_lit,
+                ns.parse_into_expr(
+                    _parse_into_expr(x, backend=ns._implementation),
+                    str_as_lit=node.str_as_lit,
                 )
-                for x in root.exprs
+                for x in node.exprs
             ]
             kinds = [
-                ExprKind.from_into_expr(comparand, str_as_lit=root.str_as_lit)
+                ExprKind.from_into_expr(comparand, str_as_lit=node.str_as_lit)
                 for comparand in ces
             ]
             broadcast = any(not kind.is_scalar_like for kind in kinds)
@@ -150,182 +143,43 @@ class Expr:
                 else compliant_expr
                 for compliant_expr, kind in zip_strict(ces, kinds)
             ]
-            if root.kind is ExprKind.COL:
+            if node.kind is ExprKind.COL:
                 md = (
-                    ExprMetadata.selector_single(root)
-                    if len(root.kwargs["names"]) == 1
-                    else ExprMetadata.selector_multi_named(root)
+                    ExprMetadata.selector_single(node)
+                    if len(node.kwargs["names"]) == 1
+                    else ExprMetadata.selector_multi_named(node)
                 )
-            elif root.kind is ExprKind.NTH:
+            elif node.kind is ExprKind.NTH:
                 md = (
-                    ExprMetadata.selector_single(root)
-                    if len(root.kwargs["indices"]) == 1
-                    else ExprMetadata.selector_multi_unnamed(root)
+                    ExprMetadata.selector_single(node)
+                    if len(node.kwargs["indices"]) == 1
+                    else ExprMetadata.selector_multi_unnamed(node)
                 )
-            elif root.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
-                md = ExprMetadata.selector_multi_unnamed(root)
-            elif root.kind is ExprKind.AGGREGATION:
-                md = ExprMetadata.aggregation(root)
-            elif root.kind is ExprKind.LITERAL:
-                md = ExprMetadata.literal(root)
-            elif root.kind is ExprKind.SELECTOR:
-                md = ExprMetadata.selector_multi_unnamed(root)
-            elif root.kind is ExprKind.WHEN:
+            elif node.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
+                md = ExprMetadata.selector_multi_unnamed(node)
+            elif node.kind is ExprKind.AGGREGATION:
+                md = ExprMetadata.aggregation(node)
+            elif node.kind is ExprKind.LITERAL:
+                md = ExprMetadata.literal(node)
+            elif node.kind is ExprKind.SELECTOR:
+                md = ExprMetadata.selector_multi_unnamed(node)
+            elif node.kind is ExprKind.WHEN:
                 md = ces[0]._metadata
-                ce = getattr(plx, root.name)(*ces, **root.kwargs)
-            elif root.kind is ExprKind.N_ARY:
-                md = ExprMetadata.from_n_ary_op(root.name, *ces)
-                ce = getattr(plx, root.name)(*ces, **root.kwargs)
+                ce = getattr(ns, node.name)(*ces, **node.kwargs)
+            elif node.kind is ExprKind.N_ARY:
+                md = ExprMetadata.from_n_ary_op(node.name, *ces)
+                ce = getattr(ns, node.name)(*ces, **node.kwargs)
             else:
                 msg = "unexpected kind, please report bug"
                 raise NotImplementedError(msg)
         ce._metadata = md
-        # Parse next nodes.
+        return ce
+
+    def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
+        nodes = self._nodes
+        ce = self._evaluate_node(nodes[0], plx)
         for node in nodes[1:]:
-            ces = [
-                plx.parse_into_expr(
-                    _parse_into_expr(
-                        expr, str_as_lit=node.str_as_lit, backend=plx._implementation
-                    ),
-                    str_as_lit=node.str_as_lit,
-                )
-                for expr in node.exprs
-            ]
-            kinds = [
-                ExprKind.from_into_expr(comparand, str_as_lit=node.str_as_lit)
-                for comparand in [ce, *ces]
-            ]
-            broadcast = any(not kind.is_scalar_like for kind in kinds)
-            ce, *ces = [
-                compliant_expr.broadcast(kind)
-                if broadcast
-                and is_compliant_expr(compliant_expr)
-                and is_scalar_like(kind)
-                else compliant_expr
-                for compliant_expr, kind in zip_strict([ce, *ces], kinds)
-            ]
-            if node.kind is ExprKind.AGGREGATION:
-                md = md.with_aggregation(node)
-            elif node.kind is ExprKind.BINARY:
-                other_ce = ces[0]
-                md = ExprMetadata.from_binary_op(ce, other_ce, node)
-                ce = apply_binary(plx, node.name, ce, other_ce)
-                ce._metadata = md
-                continue
-            elif node.kind is ExprKind.ELEMENTWISE:
-                md = md.with_elementwise_op(node)
-            elif node.kind is ExprKind.FILTRATION:
-                md = md.with_filtration(node)
-            elif node.kind is ExprKind.ORDERABLE_WINDOW:
-                md = md.with_orderable_window(node)
-            elif node.kind is ExprKind.ORDERABLE_FILTRATION:
-                md = md.with_orderable_filtration(node)
-            elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
-                md = md.with_orderable_aggregation(node)
-            elif node.kind is ExprKind.WINDOW:
-                md = md.with_window(node)
-            elif node.kind is ExprKind.THEN:
-                md = combine_metadata(
-                    ce,
-                    *ces,
-                    str_as_lit=False,
-                    allow_multi_output=False,
-                    to_single_output=False,
-                    nodes=[*ce._metadata.nodes, node],
-                )
-                if (
-                    ce._metadata.is_scalar_like
-                    and not ExprKind.from_into_expr(
-                        ces[0], str_as_lit=False
-                    ).is_scalar_like
-                ):
-                    msg = (
-                        "If you pass a scalar-like predicate to `nw.when`, then "
-                        "the `then` value must also be scalar-like."
-                    )
-                    raise InvalidOperationError(msg)
-                ce = ce.then(ces[0])
-                ce._metadata = md
-                continue
-            elif node.kind is ExprKind.THEN_OTHERWISE:
-                md = combine_metadata(
-                    ce,
-                    *ces,
-                    str_as_lit=False,
-                    allow_multi_output=False,
-                    to_single_output=False,
-                    nodes=[*ce._metadata.nodes, node],
-                )
-                if (
-                    ce._metadata.is_scalar_like
-                    and not ExprKind.from_into_expr(
-                        ces[0], str_as_lit=False
-                    ).is_scalar_like
-                ):
-                    msg = (
-                        "If you pass a scalar-like predicate to `nw.when`, then "
-                        "the `then` value must also be scalar-like."
-                    )
-                    raise InvalidOperationError(msg)
-                ce = ce.then(ces[0]).otherwise(ces[1])
-                ce._metadata = md
-                continue
-            elif node.kind is ExprKind.OTHERWISE:
-                md = combine_metadata(
-                    ce,
-                    *ces,
-                    str_as_lit=False,
-                    allow_multi_output=False,
-                    to_single_output=False,
-                    nodes=[*ce._metadata.nodes, node],
-                )
-                if (
-                    ce._metadata.is_scalar_like
-                    and not ExprKind.from_into_expr(
-                        ces[0], str_as_lit=False
-                    ).is_scalar_like
-                ):
-                    msg = (
-                        "If you pass a scalar-like predicate to `nw.when`, then "
-                        "the `otherwise` value must also be scalar-like."
-                    )
-                    raise InvalidOperationError(msg)
-                ce = ce.otherwise(*ces)
-                ce._metadata = md
-                continue
-            elif node.kind is ExprKind.OVER:
-                current_meta = md
-                if node.kwargs["order_by"]:
-                    md = current_meta.with_ordered_over(node)
-                elif not node.kwargs["partition_by"]:  # pragma: no cover
-                    msg = (
-                        "At least one of `partition_by` or `order_by` must be specified."
-                    )
-                    raise InvalidOperationError(msg)
-                else:
-                    md = current_meta.with_partitioned_over(node)
-                ce = ce.over(node.kwargs["partition_by"], node.kwargs["order_by"])
-                ce._metadata = md
-                continue
-            else:
-                msg = f"Unexpected node kind: {node.kind}"
-                raise AssertionError(msg)
-
-            if "." in node.name:
-                accessor, method = node.name.split(".")
-                func = getattr(getattr(ce, accessor), method)
-            else:
-                func = getattr(ce, node.name)
-
-            if any(
-                x._metadata.expansion_kind.is_multi_output()
-                for x in ces
-                if is_compliant_expr(x)
-            ):
-                msg = "multi-output expressions are not allowed as arguments to Expr methods."
-                raise MultiOutputExpressionError(msg)
-            ce = func(*ces, **node.kwargs)
-            ce._metadata = md
+            ce = ce.with_node(node)
         return ce
 
     def _with_node(self, node: ExprNode) -> Self:
