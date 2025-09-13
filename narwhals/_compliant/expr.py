@@ -33,8 +33,9 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     combine_metadata,
+    evaluate_into_exprs,
     is_compliant_expr,
-    is_scalar_like,
+    maybe_broadcast_ces,
 )
 from narwhals._utils import (
     _StoresCompliant,
@@ -106,31 +107,12 @@ class CompliantExpr(
     def __narwhals_expr__(self) -> Self:  # pragma: no cover
         return self
 
-    def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:  # noqa: PLR0915,PLR0912,C901
-        from narwhals.expr import _parse_into_expr
-
+    def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:  # noqa: PLR0912, C901
         ce = self
         md = ce._metadata
         assert md is not None  # noqa: S101
-        ces = [
-            ns.evaluate_expr(
-                _parse_into_expr(
-                    expr, str_as_lit=node.str_as_lit, backend=ns._implementation
-                )
-            )
-            for expr in node.exprs
-        ]
-        kinds = [
-            ExprKind.from_into_expr(comparand, str_as_lit=node.str_as_lit)
-            for comparand in [ce, *ces]
-        ]
-        broadcast = any(not kind.is_scalar_like for kind in kinds)
-        ce, *ces = [
-            compliant_expr.broadcast(kind)
-            if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
-            else compliant_expr
-            for compliant_expr, kind in zip_strict([ce, *ces], kinds)
-        ]
+        ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+        ce, *ces = maybe_broadcast_ces(ce, *ces, str_as_lit=node.str_as_lit)
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
         elif node.kind is ExprKind.BINARY:

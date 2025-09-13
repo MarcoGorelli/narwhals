@@ -8,17 +8,16 @@ from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
     ExprNode,
-    is_compliant_expr,
+    evaluate_into_exprs,
     is_expr,
-    is_scalar_like,
     is_series,
+    maybe_broadcast_ces,
 )
 from narwhals._utils import (
     _validate_rolling_arguments,
     ensure_type,
     flatten,
     is_numpy_array_1d,
-    zip_strict,
 )
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import ComputeError
@@ -113,23 +112,10 @@ class Expr:
                 func = getattr(getattr(ns, module), method)
             else:
                 func = getattr(ns, node.name)
-            ces = [
-                ns.evaluate_expr(_parse_into_expr(x, backend=ns._implementation))
-                for x in node.exprs
-            ]
-            kinds = [
-                ExprKind.from_into_expr(comparand, str_as_lit=node.str_as_lit)
-                for comparand in ces
-            ]
-            broadcast = any(not kind.is_scalar_like for kind in kinds)
-            ces = [
-                compliant_expr.broadcast(kind)
-                if broadcast
-                and is_compliant_expr(compliant_expr)
-                and is_scalar_like(kind)
-                else compliant_expr
-                for compliant_expr, kind in zip_strict(ces, kinds)
-            ]
+            ces = maybe_broadcast_ces(
+                *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit),
+                str_as_lit=node.str_as_lit,
+            )
             ce = func(*ces, **node.kwargs)
             if node.kind is ExprKind.COL:
                 md = (

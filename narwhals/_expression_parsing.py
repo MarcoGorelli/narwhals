@@ -698,3 +698,31 @@ def apply_binary(
     other_compliant = parse(other, str_as_lit=str_as_lit)
     compliant_exprs = [ce, other_compliant]
     return getattr(compliant_exprs[0], name)(compliant_exprs[1])
+
+
+def evaluate_into_exprs(
+    *exprs: IntoExpr, ns: CompliantNamespaceAny, str_as_lit: bool
+) -> list[CompliantExprAny]:
+    from narwhals.expr import _parse_into_expr
+
+    return [
+        ns.evaluate_expr(
+            _parse_into_expr(expr, str_as_lit=str_as_lit, backend=ns._implementation)
+        )
+        for expr in exprs
+    ]
+
+
+def maybe_broadcast_ces(
+    *ces: CompliantExprAny, str_as_lit: bool
+) -> list[CompliantExprAny]:
+    kinds = [
+        ExprKind.from_into_expr(comparand, str_as_lit=str_as_lit) for comparand in ces
+    ]
+    broadcast = any(not kind.is_scalar_like for kind in kinds)
+    return [
+        compliant_expr.broadcast(kind)
+        if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind)
+        else compliant_expr
+        for compliant_expr, kind in zip_strict(ces, kinds)
+    ]
