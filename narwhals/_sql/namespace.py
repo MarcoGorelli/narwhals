@@ -115,13 +115,14 @@ class SQLNamespace(
                 )
             ]
 
-        _then = then if is_compliant_expr(then) else self.lit(then, None)
-        context = _then
+        context = predicate
         return self._expr(
             call,
             window_function=window_function,
-            evaluate_output_names=_then._evaluate_output_names,
-            alias_output_names=_then._alias_output_names,
+            evaluate_output_names=getattr(
+                then, "_evaluate_output_names", lambda _df: ["literal"]
+            ),
+            alias_output_names=getattr(then, "_alias_output_names", None),
             version=context._version,
             implementation=context._implementation,
         )
