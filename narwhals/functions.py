@@ -1330,7 +1330,9 @@ class When:
 
 class Then(Expr):
     def otherwise(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Expr:
-        return self._with_node(ExprNode(ExprKind.OTHERWISE, "otherwise", value))
+        # eject latest node, replace with `when_then_otherwise`
+        node = self._nodes[0]
+        return Expr(ExprNode(ExprKind.N_ARY, "when_then", *node.exprs, value))
 
 
 def when(*predicates: IntoExpr | Iterable[IntoExpr]) -> When:

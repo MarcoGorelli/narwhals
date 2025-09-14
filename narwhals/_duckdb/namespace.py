@@ -163,9 +163,11 @@ class DuckDBNamespace(
             version=self._version,
         )
 
-    def when_then(self, predicate: DuckDBExpr, then: DuckDBExpr) -> DuckDBExpr:
+    def when_then(
+        self, predicate: DuckDBExpr, then: DuckDBExpr, otherwise: DuckDBExpr | None
+    ) -> DuckDBExpr:
         return self._expr._from_elementwise_horizontal_op(
-            lambda exprs: self._when(*exprs), predicate, then
+            lambda exprs: self._when(*exprs), predicate, then, otherwise
         )
 
 
