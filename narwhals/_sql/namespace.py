@@ -93,7 +93,9 @@ class SQLNamespace(
                 else self._lit(otherwise)
             )
 
-            return [self._when(predicate(df)[0], then_native, otherwise_native)]
+            return [
+                self._when(df._evaluate_expr(predicate), then_native, otherwise_native)
+            ]
 
         def window_function(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
@@ -113,7 +115,7 @@ class SQLNamespace(
 
             return [
                 self._when(
-                    predicate.window_function(df, window_inputs)[0],
+                    df._evaluate_window_expr(predicate, window_inputs),
                     then_native,
                     otherwise_native,
                 )
