@@ -99,12 +99,12 @@ class SQLNamespace(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
             then_native = (
-                then.window_function(df, window_inputs)[0]
+                df._evaluate_window_expr(then, window_inputs)
                 if is_compliant_expr(then)
                 else self._lit(then)
             )
             otherwise_native = (
-                otherwise.window_function(df, window_inputs)[0]
+                df._evaluate_window_expr(otherwise, window_inputs)
                 if is_compliant_expr(otherwise)
                 else None
                 if otherwise is None
