@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from narwhals._compliant import LazyNamespace
 from narwhals._compliant.typing import NativeExprT, NativeFrameT_co
+from narwhals._expression_parsing import is_compliant_expr
 from narwhals._sql.typing import SQLExprT, SQLLazyFrameT
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
-    from narwhals.typing import PythonLiteral
+    from narwhals._sql.expr import WindowInputs
+    from narwhals.typing import NonNestedLiteral, PythonLiteral
 
 
 class SQLNamespace(
@@ -71,3 +73,55 @@ class SQLNamespace(
             return self._coalesce(*cols)
 
         return self._expr._from_elementwise_horizontal_op(func, *exprs)
+
+    def when_then(
+        self,
+        predicate: SQLExprT,
+        then: SQLExprT | NonNestedLiteral,
+        otherwise: SQLExprT | NonNestedLiteral | None = None,
+    ) -> SQLExprT:
+        def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
+            # normalise them inside here?
+            _then = then(df)[0] if is_compliant_expr(then) else self._lit(then)
+            _otherwise = (
+                otherwise(df)[0]
+                if is_compliant_expr(otherwise)
+                else None
+                if otherwise is None
+                else self._lit(otherwise)
+            )
+
+            return [self._when(predicate(df)[0], _then, _otherwise)]
+
+        def window_function(
+            df: SQLLazyFrameT, window_inputs: WindowInputs
+        ) -> Sequence[NativeExprT]:
+            _then = (
+                then.window_function(df, window_inputs)[0]
+                if is_compliant_expr(then)
+                else self._lit(then)
+            )
+            _otherwise = (
+                otherwise.window_function(df, window_inputs)[0]
+                if is_compliant_expr(otherwise)
+                else None
+                if otherwise is None
+                else self._lit(otherwise)
+            )
+
+            return [
+                self._when(
+                    predicate.window_function(df, window_inputs)[0], _then, _otherwise
+                )
+            ]
+
+        _then = then if is_compliant_expr(then) else self.lit(then, None)
+        context = _then
+        return self._expr(
+            call,
+            window_function=window_function,
+            evaluate_output_names=_then._evaluate_output_names,
+            alias_output_names=_then._alias_output_names,
+            version=context._version,
+            implementation=context._implementation,
+        )
