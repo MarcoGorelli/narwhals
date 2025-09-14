@@ -81,7 +81,6 @@ class SQLNamespace(
         otherwise: SQLExprT | NonNestedLiteral | None = None,
     ) -> SQLExprT:
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
-            # normalise them inside here?
             then_native = (
                 df._evaluate_expr(then) if is_compliant_expr(then) else self._lit(then)
             )
