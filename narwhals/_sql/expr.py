@@ -17,7 +17,7 @@ from narwhals._expression_parsing import (
     combine_evaluate_output_names,
 )
 from narwhals._sql.typing import SQLLazyFrameT
-from narwhals._sql.utils import evaluate_exprs
+from narwhals._sql.utils import evaluate_exprs, evaluate_exprs_in_window_function
 from narwhals._utils import Implementation, Version, not_implemented
 
 if TYPE_CHECKING:
@@ -320,10 +320,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         def window_function(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
-            cols = (
-                col for _expr in exprs for col in _expr.window_function(df, window_inputs)
-            )
-            return [func(cols)]
+            return [func(evaluate_exprs_in_window_function(df, window_inputs, *exprs))]
 
         context = exprs[0]
         return cls(
