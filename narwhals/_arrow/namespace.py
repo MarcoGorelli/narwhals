@@ -13,7 +13,7 @@ from narwhals._arrow.expr import ArrowExpr
 from narwhals._arrow.selectors import ArrowSelectorNamespace
 from narwhals._arrow.series import ArrowSeries
 from narwhals._arrow.utils import cast_to_comparable_string_types
-from narwhals._compliant import CompliantThen, EagerNamespace, EagerWhen
+from narwhals._compliant import EagerNamespace
 from narwhals._expression_parsing import (
     combine_alias_output_names,
     combine_evaluate_output_names,
@@ -257,8 +257,12 @@ class ArrowNamespace(
             context=self,
         )
 
-
-class ArrowWhen(EagerWhen[ArrowDataFrame, ArrowSeries, ArrowExpr, "ChunkedArrayAny"]):
+    def when_then(
+        self,
+        predicate: ArrowExpr,
+        then: ArrowExpr | NonNestedLiteral,
+        otherwise: ArrowExpr | NonNestedLiteral | None = None,
+    ) -> ArrowExpr: ...
     @property
     def _then(self) -> type[ArrowThen]:
         return ArrowThen
@@ -270,10 +274,26 @@ class ArrowWhen(EagerWhen[ArrowDataFrame, ArrowSeries, ArrowExpr, "ChunkedArrayA
         otherwise: ArrayOrScalar | NonNestedLiteral,
         /,
     ) -> ChunkedArrayAny:
-        otherwise = pa.nulls(len(when), then.type) if otherwise is None else otherwise
-        return pc.if_else(when, then, otherwise)
+        ...
+        # otherwise = pa.nulls(len(when), then.type) if otherwise is None else otherwise
+        # return pc.if_else(when, then, otherwise)
 
+        # is_expr = self._condition._is_expr
+        # when: EagerSeriesT = self._condition(df)[0]
+        # then: EagerSeriesT
+        # align = when._align_full_broadcast
 
-class ArrowThen(
-    CompliantThen[ArrowDataFrame, ArrowSeries, ArrowExpr, ArrowWhen], ArrowExpr
-): ...
+        # if is_expr(self._then_value):
+        #     then = self._then_value(df)[0]
+        # else:
+        #     then = when.alias("literal")._from_scalar(self._then_value)
+        #     then._broadcast = True
+
+        # if is_expr(self._otherwise_value):
+        #     otherwise = self._otherwise_value(df)[0]
+        #     when, then, otherwise = align(when, then, otherwise)
+        #     result = self._if_then_else(when.native, then.native, otherwise.native)
+        # else:
+        #     when, then = align(when, then)
+        #     result = self._if_then_else(when.native, then.native, self._otherwise_value)
+        # return [then._with_native(result)]
