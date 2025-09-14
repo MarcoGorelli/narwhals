@@ -82,26 +82,28 @@ class SQLNamespace(
     ) -> SQLExprT:
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
             # normalise them inside here?
-            _then = then(df)[0] if is_compliant_expr(then) else self._lit(then)
-            _otherwise = (
-                otherwise(df)[0]
+            then_native = (
+                df._evaluate_expr(then) if is_compliant_expr(then) else self._lit(then)
+            )
+            otherwise_native = (
+                df._evaluate_expr(otherwise)
                 if is_compliant_expr(otherwise)
                 else None
                 if otherwise is None
                 else self._lit(otherwise)
             )
 
-            return [self._when(predicate(df)[0], _then, _otherwise)]
+            return [self._when(predicate(df)[0], then_native, otherwise_native)]
 
         def window_function(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
-            _then = (
+            then_native = (
                 then.window_function(df, window_inputs)[0]
                 if is_compliant_expr(then)
                 else self._lit(then)
             )
-            _otherwise = (
+            otherwise_native = (
                 otherwise.window_function(df, window_inputs)[0]
                 if is_compliant_expr(otherwise)
                 else None
@@ -111,7 +113,9 @@ class SQLNamespace(
 
             return [
                 self._when(
-                    predicate.window_function(df, window_inputs)[0], _then, _otherwise
+                    predicate.window_function(df, window_inputs)[0],
+                    then_native,
+                    otherwise_native,
                 )
             ]
 
