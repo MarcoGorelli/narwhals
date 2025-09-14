@@ -94,7 +94,7 @@ class SQLNamespace(
             return [self._when(predicate(df)[0], _then, _otherwise)]
 
         def window_function(
-            df: SQLLazyFrameT, window_inputs: WindowInputs
+            df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
             _then = (
                 then.window_function(df, window_inputs)[0]
