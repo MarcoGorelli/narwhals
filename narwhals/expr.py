@@ -9,7 +9,6 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     evaluate_into_exprs,
-    is_compliant_expr,
     maybe_broadcast_ces,
 )
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
@@ -72,50 +71,24 @@ class Expr:
     def __init__(self, *nodes: ExprNode) -> None:
         self._nodes = nodes
 
-    def _evaluate_node(  # noqa: PLR0912,C901
+    def _evaluate_node(
         self, node: ExprNode, ns: CompliantNamespace[Any, Any]
     ) -> CompliantExpr[Any, Any]:
         if node.kind is ExprKind.SERIES:
             md = ExprMetadata.selector_single(node)
-            ce = node.exprs[0]
+            ce = node.exprs[0]  # can we do better?
+            ce._opt_metadata = md
+            return ce
+        if "." in node.name:
+            module, method = node.name.split(".")
+            func = getattr(getattr(ns, module), method)
         else:
-            if "." in node.name:
-                module, method = node.name.split(".")
-                func = getattr(getattr(ns, module), method)
-            else:
-                func = getattr(ns, node.name)
-            ces = maybe_broadcast_ces(
-                *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
-            )
-            ce = func(*ces, **node.kwargs)
-            if node.kind is ExprKind.COL:
-                md = (
-                    ExprMetadata.selector_single(node)
-                    if len(node.kwargs["names"]) == 1
-                    else ExprMetadata.selector_multi_named(node)
-                )
-            elif node.kind is ExprKind.NTH:
-                md = (
-                    ExprMetadata.selector_single(node)
-                    if len(node.kwargs["indices"]) == 1
-                    else ExprMetadata.selector_multi_unnamed(node)
-                )
-            elif node.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
-                md = ExprMetadata.selector_multi_unnamed(node)
-            elif node.kind is ExprKind.AGGREGATION:
-                md = ExprMetadata.aggregation(node)
-            elif node.kind is ExprKind.LITERAL:
-                md = ExprMetadata.literal(node)
-            elif node.kind is ExprKind.SELECTOR:
-                md = ExprMetadata.selector_multi_unnamed(node)
-            elif node.kind is ExprKind.WHEN:
-                assert is_compliant_expr(ces[0])  # noqa: S101
-                md = ces[0]._metadata
-            elif node.kind is ExprKind.N_ARY:
-                md = ExprMetadata.from_n_ary_op(node.name, *ces)
-            else:
-                msg = "unexpected kind, please report bug"
-                raise NotImplementedError(msg)
+            func = getattr(ns, node.name)
+        ces = maybe_broadcast_ces(
+            *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+        )
+        ce = func(*ces, **node.kwargs)
+        md = ExprMetadata.from_node(node, *ces)
         ce._opt_metadata = md
         return ce
 

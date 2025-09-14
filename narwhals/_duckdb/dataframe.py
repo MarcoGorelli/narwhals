@@ -12,7 +12,7 @@ from narwhals._duckdb.utils import (
     F,
     catch_duckdb_exception,
     col,
-    evaluate_exprs,
+    evaluate_exprs_and_aliases,
     join_column_names,
     lit,
     native_to_narwhals_dtype,
@@ -171,14 +171,18 @@ class DuckDBLazyFrame(
         return self._with_native(self.native.select(*column_names))
 
     def aggregate(self, *exprs: DuckDBExpr) -> Self:
-        selection = [val.alias(name) for name, val in evaluate_exprs(self, *exprs)]
+        selection = [
+            val.alias(name) for name, val in evaluate_exprs_and_aliases(self, *exprs)
+        ]
         try:
             return self._with_native(self.native.aggregate(selection))  # type: ignore[arg-type]
         except Exception as e:  # noqa: BLE001
             raise catch_duckdb_exception(e, self) from None
 
     def select(self, *exprs: DuckDBExpr) -> Self:
-        selection = (val.alias(name) for name, val in evaluate_exprs(self, *exprs))
+        selection = (
+            val.alias(name) for name, val in evaluate_exprs_and_aliases(self, *exprs)
+        )
         try:
             return self._with_native(self.native.select(*selection))
         except Exception as e:  # noqa: BLE001
@@ -200,7 +204,7 @@ class DuckDBLazyFrame(
         return self
 
     def with_columns(self, *exprs: DuckDBExpr) -> Self:
-        new_columns_map = dict(evaluate_exprs(self, *exprs))
+        new_columns_map = dict(evaluate_exprs_and_aliases(self, *exprs))
         result = [
             new_columns_map.pop(name).alias(name)
             if name in new_columns_map

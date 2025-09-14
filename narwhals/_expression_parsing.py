@@ -161,6 +161,12 @@ class ExprKind(Enum):
     OTHERWISE = auto()
     """Results from otherwise expression."""
 
+    WHEN_THEN = auto()
+    """Results from then expression."""
+
+    WHEN_THEN_OTHERWISE = auto()
+    """Results from then expression."""
+
     SERIES = auto()
     """Results from converting a Series to Expr."""
 
@@ -324,6 +330,39 @@ class ExprMetadata:
             f"  nodes: {self.nodes},\n"
             ")"
         )
+
+    @classmethod
+    def from_node(  # noqa: PLR0911
+        cls, node: ExprNode, *ces: CompliantExprAny | NonNestedLiteral
+    ) -> ExprMetadata:
+        if node.kind is ExprKind.SERIES:
+            return cls.selector_single(node)
+        if node.kind is ExprKind.COL:
+            return (
+                ExprMetadata.selector_single(node)
+                if len(node.kwargs["names"]) == 1
+                else ExprMetadata.selector_multi_named(node)
+            )
+        if node.kind is ExprKind.NTH:
+            return (
+                ExprMetadata.selector_single(node)
+                if len(node.kwargs["indices"]) == 1
+                else ExprMetadata.selector_multi_unnamed(node)
+            )
+        if node.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
+            return ExprMetadata.selector_multi_unnamed(node)
+        if node.kind is ExprKind.AGGREGATION:
+            return ExprMetadata.aggregation(node)
+        if node.kind is ExprKind.LITERAL:
+            return ExprMetadata.literal(node)
+        if node.kind is ExprKind.SELECTOR:
+            return ExprMetadata.selector_multi_unnamed(node)
+        if node.kind is ExprKind.WHEN:
+            return ExprMetadata.selector_single(node)
+        if node.kind is ExprKind.N_ARY:
+            return ExprMetadata.from_n_ary_op(node.name, *ces)
+        msg = f"Unexpected node kind: {node.kind}"
+        raise AssertionError(msg)
 
     @property
     def is_filtration(self) -> bool:

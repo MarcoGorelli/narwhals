@@ -7,6 +7,7 @@ import duckdb
 import duckdb.typing as duckdb_dtypes
 from duckdb.typing import DuckDBPyType
 
+from narwhals._expression_parsing import is_compliant_expr
 from narwhals._utils import Version, isinstance_or_issubclass, zip_strict
 from narwhals.exceptions import ColumnNotFoundError
 
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from narwhals._duckdb.dataframe import DuckDBLazyFrame
     from narwhals._duckdb.expr import DuckDBExpr
     from narwhals.dtypes import DType
-    from narwhals.typing import IntoDType, TimeUnit
+    from narwhals.typing import IntoDType, NonNestedLiteral, TimeUnit
 
 
 UNITS_DICT = {
@@ -68,7 +69,7 @@ def concat_str(*exprs: Expression, separator: str = "") -> Expression:
     return F("concat_ws", lit(separator), *exprs) if separator else F("concat", *exprs)
 
 
-def evaluate_exprs(
+def evaluate_exprs_and_aliases(
     df: DuckDBLazyFrame, /, *exprs: DuckDBExpr
 ) -> list[tuple[str, Expression]]:
     native_results: list[tuple[str, Expression]] = []
@@ -81,6 +82,18 @@ def evaluate_exprs(
             msg = f"Internal error: got output names {output_names}, but only got {len(native_series_list)} results"
             raise AssertionError(msg)
         native_results.extend(zip(output_names, native_series_list))
+    return native_results
+
+
+def evaluate_exprs(
+    df: DuckDBLazyFrame, /, *exprs: DuckDBExpr | NonNestedLiteral
+) -> list[Expression]:
+    native_results: list[Expression] = []
+    for expr in exprs:
+        if not is_compliant_expr(expr):
+            native_results.append(lit(expr))
+            continue
+        native_results.extend(expr(df))
     return native_results
 
 

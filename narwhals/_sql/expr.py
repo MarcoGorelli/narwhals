@@ -17,6 +17,7 @@ from narwhals._expression_parsing import (
     combine_evaluate_output_names,
 )
 from narwhals._sql.typing import SQLLazyFrameT
+from narwhals._sql.utils import evaluate_exprs
 from narwhals._utils import Implementation, Version, not_implemented
 
 if TYPE_CHECKING:
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from narwhals._sql.namespace import SQLNamespace
     from narwhals.typing import (
         ModeKeepStrategy,
+        NonNestedLiteral,
         NumericLiteral,
         PythonLiteral,
         RankMethod,
@@ -308,11 +310,12 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     @classmethod
     def _from_elementwise_horizontal_op(
-        cls, func: Callable[[Iterable[NativeExprT]], NativeExprT], *exprs: Self
+        cls,
+        func: Callable[[Iterable[NativeExprT]], NativeExprT],
+        *exprs: Self | NonNestedLiteral,
     ) -> Self:
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
-            cols = (col for _expr in exprs for col in _expr(df))
-            return [func(cols)]
+            return [func(evaluate_exprs(df, *exprs))]
 
         def window_function(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
