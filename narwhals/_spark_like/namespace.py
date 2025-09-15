@@ -18,7 +18,6 @@ from narwhals._spark_like.utils import (
     true_divide,
 )
 from narwhals._sql.namespace import SQLNamespace
-from narwhals._sql.when_then import SQLThen, SQLWhen
 from narwhals._utils import zip_strict
 
 if TYPE_CHECKING:
@@ -214,17 +213,3 @@ class SparkLikeNamespace(
             version=self._version,
             implementation=self._implementation,
         )
-
-    def when(self, predicate: SparkLikeExpr) -> SparkLikeWhen:
-        return SparkLikeWhen.from_expr(predicate, context=self)
-
-
-class SparkLikeWhen(SQLWhen[SparkLikeLazyFrame, "Column", SparkLikeExpr]):
-    @property
-    def _then(self) -> type[SparkLikeThen]:
-        return SparkLikeThen
-
-
-class SparkLikeThen(
-    SQLThen[SparkLikeLazyFrame, "Column", SparkLikeExpr], SparkLikeExpr
-): ...

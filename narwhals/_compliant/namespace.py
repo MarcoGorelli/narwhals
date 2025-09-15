@@ -16,7 +16,7 @@ from narwhals._compliant.typing import (
     NativeFrameT_co,
     NativeSeriesT,
 )
-from narwhals._expression_parsing import is_expr
+from narwhals._expression_parsing import is_compliant_expr, is_expr
 from narwhals._utils import (
     exclude_column_names,
     get_column_names,
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from narwhals._compliant.selectors import CompliantSelectorNamespace
-    from narwhals._compliant.when_then import CompliantWhen, EagerWhen
+    from narwhals._compliant.when_then import CompliantWhen
     from narwhals._utils import Implementation, Version
     from narwhals.expr import Expr
     from narwhals.typing import (
@@ -160,9 +160,55 @@ class EagerNamespace(
     def _dataframe(self) -> type[EagerDataFrameT]: ...
     @property
     def _series(self) -> type[EagerSeriesT]: ...
-    def when(
-        self, predicate: EagerExprT
-    ) -> EagerWhen[EagerDataFrameT, EagerSeriesT, EagerExprT, NativeSeriesT]: ...
+    def _if_then_else(
+        self,
+        when: NativeSeriesT,
+        then: NativeSeriesT,
+        otherwise: NativeSeriesT | None = None,
+    ) -> NativeSeriesT: ...
+    def when_then(
+        self,
+        predicate: EagerExprT,
+        then: EagerExprT | NonNestedLiteral,
+        otherwise: EagerExprT | NonNestedLiteral | None = None,
+    ) -> EagerExprT:
+        def func(df: EagerDataFrameT) -> Sequence[EagerSeriesT]:
+            predicate_s = df._evaluate_expr(predicate)
+            align = predicate_s._align_full_broadcast
+
+            if is_compliant_expr(then):
+                then_s = df._evaluate_expr(then)
+            else:
+                then_s = predicate_s._from_scalar(then).alias("literal")
+                then_s._broadcast = True
+            if otherwise is None:
+                predicate_s, then_s = align(predicate_s, then_s)
+                result = self._if_then_else(predicate_s.native, then_s.native)
+
+            if is_compliant_expr(otherwise):
+                otherwise_s = df._evaluate_expr(otherwise)
+            elif otherwise is not None:
+                otherwise_s = predicate_s._from_scalar(otherwise).alias("literal")
+                otherwise_s._broadcast = True
+
+            if otherwise is None:
+                predicate_s, then_s = align(predicate_s, then_s)
+                result = self._if_then_else(predicate_s.native, then_s.native)
+            else:
+                predicate_s, then_s, otherwise_s = align(predicate_s, then_s, otherwise_s)
+                result = self._if_then_else(
+                    predicate_s.native, then_s.native, otherwise_s.native
+                )
+            return [then_s._with_native(result)]
+
+        return self._expr._from_callable(
+            func=func,
+            evaluate_output_names=getattr(
+                then, "_evaluate_output_names", lambda _df: ["literal"]
+            ),
+            alias_output_names=getattr(then, "_alias_output_names", None),
+            context=predicate,
+        )
 
     @overload
     def from_native(self, data: NativeFrameT, /) -> EagerDataFrameT: ...

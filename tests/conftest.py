@@ -208,11 +208,11 @@ def _ibis_backend() -> IbisDuckDBBackend:  # pragma: no cover
 
 
 def ibis_lazy_constructor(obj: Data) -> ibis.Table:  # pragma: no cover
-    pytest.importorskip("polars")
+    pytest.importorskip("pyarrow")
     pytest.importorskip("ibis")
-    import polars as pl
+    import pyarrow as pa
 
-    ldf = pl.from_dict(obj).lazy()
+    ldf = pa.table(obj)
     table_name = str(uuid.uuid4())
     return _ibis_backend().create_table(table_name, ldf)
 
