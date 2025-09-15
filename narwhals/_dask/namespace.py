@@ -8,29 +8,19 @@ from typing import TYPE_CHECKING, cast
 import dask.dataframe as dd
 import pandas as pd
 
-from narwhals._compliant import (
-    CompliantThen,
-    CompliantWhen,
-    DepthTrackingNamespace,
-    LazyNamespace,
-)
+from narwhals._compliant import DepthTrackingNamespace, LazyNamespace
 from narwhals._dask.dataframe import DaskLazyFrame
 from narwhals._dask.expr import DaskExpr
 from narwhals._dask.selectors import DaskSelectorNamespace
-from narwhals._dask.utils import (
-    align_series_full_broadcast,
-    narwhals_to_native_dtype,
-    validate_comparand,
-)
+from narwhals._dask.utils import align_series_full_broadcast, narwhals_to_native_dtype
 from narwhals._expression_parsing import (
-    ExprKind,
     combine_alias_output_names,
     combine_evaluate_output_names,
 )
 from narwhals._utils import Implementation, zip_strict
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator
 
     import dask.dataframe.dask_expr as dx
 
@@ -212,9 +202,6 @@ class DaskNamespace(
             version=self._version,
         )
 
-    def when(self, predicate: DaskExpr) -> DaskWhen:
-        return DaskWhen.from_expr(predicate, context=self)
-
     def concat_str(
         self, *exprs: DaskExpr, separator: str, ignore_nulls: bool
     ) -> DaskExpr:
@@ -269,46 +256,3 @@ class DaskNamespace(
             alias_output_names=combine_alias_output_names(*exprs),
             version=self._version,
         )
-
-
-class DaskWhen(CompliantWhen[DaskLazyFrame, "dx.Series", DaskExpr]):  # pyright: ignore[reportInvalidTypeArguments]
-    @property
-    def _then(self) -> type[DaskThen]:
-        return DaskThen
-
-    def __call__(self, df: DaskLazyFrame) -> Sequence[dx.Series]:
-        then_value = (
-            self._then_value(df)[0]
-            if isinstance(self._then_value, DaskExpr)
-            else self._then_value
-        )
-        otherwise_value = (
-            self._otherwise_value(df)[0]
-            if isinstance(self._otherwise_value, DaskExpr)
-            else self._otherwise_value
-        )
-
-        condition = self._condition(df)[0]
-        # re-evaluate DataFrame if the condition aggregates to force
-        #   then/otherwise to be evaluated against the aggregated frame
-        if self._condition._metadata.is_scalar_like:
-            new_df = df._with_native(condition.to_frame())
-            condition = self._condition.broadcast(ExprKind.AGGREGATION)(df)[0]
-            df = new_df
-
-        if self._otherwise_value is None:
-            (condition, then_series) = align_series_full_broadcast(
-                df, condition, then_value
-            )
-            validate_comparand(condition, then_series)
-            return [then_series.where(condition)]  # pyright: ignore[reportArgumentType]
-        (condition, then_series, otherwise_series) = align_series_full_broadcast(
-            df, condition, then_value, otherwise_value
-        )
-        validate_comparand(condition, then_series)
-        validate_comparand(condition, otherwise_series)
-        return [then_series.where(condition, otherwise_series)]  # pyright: ignore[reportArgumentType]
-
-
-class DaskThen(CompliantThen[DaskLazyFrame, "dx.Series", DaskExpr, DaskWhen], DaskExpr):  # pyright: ignore[reportInvalidTypeArguments]
-    ...

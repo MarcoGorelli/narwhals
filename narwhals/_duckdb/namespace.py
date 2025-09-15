@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
     from duckdb import DuckDBPyRelation  # noqa: F401
 
+    from narwhals._sql.expr import WindowInputs
     from narwhals._utils import Version
     from narwhals.typing import ConcatMethod, IntoDType, NonNestedLiteral
 
@@ -141,8 +142,14 @@ class DuckDBNamespace(
                 return [lit(value).cast(target)]
             return [lit(value)]
 
+        def window_func(
+            df: DuckDBLazyFrame, _window_inputs: WindowInputs[Expression]
+        ) -> list[Expression]:
+            return func(df)
+
         return self._expr(
             func,
+            window_func,
             evaluate_output_names=lambda _df: ["literal"],
             alias_output_names=None,
             version=self._version,
