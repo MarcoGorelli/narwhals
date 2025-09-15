@@ -704,7 +704,7 @@ class EagerExpr(
         def alias_output_names(names: Sequence[str]) -> Sequence[str]:
             if len(names) != 1:
                 msg = f"Expected function with single output, found output names: {names}"
-                raise ValueError(msg)
+                raise MultiOutputExpressionError(msg)
             return [name]
 
         return type(self)(

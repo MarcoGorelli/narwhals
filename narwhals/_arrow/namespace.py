@@ -17,13 +17,14 @@ from narwhals._compliant import EagerNamespace
 from narwhals._expression_parsing import (
     combine_alias_output_names,
     combine_evaluate_output_names,
+    is_compliant_expr,
 )
 from narwhals._utils import Implementation
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
-    from narwhals._arrow.typing import ArrayOrScalar, ChunkedArrayAny, Incomplete
+    from narwhals._arrow.typing import ChunkedArrayAny, Incomplete
     from narwhals._utils import Version
     from narwhals.typing import IntoDType, NonNestedLiteral
 
@@ -203,9 +204,6 @@ class ArrowNamespace(
     def selectors(self) -> ArrowSelectorNamespace:
         return ArrowSelectorNamespace.from_namespace(self)
 
-    def when(self, predicate: ArrowExpr) -> ArrowWhen:
-        return ArrowWhen.from_expr(predicate, context=self)
-
     def concat_str(
         self, *exprs: ArrowExpr, separator: str, ignore_nulls: bool
     ) -> ArrowExpr:
@@ -262,38 +260,51 @@ class ArrowNamespace(
         predicate: ArrowExpr,
         then: ArrowExpr | NonNestedLiteral,
         otherwise: ArrowExpr | NonNestedLiteral | None = None,
-    ) -> ArrowExpr: ...
-    @property
-    def _then(self) -> type[ArrowThen]:
-        return ArrowThen
+    ) -> ArrowExpr:
+        def func(df: ArrowDataFrame) -> Sequence[ArrowSeries]:
+            predicate_s = df._evaluate_expr(predicate)
+            align = predicate_s._align_full_broadcast
+
+            if is_compliant_expr(then):
+                then_s = df._evaluate_expr(then)
+            else:
+                then_s = predicate_s._from_scalar(then).alias("literal")
+                then_s._broadcast = True
+            if otherwise is None:
+                predicate_s, then_s = align(predicate_s, then_s)
+                result = self._if_then_else(predicate_s.native, then_s.native)
+
+            if is_compliant_expr(otherwise):
+                otherwise_s = df._evaluate_expr(otherwise)
+            elif otherwise is not None:
+                otherwise_s = predicate_s._from_scalar(otherwise).alias("literal")
+                otherwise_s._broadcast = True
+
+            if otherwise is None:
+                predicate_s, then_s = align(predicate_s, then_s)
+                result = self._if_then_else(predicate_s.native, then_s.native)
+            else:
+                predicate_s, then_s, otherwise_s = align(predicate_s, then_s, otherwise_s)
+                result = self._if_then_else(
+                    predicate_s.native, then_s.native, otherwise_s.native
+                )
+            return [then_s._with_native(result)]
+
+        return self._expr._from_callable(
+            func=func,
+            evaluate_output_names=getattr(
+                then, "_evaluate_output_names", lambda _df: ["literal"]
+            ),
+            alias_output_names=getattr(then, "_alias_output_names", None),
+            context=predicate,
+        )
 
     def _if_then_else(
         self,
         when: ChunkedArrayAny,
         then: ChunkedArrayAny,
-        otherwise: ArrayOrScalar | NonNestedLiteral,
+        otherwise: ChunkedArrayAny | NonNestedLiteral | None = None,
         /,
     ) -> ChunkedArrayAny:
-        ...
-        # otherwise = pa.nulls(len(when), then.type) if otherwise is None else otherwise
-        # return pc.if_else(when, then, otherwise)
-
-        # is_expr = self._condition._is_expr
-        # when: EagerSeriesT = self._condition(df)[0]
-        # then: EagerSeriesT
-        # align = when._align_full_broadcast
-
-        # if is_expr(self._then_value):
-        #     then = self._then_value(df)[0]
-        # else:
-        #     then = when.alias("literal")._from_scalar(self._then_value)
-        #     then._broadcast = True
-
-        # if is_expr(self._otherwise_value):
-        #     otherwise = self._otherwise_value(df)[0]
-        #     when, then, otherwise = align(when, then, otherwise)
-        #     result = self._if_then_else(when.native, then.native, otherwise.native)
-        # else:
-        #     when, then = align(when, then)
-        #     result = self._if_then_else(when.native, then.native, self._otherwise_value)
-        # return [then._with_native(result)]
+        otherwise = pa.nulls(len(when), then.type) if otherwise is None else otherwise
+        return pc.if_else(when, then, otherwise)
