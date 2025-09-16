@@ -93,7 +93,13 @@ class Expr:
         return ce
 
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
-        nodes = self._nodes
+        nodes = list(self._nodes)
+        to_swap = []
+        for i, node in enumerate(nodes):
+            if node.kind is ExprKind.OVER and nodes[i - 1].kind is ExprKind.ELEMENTWISE:
+                to_swap.append((i - 1, i))
+        for i, j in to_swap:
+            nodes[i], nodes[j] = nodes[j], nodes[i]
         ce = self._evaluate_node(nodes[0], plx)
         for node in nodes[1:]:
             ce = ce.with_node(node, plx)
