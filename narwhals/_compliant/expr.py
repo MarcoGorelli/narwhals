@@ -121,11 +121,16 @@ class CompliantExpr(
         ce, *ces = maybe_broadcast_ces(ce, *ces)
         if node.kind is ExprKind.AGGREGATION:
             md = md.with_aggregation(node)
-        elif node.kind is ExprKind.BINARY:
-            assert is_compliant_expr(ce)  # noqa: S101
-            md = ExprMetadata.from_binary_op(ce, ces[0], node=node)
         elif node.kind is ExprKind.ELEMENTWISE:
-            md = md.with_elementwise_op(node)
+            assert is_compliant_expr(ce)  # noqa: S101
+            md = combine_metadata(
+                ce,
+                *ces,
+                str_as_lit=node.str_as_lit,
+                allow_multi_output=False,
+                to_single_output=False,
+                nodes=[*ce._metadata.nodes, node],
+            )
         elif node.kind is ExprKind.FILTRATION:
             md = md.with_filtration(node)
         elif node.kind is ExprKind.ORDERABLE_WINDOW:

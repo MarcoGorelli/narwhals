@@ -118,8 +118,10 @@ class Expr:
                     new_nodes[position:],
                 )
                 for _node in new_nodes[position + 1 :]:
-                    for expr in _node.exprs:
-                        expr._nodes = [*expr._nodes, node]
+                    _node.exprs = tuple(
+                        expr._with_node(node) if isinstance(expr, Expr) else expr
+                        for expr in _node.exprs
+                    )
                 return self.__class__(*new_nodes)
         return self.__class__(*self._nodes, node)
 
