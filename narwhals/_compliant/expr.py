@@ -32,7 +32,6 @@ from narwhals._expression_parsing import (
     ExprKind,
     ExprMetadata,
     ExprNode,
-    combine_metadata,
     evaluate_into_exprs,
     is_compliant_expr,
     maybe_broadcast_ces,
@@ -44,7 +43,7 @@ from narwhals._utils import (
     zip_strict,
 )
 from narwhals.dependencies import is_numpy_array, is_numpy_scalar
-from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
+from narwhals.exceptions import MultiOutputExpressionError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -114,70 +113,18 @@ class CompliantExpr(
     def __narwhals_expr__(self) -> Self:  # pragma: no cover
         return self
 
-    def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:  # noqa: PLR0912, C901
+    def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:
         ce = self
         md = ce._metadata
         ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
         ce, *ces = maybe_broadcast_ces(ce, *ces)
-        if node.kind is ExprKind.AGGREGATION:
-            md = md.with_aggregation(node)
-        elif node.kind is ExprKind.ELEMENTWISE:
-            assert is_compliant_expr(ce)  # noqa: S101
-            md = combine_metadata(
-                ce,
-                *ces,
-                str_as_lit=node.str_as_lit,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[*ce._metadata.nodes, node],
-            )
-        elif node.kind is ExprKind.FILTRATION:
-            md = md.with_filtration(node)
-        elif node.kind is ExprKind.ORDERABLE_WINDOW:
-            md = md.with_orderable_window(node)
-        elif node.kind is ExprKind.ORDERABLE_FILTRATION:
-            md = md.with_orderable_filtration(node)
-        elif node.kind is ExprKind.ORDERABLE_AGGREGATION:
-            md = md.with_orderable_aggregation(node)
-        elif node.kind is ExprKind.WINDOW:
-            md = md.with_window(node)
-        elif node.kind is ExprKind.THEN or node.kind is ExprKind.OTHERWISE:
-            assert is_compliant_expr(ce)  # noqa: S101
-            md = combine_metadata(
-                ce,
-                *ces,
-                str_as_lit=False,
-                allow_multi_output=False,
-                to_single_output=False,
-                nodes=[*ce._metadata.nodes, node],
-            )
-            if (
-                ce._metadata.is_scalar_like
-                and not ExprKind.from_into_expr(ces[0]).is_scalar_like
-            ):
-                msg = (
-                    "If you pass a scalar-like predicate to `nw.when`, then "
-                    "the `then` value must also be scalar-like."
-                )
-                raise InvalidOperationError(msg)
-        elif node.kind is ExprKind.OVER:
-            current_meta = md
-            if node.kwargs["order_by"]:
-                md = current_meta.with_ordered_over(node)
-            elif not node.kwargs["partition_by"]:  # pragma: no cover
-                msg = "At least one of `partition_by` or `order_by` must be specified."
-                raise InvalidOperationError(msg)
-            else:
-                md = current_meta.with_partitioned_over(node)
-        else:
-            msg = f"Unexpected node kind: {node.kind}"
-            raise AssertionError(msg)
+        assert is_compliant_expr(ce)  # noqa: S101
+        md = md.with_node(node, ce, *ces)
         if "." in node.name:
             accessor, method = node.name.split(".")
             func = getattr(getattr(ce, accessor), method)
         else:
             func = getattr(ce, node.name)
-
         if any(
             x._metadata.expansion_kind.is_multi_output()
             for x in ces

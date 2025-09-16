@@ -299,8 +299,8 @@ class ExprMetadata:
     ) -> None:
         if is_literal:
             assert is_scalar_like  # noqa: S101  # debug assertion
-        # if is_elementwise:
-        #     assert preserves_length  # debug assertion
+        if is_elementwise:
+            assert preserves_length  # noqa: S101  # debug assertion
         self.expansion_kind: ExpansionKind = expansion_kind
         self.has_windows: bool = has_windows
         self.n_orderable_ops: int = n_orderable_ops
@@ -358,6 +358,43 @@ class ExprMetadata:
             return ExprMetadata.from_selector_single(node)
         if node.kind is ExprKind.HORIZONTAL:
             return ExprMetadata.from_horizontal(node.name, *ces)
+        msg = f"Unexpected node kind: {node.kind}"
+        raise AssertionError(msg)
+
+    def with_node(  # noqa: PLR0911,C901
+        self,
+        node: ExprNode,
+        ce: CompliantExprAny,
+        *ces: CompliantExprAny | NonNestedLiteral,
+    ) -> ExprMetadata:
+        if node.kind is ExprKind.AGGREGATION:
+            return self.with_aggregation(node)
+        if node.kind is ExprKind.ELEMENTWISE:
+            return combine_metadata(
+                ce,
+                *ces,
+                str_as_lit=node.str_as_lit,
+                allow_multi_output=False,
+                to_single_output=False,
+                nodes=(*ce._metadata.nodes, node),
+            )
+        if node.kind is ExprKind.FILTRATION:
+            return self.with_filtration(node)
+        if node.kind is ExprKind.ORDERABLE_WINDOW:
+            return self.with_orderable_window(node)
+        if node.kind is ExprKind.ORDERABLE_FILTRATION:
+            return self.with_orderable_filtration(node)
+        if node.kind is ExprKind.ORDERABLE_AGGREGATION:
+            return self.with_orderable_aggregation(node)
+        if node.kind is ExprKind.WINDOW:
+            return self.with_window(node)
+        if node.kind is ExprKind.OVER:
+            if node.kwargs["order_by"]:
+                return self.with_ordered_over(node)
+            if not node.kwargs["partition_by"]:  # pragma: no cover
+                msg = "At least one of `partition_by` or `order_by` must be specified."
+                raise InvalidOperationError(msg)
+            return self.with_partitioned_over(node)
         msg = f"Unexpected node kind: {node.kind}"
         raise AssertionError(msg)
 
