@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from narwhals._compliant.selectors import CompliantSelectorNamespace
-    from narwhals._compliant.when_then import CompliantWhen
     from narwhals._utils import Implementation, Version
     from narwhals.expr import Expr
     from narwhals.typing import (
@@ -103,9 +102,6 @@ class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
     def concat(
         self, items: Iterable[CompliantFrameT], *, how: ConcatMethod
     ) -> CompliantFrameT: ...
-    def when(
-        self, predicate: CompliantExprT
-    ) -> CompliantWhen[CompliantFrameT, Incomplete, CompliantExprT]: ...
     def concat_str(
         self, *exprs: CompliantExprT, separator: str, ignore_nulls: bool
     ) -> CompliantExprT: ...
