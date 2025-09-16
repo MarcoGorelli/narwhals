@@ -93,19 +93,34 @@ class Expr:
         return ce
 
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
-        nodes = list(self._nodes)
-        to_swap = []
-        for i, node in enumerate(nodes):
-            if node.kind is ExprKind.OVER and nodes[i - 1].kind is ExprKind.ELEMENTWISE:
-                to_swap.append((i - 1, i))
-        for i, j in to_swap:
-            nodes[i], nodes[j] = nodes[j], nodes[i]
+        nodes = self._nodes
         ce = self._evaluate_node(nodes[0], plx)
         for node in nodes[1:]:
             ce = ce.with_node(node, plx)
         return ce
 
     def _with_node(self, node: ExprNode) -> Self:
+        if node.kind is ExprKind.OVER:
+            # insert `over` before any elementwise operations.
+            # for example, if we start with [aggregation, elementwise, elementwise]
+            # we should end up with [aggregation, over, elementwise, elementwise]
+            n = len(self._nodes)
+            position = n
+            for _node in reversed(self._nodes):
+                if _node.kind is ExprKind.ELEMENTWISE:
+                    position -= 1
+                else:
+                    break
+            if position != n:
+                new_nodes = list(self._nodes)
+                new_nodes[position], new_nodes[position + 1 :] = (
+                    node,
+                    new_nodes[position:],
+                )
+                for _node in new_nodes[position + 1 :]:
+                    for expr in _node.exprs:
+                        expr._nodes.append(node)
+                return self.__class__(*new_nodes)
         return self.__class__(*self._nodes, node)
 
     def __repr__(self) -> str:
