@@ -119,7 +119,7 @@ class Expr:
                 )
                 for _node in new_nodes[position + 1 :]:
                     for expr in _node.exprs:
-                        expr._nodes.append(node)
+                        expr._nodes = [*expr._nodes, node]
                 return self.__class__(*new_nodes)
         return self.__class__(*self._nodes, node)
 
@@ -242,7 +242,7 @@ class Expr:
 
     # --- binary ---
     def _with_binary(self, attr: str, other: Self | Any) -> Self:
-        node = ExprNode(ExprKind.BINARY, attr, other, str_as_lit=True)
+        node = ExprNode(ExprKind.ELEMENTWISE, attr, other, str_as_lit=True)
         return self._with_node(node)
 
     def __eq__(self, other: Self | Any) -> Self:  # type: ignore[override]
