@@ -740,7 +740,7 @@ def _parse_into_expr(
     str_as_lit: bool = False,
     backend: Any = None,
 ) -> Expr | NonNestedLiteral:
-    from narwhals.functions import col, lit, new_series
+    from narwhals.functions import col, new_series
 
     if isinstance(arg, str) and not str_as_lit:
         return col(arg)
@@ -750,7 +750,7 @@ def _parse_into_expr(
         return arg._to_expr()
     if is_expr(arg):
         return arg
-    return lit(arg)
+    return arg
 
 
 def evaluate_into_exprs(

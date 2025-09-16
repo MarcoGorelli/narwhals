@@ -80,16 +80,21 @@ class SQLNamespace(
         then: SQLExprT | NonNestedLiteral,
         otherwise: SQLExprT | NonNestedLiteral | None = None,
     ) -> SQLExprT:
+        then_ce: SQLExprT = then if is_compliant_expr(then) else self.lit(then, None)
+        otherwise_ce: SQLExprT | None = (
+            otherwise
+            if is_compliant_expr(otherwise)
+            else None
+            if otherwise is None
+            else self.lit(otherwise, None)
+        )
+
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
-            then_native = (
-                df._evaluate_expr(then) if is_compliant_expr(then) else self._lit(then)
-            )
+            then_native = df._evaluate_expr(then_ce)
             otherwise_native = (
-                df._evaluate_expr(otherwise)
-                if is_compliant_expr(otherwise)
+                df._evaluate_expr(otherwise_ce)
+                if is_compliant_expr(otherwise_ce)
                 else None
-                if otherwise is None
-                else self._lit(otherwise)
             )
 
             return [
@@ -99,17 +104,11 @@ class SQLNamespace(
         def window_function(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
-            then_native = (
-                df._evaluate_window_expr(then, window_inputs)
-                if is_compliant_expr(then)
-                else self._lit(then)
-            )
+            then_native = df._evaluate_window_expr(then_ce, window_inputs)
             otherwise_native = (
-                df._evaluate_window_expr(otherwise, window_inputs)
-                if is_compliant_expr(otherwise)
+                df._evaluate_window_expr(otherwise_ce, window_inputs)
+                if is_compliant_expr(otherwise_ce)
                 else None
-                if otherwise is None
-                else self._lit(otherwise)
             )
 
             return [
@@ -124,10 +123,8 @@ class SQLNamespace(
         return self._expr(
             call,
             window_function=window_function,
-            evaluate_output_names=getattr(
-                then, "_evaluate_output_names", lambda _df: ["literal"]
-            ),
-            alias_output_names=getattr(then, "_alias_output_names", None),
+            evaluate_output_names=then_ce._evaluate_output_names,
+            alias_output_names=then_ce._alias_output_names,
             version=context._version,
             implementation=context._implementation,
         )

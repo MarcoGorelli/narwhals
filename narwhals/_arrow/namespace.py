@@ -17,7 +17,6 @@ from narwhals._compliant import EagerNamespace
 from narwhals._expression_parsing import (
     combine_alias_output_names,
     combine_evaluate_output_names,
-    is_compliant_expr,
 )
 from narwhals._utils import Implementation
 
@@ -255,55 +254,11 @@ class ArrowNamespace(
             context=self,
         )
 
-    def when_then(
-        self,
-        predicate: ArrowExpr,
-        then: ArrowExpr | NonNestedLiteral,
-        otherwise: ArrowExpr | NonNestedLiteral | None = None,
-    ) -> ArrowExpr:
-        def func(df: ArrowDataFrame) -> Sequence[ArrowSeries]:
-            predicate_s = df._evaluate_expr(predicate)
-            align = predicate_s._align_full_broadcast
-
-            if is_compliant_expr(then):
-                then_s = df._evaluate_expr(then)
-            else:
-                then_s = predicate_s._from_scalar(then).alias("literal")
-                then_s._broadcast = True
-            if otherwise is None:
-                predicate_s, then_s = align(predicate_s, then_s)
-                result = self._if_then_else(predicate_s.native, then_s.native)
-
-            if is_compliant_expr(otherwise):
-                otherwise_s = df._evaluate_expr(otherwise)
-            elif otherwise is not None:
-                otherwise_s = predicate_s._from_scalar(otherwise).alias("literal")
-                otherwise_s._broadcast = True
-
-            if otherwise is None:
-                predicate_s, then_s = align(predicate_s, then_s)
-                result = self._if_then_else(predicate_s.native, then_s.native)
-            else:
-                predicate_s, then_s, otherwise_s = align(predicate_s, then_s, otherwise_s)
-                result = self._if_then_else(
-                    predicate_s.native, then_s.native, otherwise_s.native
-                )
-            return [then_s._with_native(result)]
-
-        return self._expr._from_callable(
-            func=func,
-            evaluate_output_names=getattr(
-                then, "_evaluate_output_names", lambda _df: ["literal"]
-            ),
-            alias_output_names=getattr(then, "_alias_output_names", None),
-            context=predicate,
-        )
-
     def _if_then_else(
         self,
         when: ChunkedArrayAny,
         then: ChunkedArrayAny,
-        otherwise: ChunkedArrayAny | NonNestedLiteral | None = None,
+        otherwise: ChunkedArrayAny | None = None,
         /,
     ) -> ChunkedArrayAny:
         otherwise = pa.nulls(len(when), then.type) if otherwise is None else otherwise
