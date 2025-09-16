@@ -75,7 +75,7 @@ class Expr:
         self, node: ExprNode, ns: CompliantNamespace[Any, Any]
     ) -> CompliantExpr[Any, Any]:
         if node.kind is ExprKind.SERIES:
-            md = ExprMetadata.selector_single(node)
+            md = ExprMetadata.from_selector_single(node)
             ce = node.exprs[0]  # can we do better?
             ce._opt_metadata = md
             return ce

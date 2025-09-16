@@ -146,7 +146,7 @@ class ExprKind(Enum):
     SELECTOR = auto()
     """Results from creating an expression with a selector."""
 
-    N_ARY = auto()
+    HORIZONTAL = auto()
     """Results from n-ary expression (like `nw.sum_horizontal`)."""
 
     WHEN = auto()
@@ -333,33 +333,82 @@ class ExprMetadata:
         cls, node: ExprNode, *ces: CompliantExprAny | NonNestedLiteral
     ) -> ExprMetadata:
         if node.kind is ExprKind.SERIES:
-            return cls.selector_single(node)
+            return cls.from_selector_single(node)
         if node.kind is ExprKind.COL:
             return (
-                ExprMetadata.selector_single(node)
+                ExprMetadata.from_selector_single(node)
                 if len(node.kwargs["names"]) == 1
-                else ExprMetadata.selector_multi_named(node)
+                else ExprMetadata.from_selector_multi_named(node)
             )
         if node.kind is ExprKind.NTH:
             return (
-                ExprMetadata.selector_single(node)
+                ExprMetadata.from_selector_single(node)
                 if len(node.kwargs["indices"]) == 1
-                else ExprMetadata.selector_multi_unnamed(node)
+                else ExprMetadata.from_selector_multi_unnamed(node)
             )
         if node.kind in {ExprKind.ALL, ExprKind.EXCLUDE}:
-            return ExprMetadata.selector_multi_unnamed(node)
+            return ExprMetadata.from_selector_multi_unnamed(node)
         if node.kind is ExprKind.AGGREGATION:
-            return ExprMetadata.aggregation(node)
+            return ExprMetadata.from_aggregation(node)
         if node.kind is ExprKind.LITERAL:
-            return ExprMetadata.literal(node)
+            return ExprMetadata.from_literal(node)
         if node.kind is ExprKind.SELECTOR:
-            return ExprMetadata.selector_multi_unnamed(node)
+            return ExprMetadata.from_selector_multi_unnamed(node)
         if node.kind is ExprKind.WHEN:
-            return ExprMetadata.selector_single(node)
-        if node.kind is ExprKind.N_ARY:
-            return ExprMetadata.from_n_ary_op(node.name, *ces)
+            return ExprMetadata.from_selector_single(node)
+        if node.kind is ExprKind.HORIZONTAL:
+            return ExprMetadata.from_horizontal(node.name, *ces)
         msg = f"Unexpected node kind: {node.kind}"
         raise AssertionError(msg)
+
+    @classmethod
+    def from_aggregation(cls, node: ExprNode) -> ExprMetadata:
+        return cls(
+            ExpansionKind.SINGLE,
+            is_elementwise=False,
+            preserves_length=False,
+            is_scalar_like=True,
+            nodes=[node],
+        )
+
+    @classmethod
+    def from_literal(cls, node: ExprNode) -> ExprMetadata:
+        return cls(
+            ExpansionKind.SINGLE,
+            is_elementwise=False,
+            preserves_length=False,
+            is_literal=True,
+            is_scalar_like=True,
+            nodes=[node],
+        )
+
+    @classmethod
+    def from_selector_single(cls, node: ExprNode) -> ExprMetadata:
+        # e.g. `nw.col('a')`, `nw.nth(0)`
+        return cls(ExpansionKind.SINGLE, nodes=[node])
+
+    @classmethod
+    def from_selector_multi_named(cls, node: ExprNode) -> ExprMetadata:
+        # e.g. `nw.col('a', 'b')`
+        return cls(ExpansionKind.MULTI_NAMED, nodes=[node])
+
+    @classmethod
+    def from_selector_multi_unnamed(cls, node: ExprNode) -> ExprMetadata:
+        # e.g. `nw.all()`
+        return cls(ExpansionKind.MULTI_UNNAMED, nodes=[node])
+
+    @classmethod
+    def from_horizontal(
+        cls, name: str, *exprs: CompliantExprAny | NonNestedLiteral
+    ) -> ExprMetadata:
+        node = ExprNode(ExprKind.HORIZONTAL, name, *exprs)
+        return combine_metadata(
+            *exprs,
+            str_as_lit=False,
+            allow_multi_output=True,
+            to_single_output=True,
+            nodes=[node],
+        )
 
     @property
     def is_filtration(self) -> bool:
@@ -526,73 +575,6 @@ class ExprMetadata:
             is_scalar_like=False,
             is_literal=False,
             nodes=[*self.nodes, node],
-        )
-
-    @staticmethod
-    def aggregation(node: ExprNode) -> ExprMetadata:
-        return ExprMetadata(
-            ExpansionKind.SINGLE,
-            is_elementwise=False,
-            preserves_length=False,
-            is_scalar_like=True,
-            nodes=[node],
-        )
-
-    @staticmethod
-    def literal(node: ExprNode) -> ExprMetadata:
-        return ExprMetadata(
-            ExpansionKind.SINGLE,
-            is_elementwise=False,
-            preserves_length=False,
-            is_literal=True,
-            is_scalar_like=True,
-            nodes=[node],
-        )
-
-    @staticmethod
-    def selector_single(node: ExprNode) -> ExprMetadata:
-        # e.g. `nw.col('a')`, `nw.nth(0)`
-        return ExprMetadata(ExpansionKind.SINGLE, nodes=[node])
-
-    @staticmethod
-    def selector_multi_named(node: ExprNode) -> ExprMetadata:
-        # e.g. `nw.col('a', 'b')`
-        return ExprMetadata(ExpansionKind.MULTI_NAMED, nodes=[node])
-
-    @staticmethod
-    def selector_multi_unnamed(node: ExprNode) -> ExprMetadata:
-        # e.g. `nw.all()`
-        return ExprMetadata(ExpansionKind.MULTI_UNNAMED, nodes=[node])
-
-    @classmethod
-    def from_binary_op(
-        cls,
-        lhs: CompliantExprAny,
-        rhs: CompliantExprAny | NonNestedLiteral,
-        node: ExprNode,
-    ) -> ExprMetadata:
-        # We may be able to allow multi-output rhs in the future:
-        # https://github.com/narwhals-dev/narwhals/issues/2244.
-        return combine_metadata(
-            lhs,
-            rhs,
-            str_as_lit=True,
-            allow_multi_output=False,
-            to_single_output=False,
-            nodes=[*lhs._metadata.nodes, node],
-        )
-
-    @classmethod
-    def from_n_ary_op(
-        cls, name: str, *exprs: CompliantExprAny | NonNestedLiteral
-    ) -> ExprMetadata:
-        node = ExprNode(ExprKind.N_ARY, name, *exprs)
-        return combine_metadata(
-            *exprs,
-            str_as_lit=False,
-            allow_multi_output=True,
-            to_single_output=True,
-            nodes=[node],
         )
 
     def op_nodes_reversed(self) -> Iterator[ExprNode]:

@@ -1206,7 +1206,7 @@ def _expr_with_n_ary_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
     if not exprs:
         msg = f"At least one expression must be passed to `{name}`"
         raise ValueError(msg)
-    node = ExprNode(ExprKind.N_ARY, name, *exprs, **kwargs)
+    node = ExprNode(ExprKind.HORIZONTAL, name, *exprs, **kwargs)
     return Expr(node)
 
 
@@ -1325,14 +1325,14 @@ class When:
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
 
     def then(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Then:
-        return Then(ExprNode(ExprKind.N_ARY, "when_then", self._predicate, value))
+        return Then(ExprNode(ExprKind.HORIZONTAL, "when_then", self._predicate, value))
 
 
 class Then(Expr):
     def otherwise(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Expr:
         # eject latest node, replace with `when_then_otherwise`
         node = self._nodes[0]
-        return Expr(ExprNode(ExprKind.N_ARY, "when_then", *node.exprs, value))
+        return Expr(ExprNode(ExprKind.HORIZONTAL, "when_then", *node.exprs, value))
 
 
 def when(*predicates: IntoExpr | Iterable[IntoExpr]) -> When:
@@ -1658,5 +1658,5 @@ def coalesce(
         )
         raise TypeError(msg)
 
-    node = ExprNode(ExprKind.N_ARY, "coalesce", *flat_exprs)
+    node = ExprNode(ExprKind.HORIZONTAL, "coalesce", *flat_exprs)
     return Expr(node)
