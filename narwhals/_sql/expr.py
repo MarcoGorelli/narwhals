@@ -178,7 +178,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         def default_window_func(
             df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
-            # assert not inputs.order_by
+            assert not inputs.order_by  # noqa: S101
             return [
                 self._window_expression(expr, inputs.partition_by) for expr in self(df)
             ]

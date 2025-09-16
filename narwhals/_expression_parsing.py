@@ -231,7 +231,6 @@ class ExpansionKind(Enum):
 
 
 class ExprNode:
-    # Do we also need a `str_as_lit` param?
     def __init__(
         self,
         kind: ExprKind,
@@ -256,6 +255,11 @@ class ExprNode:
         if self.kwargs:
             arg_str.append(kwargs_repr)
         return f"{self.name}({', '.join(arg_str)})"
+
+    def with_kwargs(self, **kwargs: Any) -> ExprNode:
+        return self.__class__(
+            self.kind, self.name, *self.exprs, str_as_lit=self.str_as_lit, **kwargs
+        )
 
 
 class ExprMetadata:
@@ -539,6 +543,17 @@ class ExprMetadata:
             )
             raise InvalidOperationError(msg)
         n_orderable_ops = self.n_orderable_ops
+        if not n_orderable_ops and self.nodes[-1].kind is not ExprKind.WINDOW:
+            msg = (
+                "Cannot use `order_by` in `over` on expression which isn't orderable.\n"
+                "If your expression is orderable, then make sure that `over(order_by=...)`\n"
+                "comes immediately after the order-dependent expression.\n\n"
+                "Hint: instead of\n"
+                "  - `(nw.col('price').diff() + 1).over(order_by='date')`\n"
+                "write:\n"
+                "  + `nw.col('price').diff().over(order_by='date') + 1`\n"
+            )
+            raise InvalidOperationError(msg)
         if next(self.op_nodes_reversed()).kind.is_orderable_window:
             n_orderable_ops -= 1
         return ExprMetadata(

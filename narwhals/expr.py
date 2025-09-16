@@ -99,8 +99,8 @@ class Expr:
             ce = ce.with_node(node, plx)
         return ce
 
-    def _with_node(self, node: ExprNode) -> Self:
-        if node.kind is ExprKind.OVER:
+    def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912
+        if node.kind is ExprKind.OVER:  # noqa: PLR1702
             # insert `over` before any elementwise operations.
             # for example, if we start with [aggregation, elementwise, elementwise]
             # we should end up with [aggregation, over, elementwise, elementwise]
@@ -113,15 +113,35 @@ class Expr:
                     break
             if position != n:
                 new_nodes = list(self._nodes)
-                new_nodes[position], new_nodes[position + 1 :] = (
-                    node,
-                    new_nodes[position:],
-                )
+                kwargs = {
+                    key: value if key != "order_by" else []
+                    for (key, value) in node.kwargs.items()
+                }
+                node_without_order_by = node.with_kwargs(**kwargs)
+                # TODO(marco): need a better condition. maybe...we do need to track metadata?
+                if new_nodes[position - 1].kind in {
+                    ExprKind.ORDERABLE_AGGREGATION,
+                    ExprKind.ORDERABLE_WINDOW,
+                    ExprKind.ORDERABLE_FILTRATION,
+                }:
+                    new_nodes.insert(position, node)
+                else:
+                    new_nodes.insert(position, node_without_order_by)
                 for _node in new_nodes[position + 1 :]:
-                    _node.exprs = tuple(
-                        expr._with_node(node) if isinstance(expr, Expr) else expr
-                        for expr in _node.exprs
-                    )
+                    new_exprs = []
+                    for expr in _node.exprs:
+                        if isinstance(expr, Expr):
+                            if expr._nodes and expr._nodes[-1].kind in {
+                                ExprKind.ORDERABLE_AGGREGATION,
+                                ExprKind.ORDERABLE_WINDOW,
+                                ExprKind.ORDERABLE_FILTRATION,
+                            }:
+                                new_exprs.append(expr._with_node(node))
+                            else:
+                                new_exprs.append(expr._with_node(node_without_order_by))
+                        else:
+                            new_exprs.append(expr)
+                    _node.exprs = tuple(new_exprs)
                 return self.__class__(*new_nodes)
         return self.__class__(*self._nodes, node)
 
