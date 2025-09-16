@@ -295,7 +295,7 @@ class ExprMetadata:
         is_elementwise: bool = True,
         is_scalar_like: bool = False,
         is_literal: bool = False,
-        nodes: list[ExprNode] | None = None,
+        nodes: tuple[ExprNode, ...] | None = None,
     ) -> None:
         if is_literal:
             assert is_scalar_like  # noqa: S101  # debug assertion
@@ -308,7 +308,7 @@ class ExprMetadata:
         self.preserves_length: bool = preserves_length
         self.is_scalar_like: bool = is_scalar_like
         self.is_literal: bool = is_literal
-        self.nodes: list[ExprNode] = nodes or []
+        self.nodes: tuple[ExprNode, ...] = nodes or ()
 
     def __init_subclass__(cls, /, *args: Any, **kwds: Any) -> Never:  # pragma: no cover
         msg = f"Cannot subclass {cls.__name__!r}"
@@ -368,7 +368,7 @@ class ExprMetadata:
             is_elementwise=False,
             preserves_length=False,
             is_scalar_like=True,
-            nodes=[node],
+            nodes=(node,),
         )
 
     @classmethod
@@ -379,23 +379,23 @@ class ExprMetadata:
             preserves_length=False,
             is_literal=True,
             is_scalar_like=True,
-            nodes=[node],
+            nodes=(node,),
         )
 
     @classmethod
     def from_selector_single(cls, node: ExprNode) -> ExprMetadata:
         # e.g. `nw.col('a')`, `nw.nth(0)`
-        return cls(ExpansionKind.SINGLE, nodes=[node])
+        return cls(ExpansionKind.SINGLE, nodes=(node,))
 
     @classmethod
     def from_selector_multi_named(cls, node: ExprNode) -> ExprMetadata:
         # e.g. `nw.col('a', 'b')`
-        return cls(ExpansionKind.MULTI_NAMED, nodes=[node])
+        return cls(ExpansionKind.MULTI_NAMED, nodes=(node,))
 
     @classmethod
     def from_selector_multi_unnamed(cls, node: ExprNode) -> ExprMetadata:
         # e.g. `nw.all()`
-        return cls(ExpansionKind.MULTI_UNNAMED, nodes=[node])
+        return cls(ExpansionKind.MULTI_UNNAMED, nodes=(node,))
 
     @classmethod
     def from_horizontal(
@@ -407,7 +407,7 @@ class ExprMetadata:
             str_as_lit=False,
             allow_multi_output=True,
             to_single_output=True,
-            nodes=[node],
+            nodes=(node,),
         )
 
     @property
@@ -426,7 +426,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=True,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_orderable_aggregation(self, node: ExprNode) -> ExprMetadata:
@@ -442,7 +442,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=True,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_elementwise_op(self, node: ExprNode) -> ExprMetadata:
@@ -454,7 +454,7 @@ class ExprMetadata:
             is_elementwise=self.is_elementwise,
             is_scalar_like=self.is_scalar_like,
             is_literal=self.is_literal,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_window(self, node: ExprNode) -> ExprMetadata:
@@ -472,7 +472,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_orderable_window(self, node: ExprNode) -> ExprMetadata:
@@ -488,7 +488,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_ordered_over(self, node: ExprNode) -> ExprMetadata:
@@ -523,7 +523,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_partitioned_over(self, node: ExprNode) -> ExprMetadata:
@@ -544,7 +544,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_filtration(self, node: ExprNode) -> ExprMetadata:
@@ -559,7 +559,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def with_orderable_filtration(self, node: ExprNode) -> ExprMetadata:
@@ -574,7 +574,7 @@ class ExprMetadata:
             is_elementwise=False,
             is_scalar_like=False,
             is_literal=False,
-            nodes=[*self.nodes, node],
+            nodes=(*self.nodes, node),
         )
 
     def op_nodes_reversed(self) -> Iterator[ExprNode]:
@@ -594,7 +594,7 @@ def combine_metadata(
     str_as_lit: bool,
     allow_multi_output: bool,
     to_single_output: bool,
-    nodes: list[ExprNode],
+    nodes: tuple[ExprNode, ...],
 ) -> ExprMetadata:
     """Combine metadata from `args`.
 
