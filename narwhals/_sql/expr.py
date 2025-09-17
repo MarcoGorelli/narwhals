@@ -138,7 +138,6 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     ) -> Self:
         return self.__class__(
             self._callable_to_eval_series(call, **expressifiable_args),
-            self._push_down_window_function(call, **expressifiable_args),
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,

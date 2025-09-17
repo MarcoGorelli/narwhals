@@ -99,44 +99,45 @@ class Expr:
             ce = ce.with_node(node, plx)
         return ce
 
-    def _with_node(self, node: ExprNode) -> Self:  # noqa: PLR0912
-        if node.kind is ExprKind.OVER:  # noqa: PLR1702
+    def _with_node(self, node: ExprNode) -> Self:
+        if node.kind is ExprKind.OVER:
             # insert `over` before any elementwise operations.
             # for example, if we start with [aggregation, elementwise, elementwise]
             # we should end up with [aggregation, over, elementwise, elementwise]
             n = len(self._nodes)
             position = n
             for _node in reversed(self._nodes):
-                if _node.kind is ExprKind.ELEMENTWISE:
+                if _node.kind in {ExprKind.ELEMENTWISE, ExprKind.HORIZONTAL}:
                     position -= 1
                 else:
                     break
             if position != n:
                 new_nodes = list(self._nodes)
-                kwargs = {
+                kwargs_no_order_by = {
                     key: value if key != "order_by" else []
                     for (key, value) in node.kwargs.items()
                 }
-                node_without_order_by = node.with_kwargs(**kwargs)
-                if node.kwargs["order_by"] and any(
-                    node.is_orderable_window() for node in new_nodes[:position]
-                ):
-                    new_nodes.insert(position, node)
-                else:
-                    new_nodes.insert(position, node_without_order_by)
+                node_without_order_by = node.with_kwargs(**kwargs_no_order_by)
+                if position > 0:
+                    if node.kwargs["order_by"] and any(
+                        node.is_orderable_window() for node in new_nodes[:position]
+                    ):
+                        new_nodes.insert(position, node)
+                    else:
+                        new_nodes.insert(position, node_without_order_by)
                 for _node in new_nodes[position + 1 :]:
-                    new_exprs = []
-                    for expr in _node.exprs:
-                        if isinstance(expr, Expr):
-                            if node.kwargs["order_by"] and any(
-                                node.is_orderable_window() for node in expr._nodes
-                            ):
-                                new_exprs.append(expr._with_node(node))
-                            else:
-                                new_exprs.append(expr._with_node(node_without_order_by))
-                        else:
-                            new_exprs.append(expr)
-                    _node.exprs = tuple(new_exprs)
+                    _node.exprs = tuple(
+                        expr._with_node(node)
+                        if (
+                            node.kwargs["order_by"]
+                            and any(
+                                expr_node.is_orderable_window()
+                                for expr_node in expr._nodes
+                            )
+                        )
+                        else expr._with_node(node_without_order_by)
+                        for expr in _node.exprs
+                    )
                 return self.__class__(*new_nodes)
         return self.__class__(*self._nodes, node)
 
