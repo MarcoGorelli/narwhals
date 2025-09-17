@@ -178,6 +178,17 @@ class ExprKind(Enum):
     def is_orderable_window(self) -> bool:
         return self in {ExprKind.ORDERABLE_WINDOW, ExprKind.ORDERABLE_AGGREGATION}
 
+    @property
+    def is_orderable(self) -> bool:
+        # Any operation which may be affected by `order_by`, such as `cum_sum`,
+        # `diff`, `rank`, `arg_max`, ...
+        return self in {
+            ExprKind.ORDERABLE_WINDOW,
+            ExprKind.ORDERABLE_AGGREGATION,
+            ExprKind.FILTRATION,
+            ExprKind.WINDOW,
+        }
+
     @classmethod
     def from_expr(cls, obj: CompliantExprAny) -> ExprKind:
         meta = obj._metadata
@@ -262,10 +273,10 @@ class ExprNode:
             self.kind, self.name, *self.exprs, str_as_lit=self.str_as_lit, **kwargs
         )
 
-    def is_orderable_window(self) -> bool:
+    def is_orderable(self) -> bool:
         if self._is_orderable_window is None:
-            self._is_orderable_window = self.kind.is_orderable_window or any(
-                any(node.is_orderable_window() for node in expr) for expr in self.exprs
+            self._is_orderable_window = self.kind.is_orderable or any(
+                any(node.is_orderable() for node in expr) for expr in self.exprs
             )
         return self._is_orderable_window
 

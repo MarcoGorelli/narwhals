@@ -104,8 +104,6 @@ class Expr:
             # insert `over` before any elementwise operations.
             # for example, if we start with [aggregation, elementwise, elementwise]
             # we should end up with [aggregation, over, elementwise, elementwise]
-            n = len(self._nodes)
-            position = n
             new_nodes = list(self._nodes)
             kwargs_no_order_by = {
                 key: value if key != "order_by" else []
@@ -113,30 +111,28 @@ class Expr:
             }
             node_without_order_by = node.with_kwargs(**kwargs_no_order_by)
             i = len(new_nodes)
-            while (_node := new_nodes[i]).kind in {
+            while (_node := new_nodes[i - 1]).kind in {
                 ExprKind.ELEMENTWISE,
                 ExprKind.HORIZONTAL,
             }:
-                position -= 1
+                i -= 1
                 _node.exprs = tuple(
                     expr
                     if not isinstance(expr, Expr)
                     else expr._with_node(node)
                     if (
                         node.kwargs["order_by"]
-                        and any(
-                            expr_node.is_orderable_window() for expr_node in expr._nodes
-                        )
+                        and any(expr_node.is_orderable() for expr_node in expr._nodes)
                     )
                     else expr._with_node(node_without_order_by)
                     for expr in _node.exprs
                 )
-            if position > 0:
+            if i > 0:
                 new_nodes.insert(
-                    position,
+                    i,
                     node
                     if node.kwargs["order_by"]
-                    and any(node.is_orderable_window() for node in new_nodes[:position])
+                    and any(node.is_orderable() for node in new_nodes[:i])
                     else node_without_order_by,
                 )
             return self.__class__(*new_nodes)
