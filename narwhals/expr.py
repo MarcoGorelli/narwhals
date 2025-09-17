@@ -118,12 +118,9 @@ class Expr:
                     for (key, value) in node.kwargs.items()
                 }
                 node_without_order_by = node.with_kwargs(**kwargs)
-                # TODO(marco): need a better condition. maybe...we do need to track metadata?
-                if new_nodes[position - 1].kind in {
-                    ExprKind.ORDERABLE_AGGREGATION,
-                    ExprKind.ORDERABLE_WINDOW,
-                    ExprKind.ORDERABLE_FILTRATION,
-                }:
+                if node.kwargs["order_by"] and any(
+                    node.is_orderable_window() for node in new_nodes[:position]
+                ):
                     new_nodes.insert(position, node)
                 else:
                     new_nodes.insert(position, node_without_order_by)
@@ -131,11 +128,9 @@ class Expr:
                     new_exprs = []
                     for expr in _node.exprs:
                         if isinstance(expr, Expr):
-                            if expr._nodes and expr._nodes[-1].kind in {
-                                ExprKind.ORDERABLE_AGGREGATION,
-                                ExprKind.ORDERABLE_WINDOW,
-                                ExprKind.ORDERABLE_FILTRATION,
-                            }:
+                            if node.kwargs["order_by"] and any(
+                                node.is_orderable_window() for node in expr._nodes
+                            ):
                                 new_exprs.append(expr._with_node(node))
                             else:
                                 new_exprs.append(expr._with_node(node_without_order_by))

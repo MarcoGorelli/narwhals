@@ -245,6 +245,7 @@ class ExprNode:
         self.exprs = exprs
         self.kwargs = kwargs
         self.str_as_lit = str_as_lit
+        self._is_orderable_window: bool | None = False
 
     def __repr__(self) -> str:
         arg_str = []
@@ -260,6 +261,13 @@ class ExprNode:
         return self.__class__(
             self.kind, self.name, *self.exprs, str_as_lit=self.str_as_lit, **kwargs
         )
+
+    def is_orderable_window(self) -> bool:
+        if self._is_orderable_window is None:
+            self._is_orderable_window = self.kind.is_orderable_window or any(
+                any(node.is_orderable_window() for node in expr) for expr in self.exprs
+            )
+        return self._is_orderable_window
 
 
 class ExprMetadata:
