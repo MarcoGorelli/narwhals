@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     from narwhals._sql.namespace import SQLNamespace
     from narwhals.typing import (
         ModeKeepStrategy,
-        NonNestedLiteral,
         NumericLiteral,
         PythonLiteral,
         RankMethod,
@@ -138,6 +137,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
     ) -> Self:
         return self.__class__(
             self._callable_to_eval_series(call, **expressifiable_args),
+            self._push_down_window_function(call, **expressifiable_args),
             evaluate_output_names=self._evaluate_output_names,
             alias_output_names=self._alias_output_names,
             version=self._version,
@@ -308,9 +308,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     @classmethod
     def _from_elementwise_horizontal_op(
-        cls,
-        func: Callable[[Iterable[NativeExprT]], NativeExprT],
-        *exprs: Self | NonNestedLiteral,
+        cls, func: Callable[[Iterable[NativeExprT]], NativeExprT], *exprs: Self
     ) -> Self:
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
             return [func(evaluate_exprs(df, *exprs))]
@@ -473,6 +471,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
         def window_f(
             df: SQLLazyFrameT, inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
+            assert not inputs.order_by  # noqa: S101
             return [
                 self._coalesce(
                     self._window_expression(
