@@ -110,7 +110,8 @@ class Expr:
                 for (key, value) in node.kwargs.items()
             }
             node_without_order_by = node.with_kwargs(**kwargs_no_order_by)
-            i = len(new_nodes)
+            n = len(new_nodes)
+            i = n
             while (_node := new_nodes[i - 1]).kind in {
                 ExprKind.ELEMENTWISE,
                 ExprKind.HORIZONTAL,
@@ -127,6 +128,10 @@ class Expr:
                     else expr._with_node(node_without_order_by)
                     for expr in _node.exprs
                 )
+            if i == n:
+                # node could not be pushed down, just append as-is
+                new_nodes.append(node)
+                return self.__class__(*new_nodes)
             if i > 0:
                 new_nodes.insert(
                     i,
