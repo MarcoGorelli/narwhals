@@ -245,7 +245,7 @@ class ExprNode:
         self.exprs = exprs
         self.kwargs = kwargs
         self.str_as_lit = str_as_lit
-        self._is_orderable_window: bool | None = False
+        self._is_orderable_window: bool | None = None
 
     def __repr__(self) -> str:
         arg_str = []
