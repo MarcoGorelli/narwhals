@@ -34,7 +34,6 @@ from narwhals._expression_parsing import (
     ExprNode,
     evaluate_into_exprs,
     is_compliant_expr,
-    is_selector_operation,
     maybe_broadcast_ces,
 )
 from narwhals._utils import (
@@ -125,7 +124,7 @@ class CompliantExpr(
             func = getattr(getattr(ce, accessor), method)
         else:
             func = getattr(ce, node.name)
-        if not is_selector_operation(node, *self._metadata.nodes) and any(
+        if not node.allow_multi_output and any(
             x._metadata.expansion_kind.is_multi_output()
             for x in ces
             if is_compliant_expr(x)

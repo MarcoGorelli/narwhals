@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 
 
 class Selector(Expr):
+    def _to_expr(self) -> Expr:
+        return Expr(*self._nodes)
+
     def __rsub__(self, other: Any) -> NoReturn:
         raise NotImplementedError
 
@@ -23,6 +26,36 @@ class Selector(Expr):
 
     def __ror__(self, other: Any) -> NoReturn:
         raise NotImplementedError
+
+    def __and__(self, other: Any) -> Expr:  # type: ignore[override]
+        if isinstance(other, Selector):
+            return self._with_node(
+                ExprNode(
+                    ExprKind.ELEMENTWISE,
+                    "__and__",
+                    other,
+                    str_as_lit=True,
+                    allow_multi_output=True,
+                )
+            )
+        return self._to_expr()._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "__and__", other, str_as_lit=True)
+        )
+
+    def __or__(self, other: Any) -> Expr:  # type: ignore[override]
+        if isinstance(other, Selector):
+            return self._with_node(
+                ExprNode(
+                    ExprKind.ELEMENTWISE,
+                    "__or__",
+                    other,
+                    str_as_lit=True,
+                    allow_multi_output=True,
+                )
+            )
+        return self._to_expr()._with_node(
+            ExprNode(ExprKind.ELEMENTWISE, "__or__", other, str_as_lit=True)
+        )
 
 
 def by_dtype(*dtypes: DType | type[DType] | Iterable[DType | type[DType]]) -> Selector:

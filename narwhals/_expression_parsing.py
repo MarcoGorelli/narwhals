@@ -234,6 +234,7 @@ class ExprNode:
         /,
         *exprs: Any,
         str_as_lit: bool = False,
+        allow_multi_output: bool = False,
         **kwargs: Any,
     ) -> None:
         self.kind = kind
@@ -241,6 +242,9 @@ class ExprNode:
         self.exprs = exprs
         self.kwargs = kwargs
         self.str_as_lit = str_as_lit
+        self.allow_multi_output = allow_multi_output
+
+        # Cached methods.
         self._is_orderable_window: bool | None = None
 
     def __repr__(self) -> str:
@@ -395,7 +399,7 @@ class ExprMetadata:
                 ce,
                 *ces,
                 str_as_lit=node.str_as_lit,
-                allow_multi_output=is_selector_operation(node, *self.nodes),
+                allow_multi_output=node.allow_multi_output,
                 to_single_output=False,
                 nodes=(*ce._metadata.nodes, node),
             )
@@ -409,6 +413,8 @@ class ExprMetadata:
             return self.with_orderable_aggregation(node)
         if node.kind is ExprKind.WINDOW:
             return self.with_window(node)
+        if node.kind is ExprKind.SELECTOR:
+            return self
         if node.kind is ExprKind.OVER:
             if node.kwargs["order_by"]:
                 return self.with_ordered_over(node)
@@ -805,14 +811,3 @@ def maybe_broadcast_ces(
         else:
             results.append(compliant_expr)
     return results
-
-
-def is_selector_operation(op_node: ExprNode, *nodes: ExprNode) -> bool:
-    return (
-        op_node.name in {"__or__", "__and__"}
-        and all(node.kind is ExprKind.SELECTOR for node in nodes)
-        and all(
-            is_expr(expr) and all(node.kind is ExprKind.SELECTOR for node in expr._nodes)
-            for expr in op_node.exprs
-        )
-    )
