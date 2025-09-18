@@ -102,8 +102,7 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         if node.kind is ExprKind.OVER:
             # insert `over` before any elementwise operations.
-            # for example, if we start with [aggregation, elementwise, elementwise]
-            # we should end up with [aggregation, over, elementwise, elementwise]
+            # TODO(marco): write section in "how it works" and point to that.
             new_nodes = list(self._nodes)
             kwargs_no_order_by = {
                 key: value if key != "order_by" else []
