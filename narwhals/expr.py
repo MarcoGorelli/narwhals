@@ -117,17 +117,7 @@ class Expr:
                 ExprKind.HORIZONTAL,
             }:
                 i -= 1
-                _node.exprs = tuple(
-                    expr
-                    if not isinstance(expr, Expr)
-                    else expr._with_node(node)
-                    if (
-                        node.kwargs["order_by"]
-                        and any(expr_node.is_orderable() for expr_node in expr._nodes)
-                    )
-                    else expr._with_node(node_without_order_by)
-                    for expr in _node.exprs
-                )
+                _node.push_down_over_node_in_place(node, node_without_order_by)
             if i == n:
                 # node could not be pushed down, just append as-is
                 new_nodes.append(node)

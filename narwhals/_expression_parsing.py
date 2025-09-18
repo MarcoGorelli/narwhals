@@ -276,9 +276,24 @@ class ExprNode:
     def is_orderable(self) -> bool:
         if self._is_orderable_window is None:
             self._is_orderable_window = self.kind.is_orderable or any(
-                any(node.is_orderable() for node in expr) for expr in self.exprs
+                any(node.is_orderable() for node in expr._nodes) for expr in self.exprs
             )
         return self._is_orderable_window
+
+    def push_down_over_node_in_place(
+        self, over_node: ExprNode, over_node_without_order_by: ExprNode
+    ) -> None:
+        self.exprs = tuple(
+            expr
+            if not is_expr(expr)
+            else expr._with_node(over_node)
+            if (
+                over_node.kwargs["order_by"]
+                and any(expr_node.is_orderable() for expr_node in expr._nodes)
+            )
+            else expr._with_node(over_node_without_order_by)
+            for expr in self.exprs
+        )
 
 
 class ExprMetadata:
