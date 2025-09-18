@@ -353,7 +353,7 @@ class ExprMetadata:
 
     @classmethod
     def from_node(  # noqa: PLR0911
-        cls, node: ExprNode
+        cls, node: ExprNode, *ces: CompliantExprAny
     ) -> ExprMetadata:
         if node.kind is ExprKind.SERIES:
             return cls.from_selector_single(node)
@@ -378,7 +378,7 @@ class ExprMetadata:
         if node.kind is ExprKind.SELECTOR:
             return ExprMetadata.from_selector_multi_unnamed(node)
         if node.kind is ExprKind.ELEMENTWISE:
-            return ExprMetadata.from_elementwise(node)
+            return ExprMetadata.from_elementwise(node, *ces)
         msg = f"Unexpected node kind: {node.kind}"
         raise AssertionError(msg)
 
@@ -456,9 +456,9 @@ class ExprMetadata:
         return cls(ExpansionKind.MULTI_UNNAMED, nodes=(node,))
 
     @classmethod
-    def from_elementwise(cls, node: ExprNode) -> ExprMetadata:
+    def from_elementwise(cls, node: ExprNode, *ces: CompliantExprAny) -> ExprMetadata:
         return combine_metadata(
-            *node.exprs,
+            *ces,
             str_as_lit=False,
             allow_multi_output=True,
             to_single_output=True,
