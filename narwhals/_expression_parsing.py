@@ -248,6 +248,9 @@ class ExprNode:
         self._is_orderable_window: bool | None = None
 
     def __repr__(self) -> str:
+        if self.name == "col":
+            names = ", ".join(str(x) for x in self.kwargs["names"])
+            return f"col({names})"
         arg_str = []
         expr_repr = ", ".join(str(x) for x in self.exprs)
         kwargs_repr = ", ".join(f"{key}={value}" for key, value in self.kwargs.items())

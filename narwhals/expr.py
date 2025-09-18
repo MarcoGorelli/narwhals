@@ -45,29 +45,6 @@ if TYPE_CHECKING:
     PS = ParamSpec("PS")
     R = TypeVar("R")
 
-_OP_SYMBOLS = {
-    "__add__": "+",
-    "__radd__": "+",
-    "__sub__": "-",
-    "__rsub__": "-",
-    "__mul__": "*",
-    "__rmul__": "*",
-    "__truediv__": "/",
-    "__rtruediv__": "/",
-    "__floordiv__": "//",
-    "__rfloordiv__": "//",
-    "__mod__": "%",
-    "__rmod__": "%",
-    "__ge__": ">=",
-    "__gt__": ">",
-    "__le__": "<=",
-    "__lt__": "<",
-    "__eq__": "==",
-    "__ne__": "!=",
-    "__and__": "&",
-    "__or__": "|",
-}
-
 
 class Expr:
     def __init__(self, *nodes: ExprNode) -> None:
@@ -133,23 +110,9 @@ class Expr:
 
     def __repr__(self) -> str:
         """Pretty-print the expression by combining all nodes in the metadata."""
-        result: str = "nw"
-        for node in self._nodes:
-            args_str = []
-            exprs_repr = ", ".join(str(x) for x in node.exprs)
-            kwargs_repr = ", ".join(
-                f"{key}={value}" for key, value in node.kwargs.items()
-            )
-            if node.exprs:
-                args_str.append(exprs_repr)
-            if node.kwargs:
-                args_str.append(kwargs_repr)
-            if node.name.startswith("__r"):
-                result = f"({', '.join(args_str)} {_OP_SYMBOLS[node.name]} {result})"
-            elif node.name.startswith("__"):
-                result = f"({result} {_OP_SYMBOLS[node.name]} {', '.join(args_str)})"
-            else:
-                result = f"{result}.{node.name}({', '.join(args_str)})"
+        result: str = repr(self._nodes[0])
+        for node in self._nodes[1:]:
+            result = f"{result}.{node!r}"
         return result
 
     def __bool__(self) -> NoReturn:
