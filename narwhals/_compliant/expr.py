@@ -34,6 +34,7 @@ from narwhals._expression_parsing import (
     ExprNode,
     evaluate_into_exprs,
     is_compliant_expr,
+    is_selector_operation,
     maybe_broadcast_ces,
 )
 from narwhals._utils import (
@@ -114,10 +115,9 @@ class CompliantExpr(
         return self
 
     def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:
-        ce = self
-        md = ce._metadata
+        md = self._metadata
         ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
-        ce, *ces = maybe_broadcast_ces(ce, *ces)
+        ce, *ces = maybe_broadcast_ces(self, *ces)
         assert is_compliant_expr(ce)  # noqa: S101
         md = md.with_node(node, ce, *ces)
         if "." in node.name:
@@ -125,7 +125,7 @@ class CompliantExpr(
             func = getattr(getattr(ce, accessor), method)
         else:
             func = getattr(ce, node.name)
-        if any(
+        if not is_selector_operation(node, *self._metadata.nodes) and any(
             x._metadata.expansion_kind.is_multi_output()
             for x in ces
             if is_compliant_expr(x)

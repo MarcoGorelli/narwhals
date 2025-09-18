@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, NoReturn
 
-from narwhals._expression_parsing import ExprKind, ExprNode, combine_metadata
+from narwhals._expression_parsing import ExprKind, ExprNode
 from narwhals._utils import flatten
 from narwhals.expr import Expr
 
@@ -15,45 +15,6 @@ if TYPE_CHECKING:
 
 
 class Selector(Expr):
-    def _to_expr(self) -> Expr:
-        return Expr(self._to_compliant_expr, self._metadata)
-
-    def __add__(self, other: Any) -> Expr:  # type: ignore[override]
-        if isinstance(other, Selector):
-            msg = "unsupported operand type(s) for op: ('Selector' + 'Selector')"
-            raise TypeError(msg)
-        return self._to_expr() + other  # type: ignore[no-any-return]
-
-    def __or__(self, other: Any) -> Expr:  # type: ignore[override]
-        if isinstance(other, Selector):
-            return self.__class__(
-                lambda plx: self._to_compliant_expr(plx) | other._to_compliant_expr(plx),
-                combine_metadata(
-                    self,
-                    other,
-                    str_as_lit=False,
-                    allow_multi_output=True,
-                    to_single_output=False,
-                    nodes=[],
-                ),
-            )
-        return self._to_expr() | other  # type: ignore[no-any-return]
-
-    def __and__(self, other: Any) -> Expr:  # type: ignore[override]
-        if isinstance(other, Selector):
-            return self.__class__(
-                lambda plx: self._to_compliant_expr(plx) & other._to_compliant_expr(plx),
-                combine_metadata(
-                    self,
-                    other,
-                    str_as_lit=False,
-                    allow_multi_output=True,
-                    to_single_output=False,
-                    nodes=[],
-                ),
-            )
-        return self._to_expr() & other  # type: ignore[no-any-return]
-
     def __rsub__(self, other: Any) -> NoReturn:
         raise NotImplementedError
 

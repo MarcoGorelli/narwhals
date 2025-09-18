@@ -395,7 +395,7 @@ class ExprMetadata:
                 ce,
                 *ces,
                 str_as_lit=node.str_as_lit,
-                allow_multi_output=False,
+                allow_multi_output=is_selector_operation(node, *self.nodes),
                 to_single_output=False,
                 nodes=(*ce._metadata.nodes, node),
             )
@@ -805,3 +805,14 @@ def maybe_broadcast_ces(
         else:
             results.append(compliant_expr)
     return results
+
+
+def is_selector_operation(op_node: ExprNode, *nodes: ExprNode) -> bool:
+    return (
+        op_node.name in {"__or__", "__and__"}
+        and all(node.kind is ExprKind.SELECTOR for node in nodes)
+        and all(
+            is_expr(expr) and all(node.kind is ExprKind.SELECTOR for node in expr._nodes)
+            for expr in op_node.exprs
+        )
+    )
