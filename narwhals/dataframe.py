@@ -2964,7 +2964,6 @@ class LazyFrame(BaseFrame[LazyFrameT]):
             k if is_expr else col(k) for k, is_expr in zip_strict(flat_keys, key_is_expr)
         ]
         expr_flat_keys, kinds = self._flatten_and_extract(*_keys)
-
         if not all(kind is ExprKind.ELEMENTWISE for kind in kinds):
             from narwhals.exceptions import ComputeError
 

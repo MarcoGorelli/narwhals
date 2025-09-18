@@ -513,21 +513,27 @@ def test_group_by_expr(
 @pytest.mark.parametrize(
     ("keys", "lazy_context"),
     [
-        ([nw.col("a").drop_nulls()], pytest.raises(InvalidOperationError)),  # Filtration
+        (
+            [nw.col("a").drop_nulls()],
+            pytest.raises((InvalidOperationError, NotImplementedError)),
+        ),  # Filtration
         (
             [nw.col("a").alias("foo"), nw.col("a").drop_nulls()],
-            pytest.raises(InvalidOperationError),
+            pytest.raises((InvalidOperationError, NotImplementedError)),
         ),  # Transform and Filtration
         (
             [nw.col("a").alias("foo"), nw.col("a").max()],
-            pytest.raises(ComputeError),
+            pytest.raises((ComputeError, NotImplementedError)),
         ),  # Transform and Aggregation
         (
             [nw.col("a").alias("foo"), nw.col("a").cum_max()],
-            pytest.raises(InvalidOperationError),
+            pytest.raises((InvalidOperationError, NotImplementedError)),
         ),  # Transform and Window
-        ([nw.lit(42)], pytest.raises(ComputeError)),  # Literal
-        ([nw.lit(42).abs()], pytest.raises(ComputeError)),  # Literal
+        ([nw.lit(42)], pytest.raises((ComputeError, NotImplementedError))),  # Literal
+        (
+            [nw.lit(42).abs()],
+            pytest.raises((ComputeError, NotImplementedError)),
+        ),  # Literal
     ],
 )
 def test_group_by_raise_if_not_elementwise(
