@@ -146,23 +146,8 @@ class ExprKind(Enum):
     SELECTOR = auto()
     """Results from creating an expression with a selector."""
 
-    HORIZONTAL = auto()
-    """Results from n-ary expression (like `nw.sum_horizontal`)."""
-
-    WHEN = auto()
-    """Results from when expression."""
-
-    THEN = auto()
-    """Results from then expression."""
-
-    OTHERWISE = auto()
-    """Results from otherwise expression."""
-
     WHEN_THEN = auto()
-    """Results from then expression."""
-
-    WHEN_THEN_OTHERWISE = auto()
-    """Results from then expression."""
+    """Results from `when/then expression`, possibly followed by `otherwise`."""
 
     SERIES = auto()
     """Results from converting a Series to Expr."""
@@ -368,7 +353,7 @@ class ExprMetadata:
 
     @classmethod
     def from_node(  # noqa: PLR0911
-        cls, node: ExprNode, *ces: CompliantExprAny | NonNestedLiteral
+        cls, node: ExprNode
     ) -> ExprMetadata:
         if node.kind is ExprKind.SERIES:
             return cls.from_selector_single(node)
@@ -392,10 +377,8 @@ class ExprMetadata:
             return ExprMetadata.from_literal(node)
         if node.kind is ExprKind.SELECTOR:
             return ExprMetadata.from_selector_multi_unnamed(node)
-        if node.kind is ExprKind.WHEN:
-            return ExprMetadata.from_selector_single(node)
-        if node.kind is ExprKind.HORIZONTAL:
-            return ExprMetadata.from_horizontal(node.name, *ces)
+        if node.kind is ExprKind.ELEMENTWISE:
+            return ExprMetadata.from_elementwise(node)
         msg = f"Unexpected node kind: {node.kind}"
         raise AssertionError(msg)
 
@@ -473,12 +456,9 @@ class ExprMetadata:
         return cls(ExpansionKind.MULTI_UNNAMED, nodes=(node,))
 
     @classmethod
-    def from_horizontal(
-        cls, name: str, *exprs: CompliantExprAny | NonNestedLiteral
-    ) -> ExprMetadata:
-        node = ExprNode(ExprKind.HORIZONTAL, name, *exprs)
+    def from_elementwise(cls, node: ExprNode) -> ExprMetadata:
         return combine_metadata(
-            *exprs,
+            *node.exprs,
             str_as_lit=False,
             allow_multi_output=True,
             to_single_output=True,

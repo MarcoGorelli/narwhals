@@ -111,10 +111,7 @@ class Expr:
             node_without_order_by = node.with_kwargs(**kwargs_no_order_by)
             n = len(new_nodes)
             i = n
-            while (_node := new_nodes[i - 1]).kind in {
-                ExprKind.ELEMENTWISE,
-                ExprKind.HORIZONTAL,
-            }:
+            while (_node := new_nodes[i - 1]).kind is ExprKind.ELEMENTWISE:
                 i -= 1
                 _node.push_down_over_node_in_place(node, node_without_order_by)
             if i == n:
