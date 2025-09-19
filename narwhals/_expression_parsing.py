@@ -360,7 +360,7 @@ class ExprMetadata:
 
     @classmethod
     def from_node(  # noqa: PLR0911
-        cls, node: ExprNode, *ces: CompliantExprAny
+        cls, node: ExprNode, *ces: CompliantExprAny | NonNestedLiteral
     ) -> ExprMetadata:
         if node.kind is ExprKind.SERIES:
             return cls.from_selector_single(node)
@@ -465,7 +465,9 @@ class ExprMetadata:
         return cls(ExpansionKind.MULTI_UNNAMED, nodes=(node,))
 
     @classmethod
-    def from_elementwise(cls, node: ExprNode, *ces: CompliantExprAny) -> ExprMetadata:
+    def from_elementwise(
+        cls, node: ExprNode, *ces: CompliantExprAny | NonNestedLiteral
+    ) -> ExprMetadata:
         return combine_metadata(
             *ces,
             str_as_lit=False,

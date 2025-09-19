@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from narwhals._expression_parsing import (
     ExprKind,
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from typing_extensions import Concatenate, ParamSpec, Self
 
     from narwhals._compliant import CompliantExpr, CompliantNamespace
+    from narwhals._compliant.typing import CompliantExprAny
     from narwhals.dtypes import DType
     from narwhals.typing import (
         ClosedInterval,
@@ -55,7 +56,7 @@ class Expr:
     ) -> CompliantExpr[Any, Any]:
         if node.kind is ExprKind.SERIES:
             md = ExprMetadata.from_selector_single(node)
-            ce = node.exprs[0]  # can we do better?
+            ce = cast("CompliantExprAny", node.kwargs["compliant_expr"])
             ce._opt_metadata = md
             return ce
         if "." in node.name:

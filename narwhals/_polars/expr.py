@@ -75,6 +75,11 @@ class PolarsExpr:
     def _with_native(self, expr: pl.Expr) -> Self:
         return self.__class__(expr, self._version)
 
+    @property
+    def _metadata(self) -> ExprMetadata:
+        assert self._opt_metadata is not None  # noqa: S101
+        return self._opt_metadata
+
     def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Let Polars do its thing.
         return self
