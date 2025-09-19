@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from datetime import timezone
 
-    from narwhals._compliant import CompliantSelectorNamespace, CompliantWhen
+    from narwhals._compliant import CompliantSelectorNamespace
     from narwhals._polars.dataframe import Method, PolarsDataFrame, PolarsLazyFrame
     from narwhals._polars.typing import FrameT
     from narwhals._utils import Version, _LimitedContext
@@ -40,8 +40,6 @@ class PolarsNamespace:
     sum_horizontal: Method[PolarsExpr]
     min_horizontal: Method[PolarsExpr]
     max_horizontal: Method[PolarsExpr]
-
-    when: Method[CompliantWhen[PolarsDataFrame, PolarsSeries, PolarsExpr]]
 
     _implementation: Implementation = Implementation.POLARS
     _version: Version

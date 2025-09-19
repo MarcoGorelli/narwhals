@@ -153,7 +153,6 @@ class CompliantFrame(
     def sort(
         self, *by: str, descending: bool | Sequence[bool], nulls_last: bool
     ) -> Self: ...
-    def tail(self, n: int) -> Self: ...
     def unique(
         self,
         subset: Sequence[str] | None,

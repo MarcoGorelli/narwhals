@@ -259,7 +259,6 @@ class ArrowNamespace(
         when: ChunkedArrayAny,
         then: ChunkedArrayAny,
         otherwise: ChunkedArrayAny | None = None,
-        /,
     ) -> ChunkedArrayAny:
         otherwise = pa.nulls(len(when), then.type) if otherwise is None else otherwise
         return pc.if_else(when, then, otherwise)

@@ -215,7 +215,6 @@ class DepthTrackingExpr(
         /,
         *,
         context: _LimitedContext,
-        function_name: str = "",
     ) -> Self: ...
 
     def _is_elementary(self) -> bool:
