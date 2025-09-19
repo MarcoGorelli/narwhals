@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Never, Protocol, overload
+from typing import TYPE_CHECKING, Any, Protocol, overload
 
 from narwhals._compliant.typing import (
     CompliantExprT,
@@ -70,11 +70,6 @@ class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
     # NOTE: `polars`
     def all(self) -> CompliantExprT:
         return self._expr.from_column_names(get_column_names, context=self)
-
-    @overload
-    def col(self, names: str) -> Never: ...
-    @overload
-    def col(self, names: Sequence[str]) -> CompliantExprT: ...
 
     def col(self, names: Sequence[str]) -> CompliantExprT:
         return self._expr.from_column_names(passthrough_column_names(names), context=self)
