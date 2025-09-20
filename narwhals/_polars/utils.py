@@ -105,8 +105,8 @@ def native_to_narwhals_dtype(  # noqa: C901, PLR0912
     if dtype == pl.Int8:
         return dtypes.Int8()
     if (
-        hasattr(pl, "UInt128") and dtype == pl.UInt128
-    ):  # pragma: no cover  # type: ignore[attr-defined]
+        hasattr(pl, "UInt128") and dtype == pl.UInt128  # type: ignore[attr-defined]
+    ):  # pragma: no cover
         # Not available for Polars pre 1.8.0
         return dtypes.UInt128()
     if dtype == pl.UInt64:

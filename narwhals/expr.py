@@ -46,9 +46,74 @@ if TYPE_CHECKING:
     R = TypeVar("R")
 
 
+import json
+
+
 class Expr:
     def __init__(self, *nodes: ExprNode) -> None:
         self._nodes = nodes
+
+    def to_json(self) -> str:
+        # Check for SERIES kind
+        for node in self._nodes:
+            if node.kind == ExprKind.SERIES:
+                msg = "Cannot serialize Expr with SERIES kind node."
+                raise TypeError(msg)
+        # Serialize nodes
+        nodes_data = [self._serialize_node(node) for node in self._nodes]
+        return json.dumps(nodes_data)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> Expr:
+        nodes_data = json.loads(json_str)
+        nodes = [cls._deserialize_node(nd) for nd in nodes_data]
+        return cls(*nodes)
+
+    @staticmethod
+    def _serialize_node(node: ExprNode) -> dict:
+        return {
+            "kind": node.kind.name,
+            "name": node.name,
+            "exprs": [Expr._serialize_expr_arg(e) for e in node.exprs],
+            "kwargs": node.kwargs,
+            "str_as_lit": node.str_as_lit,
+            "allow_multi_output": node.allow_multi_output,
+        }
+
+    @staticmethod
+    def _deserialize_node(data: dict) -> ExprNode:
+        kind = ExprKind[data["kind"]]
+        name = data["name"]
+        exprs = [Expr._deserialize_expr_arg(e) for e in data["exprs"]]
+        kwargs = data["kwargs"]
+        str_as_lit = data.get("str_as_lit", False)
+        allow_multi_output = data.get("allow_multi_output", False)
+        return ExprNode(
+            kind,
+            name,
+            *exprs,
+            str_as_lit=str_as_lit,
+            allow_multi_output=allow_multi_output,
+            **kwargs,
+        )
+
+    @staticmethod
+    def _serialize_expr_arg(arg):
+        # If arg is Expr, serialize as dict
+        if isinstance(arg, Expr):
+            return {
+                "__expr__": True,
+                "data": [Expr._serialize_node(n) for n in arg._nodes],
+            }
+        # If arg is a basic type, return as is
+        return arg
+
+    @staticmethod
+    def _deserialize_expr_arg(data):
+        if isinstance(data, dict) and data.get("__expr__"):
+            nodes = [Expr._deserialize_node(nd) for nd in data["data"]]
+            return Expr(*nodes)
+        return data
 
     def _evaluate_node(
         self, node: ExprNode, ns: CompliantNamespace[Any, Any]
