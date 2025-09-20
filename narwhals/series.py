@@ -92,7 +92,9 @@ class Series(Generic[IntoSeriesT]):
         return DataFrame
 
     def _to_expr(self) -> Expr:
-        return Expr(ExprNode(ExprKind.SERIES, "_expr._from_series", self._compliant))
+        return Expr(
+            ExprNode(ExprKind.SERIES, "_expr._from_series", series=self._compliant)
+        )
 
     def __init__(
         self, series: Any, *, level: Literal["full", "lazy", "interchange"]
