@@ -51,6 +51,15 @@ class PolarsNamespace:
     def __init__(self, *, version: Version) -> None:
         self._version = version
 
+    def evaluate_expr(
+        self, data: Expr | NonNestedLiteral | Any, /
+    ) -> PolarsExpr | NonNestedLiteral:
+        if is_expr(data):
+            expr = data(self)
+            assert isinstance(expr, self._expr)  # noqa: S101
+            return expr
+        return data
+
     def __getattr__(self, attr: str) -> Any:
         def func(*args: Any, **kwargs: Any) -> Any:
             pos, kwds = extract_args_kwargs(args, kwargs)

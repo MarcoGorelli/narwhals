@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import polars as pl
 
+from narwhals._expression_parsing import ExprNode, evaluate_into_exprs
 from narwhals._polars.utils import (
     PolarsAnyNamespace,
     PolarsCatNamespace,
@@ -34,10 +35,20 @@ class PolarsExpr:
     _implementation: Implementation = Implementation.POLARS
     _version: Version
     _native_expr: pl.Expr
-    _metadata: ExprMetadata | None = None
     _evaluate_output_names: Any
     _alias_output_names: Any
     __call__: Any
+
+    def with_node(self, node: ExprNode, ns: Any) -> PolarsExpr:
+        md = self._metadata.with_node(node, self)
+        ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+        if "." in node.name:
+            module, func = node.name.split(".")
+            ret = getattr(getattr(self, module), func)(*ces, **node.kwargs)
+        else:
+            ret = getattr(self, node.name)(*ces, **node.kwargs)
+        ret._opt_metadata = md
+        return ret
 
     # CompliantExpr + builtin descriptor
     # TODO @dangotbanned: Remove in #2713
@@ -83,13 +94,6 @@ class PolarsExpr:
     def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Let Polars do its thing.
         return self
-
-    def __getattr__(self, attr: str) -> Any:
-        def func(*args: Any, **kwargs: Any) -> Any:
-            pos, kwds = extract_args_kwargs(args, kwargs)
-            return self._with_native(getattr(self.native, attr)(*pos, **kwds))
-
-        return func
 
     def _renamed_min_periods(self, min_samples: int, /) -> dict[str, Any]:
         name = "min_periods" if self._backend_version < (1, 21, 0) else "min_samples"
@@ -325,6 +329,13 @@ class PolarsExpr:
     @property
     def struct(self) -> PolarsExprStructNamespace:
         return PolarsExprStructNamespace(self)
+
+    def __getattr__(self, attr: str) -> Any:
+        def func(*args: Any, **kwargs: Any) -> Any:
+            pos, kwds = extract_args_kwargs(args, kwargs)
+            return self._with_native(getattr(self.native, attr)(*pos, **kwds))
+
+        return func
 
     # Polars
     abs: Method[Self]
