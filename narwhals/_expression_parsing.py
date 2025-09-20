@@ -741,13 +741,8 @@ def check_expressions_preserve_length(
     # Raise if any argument in `args` isn't length-preserving.
     # For Series input, we don't raise (yet), we let such checks happen later,
     # as this function works lazily and so can't evaluate lengths.
-    from narwhals.series import Series
 
-    if not all(
-        (is_compliant_expr(x) and x._metadata.preserves_length)
-        or isinstance(x, (str, Series))
-        for x in args
-    ):
+    if not all((is_compliant_expr(x) and x._metadata.preserves_length) for x in args):
         msg = f"Expressions which aggregate or change length cannot be passed to '{function_name}'."
         raise InvalidOperationError(msg)
 
