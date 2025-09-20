@@ -230,6 +230,7 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
             )
             raise NotImplementedError(msg)
         else:
+            assert nodes  # noqa: S101
             leaf_node = nodes[-1]
             function_name = leaf_node.name
             pandas_function_name = WINDOW_FUNCTIONS_TO_PANDAS_EQUIVALENT.get(

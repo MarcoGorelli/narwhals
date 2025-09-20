@@ -735,7 +735,9 @@ def combine_metadata(
     )
 
 
-def check_expressions_preserve_length(*args: IntoExpr, function_name: str) -> None:
+def check_expressions_preserve_length(
+    *args: CompliantExprAny | NonNestedLiteral, function_name: str
+) -> None:
     # Raise if any argument in `args` isn't length-preserving.
     # For Series input, we don't raise (yet), we let such checks happen later,
     # as this function works lazily and so can't evaluate lengths.

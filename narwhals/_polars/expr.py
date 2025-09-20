@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, cast
 
 import polars as pl
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from narwhals._compliant.typing import Accessor
+    from narwhals._compliant.typing import Accessor, CompliantExprAny
     from narwhals._expression_parsing import ExprKind, ExprMetadata
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
@@ -41,7 +41,7 @@ class PolarsExpr:
     __call__: Any
 
     def with_node(self, node: ExprNode, ns: Any) -> PolarsExpr:
-        md = self._metadata.with_node(node, self)
+        md = self._metadata.with_node(node, cast("CompliantExprAny", self))
         ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
         if "." in node.name:
             module, func = node.name.split(".")
@@ -417,8 +417,6 @@ class PolarsExprDateTimeNamespace(
 class PolarsExprStringNamespace(
     PolarsExprNamespace, PolarsStringNamespace[PolarsExpr, pl.Expr]
 ):
-    _accessor = "str"
-
     @requires.backend_version((0, 20, 5))
     def zfill(self, width: int) -> PolarsExpr:
         backend_version = self.compliant._backend_version
