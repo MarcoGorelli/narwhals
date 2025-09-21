@@ -68,6 +68,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import ParamSpec, Self
 
+    from narwhals._expression_parsing import ExprMetadata
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import (
         Arrow,
@@ -234,6 +235,10 @@ class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
     @property
     def _dataframe(self) -> type[DataFrame[Any]]:
         return DataFrame
+
+    def _validate_metadata(self, metadata: ExprMetadata) -> None:
+        # After v1, we raise for order-dependent operations.
+        pass
 
     def collect(
         self, backend: IntoBackend[Polars | Pandas | Arrow] | None = None, **kwargs: Any
