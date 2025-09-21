@@ -206,7 +206,7 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
     def over(  # noqa: C901, PLR0915
         self, partition_by: Sequence[str], order_by: Sequence[str]
     ) -> Self:
-        nodes = self._metadata.nodes  # skip last node, as we know it's `over`
+        nodes = self._metadata.nodes
         if not partition_by:
             # e.g. `nw.col('a').cum_sum().order_by(key)`
             # We can always easily support this as it doesn't require grouping.
@@ -233,11 +233,11 @@ class PandasLikeExpr(EagerExpr["PandasLikeDataFrame", PandasLikeSeries]):
             assert nodes  # noqa: S101
             leaf_node = nodes[-1]
             function_name = leaf_node.name
+            pandas_agg = PandasLikeGroupBy._REMAP_AGGS.get(
+                cast("NarwhalsAggregation", function_name)
+            )
             pandas_function_name = WINDOW_FUNCTIONS_TO_PANDAS_EQUIVALENT.get(
-                function_name,
-                PandasLikeGroupBy._REMAP_AGGS.get(
-                    cast("NarwhalsAggregation", function_name)
-                ),
+                function_name, pandas_agg
             )
             if pandas_function_name is None:
                 msg = (

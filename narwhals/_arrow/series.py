@@ -848,9 +848,9 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
             extract_native(self, upper_bound) if upper_bound is not None else (None, None)
         )
 
-        if lower is None or isinstance(lower, pa.NullScalar):
+        if lower is None:
             return self._with_native(pc.min_element_wise(self.native, upper))
-        if upper is None or isinstance(upper, pa.NullScalar):
+        if upper is None:
             return self._with_native(pc.max_element_wise(self.native, lower))
         return self._with_native(
             pc.max_element_wise(pc.min_element_wise(self.native, upper), lower)

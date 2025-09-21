@@ -156,7 +156,7 @@ class AggExpr:
         return result
 
     def is_len(self) -> bool:
-        return next(self.expr._metadata.op_nodes_reversed()).name == "len"
+        return self.leaf_name == "len"
 
     def is_mode(self) -> bool:
         return self.leaf_name == "mode"

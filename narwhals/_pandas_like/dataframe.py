@@ -419,10 +419,8 @@ class PandasLikeDataFrame(
 
     def with_row_index(self, name: str, order_by: Sequence[str] | None) -> Self:
         plx = self.__narwhals_namespace__()
-        # if order_by is None:
         size = len(self)
         data = self._array_funcs.arange(size)
-
         row_index_s = plx._series.from_iterable(
             data, context=self, index=self.native.index, name=name
         )
