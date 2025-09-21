@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
 
 from narwhals._utils import is_compliant_expr, is_numpy_array_1d, zip_strict
 from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
@@ -30,14 +30,6 @@ if TYPE_CHECKING:
     T = TypeVar("T")
     PS = ParamSpec("PS")
     R = TypeVar("R")
-
-    ExprT_co = TypeVar("ExprT_co", bound="Expr", covariant=True)
-
-    class ExprNamespace(Protocol[ExprT_co]):
-        _accessor: str
-        _expr: ExprT_co
-
-    ExprNamespaceT = TypeVar("ExprNamespaceT", bound=ExprNamespace[Any])
 
 
 def is_expr(obj: Any) -> TypeIs[Expr]:
@@ -285,6 +277,34 @@ class ExprNode:
             )
             else expr._with_node(over_node_without_order_by)
             for expr in self.exprs
+        )
+
+    def serialise(self) -> dict[str, Any]:
+        from narwhals.expr import Expr
+
+        if self.kind == ExprKind.SERIES:
+            msg = "Cannot serialize Expr with SERIES kind node."
+            raise TypeError(msg)
+        return {
+            "kind": self.kind.name,
+            "name": self.name,
+            "exprs": [Expr._serialize_expr_arg(e) for e in self.exprs],
+            "kwargs": self.kwargs,
+            "str_as_lit": self.str_as_lit,
+            "allow_multi_output": self.allow_multi_output,
+        }
+
+    @classmethod
+    def deserialise(cls, data: dict[str, Any]) -> ExprNode:
+        from narwhals.expr import Expr
+
+        return cls(
+            ExprKind[data["kind"]],
+            data["name"],
+            *[Expr._deserialize_expr_arg(e) for e in data["exprs"]],
+            str_as_lit=data["str_as_lit"],
+            allow_multi_output=data["allow_multi_output"],
+            **data["kwargs"],
         )
 
 

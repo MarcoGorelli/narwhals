@@ -23,6 +23,7 @@
         - fill_nan
         - fill_null
         - filter
+        - from_json
         - is_between
         - is_close
         - is_duplicated
@@ -59,6 +60,7 @@
         - sqrt
         - std
         - sum
+        - to_json
         - unique
         - var
       show_source: false

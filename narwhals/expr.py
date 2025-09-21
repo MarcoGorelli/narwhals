@@ -54,64 +54,42 @@ class Expr:
         self._nodes = nodes
 
     def to_json(self) -> str:
-        # Check for SERIES kind
-        for node in self._nodes:
-            if node.kind == ExprKind.SERIES:
-                msg = "Cannot serialize Expr with SERIES kind node."
-                raise TypeError(msg)
-        # Serialize nodes
-        nodes_data = [self._serialize_node(node) for node in self._nodes]
-        return json.dumps(nodes_data)
+        """Serialise expression to json string.
+
+        Notes:
+        -----
+        This is not meant to be stable across Narwhals versions.
+        """
+        return json.dumps([node.serialise() for node in self._nodes])
 
     @classmethod
     def from_json(cls, json_str: str) -> Expr:
-        nodes_data = json.loads(json_str)
-        nodes = [cls._deserialize_node(nd) for nd in nodes_data]
-        return cls(*nodes)
+        """Initialise Expr from json string.
 
-    @staticmethod
-    def _serialize_node(node: ExprNode) -> dict:
-        return {
-            "kind": node.kind.name,
-            "name": node.name,
-            "exprs": [Expr._serialize_expr_arg(e) for e in node.exprs],
-            "kwargs": node.kwargs,
-            "str_as_lit": node.str_as_lit,
-            "allow_multi_output": node.allow_multi_output,
-        }
-
-    @staticmethod
-    def _deserialize_node(data: dict) -> ExprNode:
-        kind = ExprKind[data["kind"]]
-        name = data["name"]
-        exprs = [Expr._deserialize_expr_arg(e) for e in data["exprs"]]
-        kwargs = data["kwargs"]
-        str_as_lit = data.get("str_as_lit", False)
-        allow_multi_output = data.get("allow_multi_output", False)
-        return ExprNode(
-            kind,
-            name,
-            *exprs,
-            str_as_lit=str_as_lit,
-            allow_multi_output=allow_multi_output,
-            **kwargs,
+        Notes:
+        -----
+        This is not meant to be stable across Narwhals versions.
+        """
+        return cls(
+            *(ExprNode.deserialise(node_data) for node_data in json.loads(json_str))
         )
 
     @staticmethod
-    def _serialize_expr_arg(arg):
+    def _serialize_expr_arg(
+        arg: Expr | NonNestedLiteral,
+    ) -> dict[str, Any] | NonNestedLiteral:
         # If arg is Expr, serialize as dict
         if isinstance(arg, Expr):
-            return {
-                "__expr__": True,
-                "data": [Expr._serialize_node(n) for n in arg._nodes],
-            }
+            return {"__expr__": True, "data": [ExprNode.serialise(n) for n in arg._nodes]}
         # If arg is a basic type, return as is
         return arg
 
     @staticmethod
-    def _deserialize_expr_arg(data):
+    def _deserialize_expr_arg(
+        data: dict[str, Any] | NonNestedLiteral,
+    ) -> Expr | NonNestedLiteral:
         if isinstance(data, dict) and data.get("__expr__"):
-            nodes = [Expr._deserialize_node(nd) for nd in data["data"]]
+            nodes = [ExprNode.deserialise(node_data) for node_data in data["data"]]
             return Expr(*nodes)
         return data
 
