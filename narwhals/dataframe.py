@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from functools import partial
 from itertools import chain
 from typing import (
     TYPE_CHECKING,
@@ -18,10 +19,9 @@ from typing import (
 from narwhals._exceptions import issue_warning
 from narwhals._expression_parsing import (
     ExprKind,
+    _parse_into_expr,
     check_expressions_preserve_length,
-    is_expr,
     is_scalar_like,
-    is_series,
 )
 from narwhals._typing import Arrow, Pandas, _LazyAllowedImpl, _LazyFrameCollectImpl
 from narwhals._utils import (
@@ -44,14 +44,13 @@ from narwhals._utils import (
     supports_arrow_c_stream,
     zip_strict,
 )
-from narwhals.dependencies import is_numpy_array_1d, is_numpy_array_2d, is_pyarrow_table
+from narwhals.dependencies import is_numpy_array_2d, is_pyarrow_table
 from narwhals.exceptions import (
     ColumnNotFoundError,
-    InvalidIntoExprError,
     InvalidOperationError,
     PerformanceWarning,
 )
-from narwhals.functions import _from_dict_no_backend, _is_into_schema, col, new_series
+from narwhals.functions import _from_dict_no_backend, _is_into_schema
 from narwhals.schema import Schema
 from narwhals.series import Series
 from narwhals.translate import to_native
@@ -71,7 +70,6 @@ if TYPE_CHECKING:
     from narwhals._compliant.typing import CompliantExprAny
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import EagerAllowed, IntoBackend, LazyAllowed, Polars
-    from narwhals.expr import Expr
     from narwhals.group_by import GroupBy, LazyGroupBy
     from narwhals.typing import (
         AsofJoinStrategy,
@@ -88,7 +86,6 @@ if TYPE_CHECKING:
         SingleIndexSelector,
         SizeUnit,
         UniqueKeepStrategy,
-        _1DArray,
         _2DArray,
     )
 
@@ -151,12 +148,12 @@ class BaseFrame(Generic[_FrameT]):
         out_exprs = []
         out_kinds = []
         ns = self.__narwhals_namespace__()
+        parse = partial(
+            _parse_into_expr, backend=self._compliant._implementation, allow_literal=False
+        )
         all_exprs = chain(
-            (self._parse_into_expr(x) for x in flatten(exprs)),
-            (
-                self._parse_into_expr(expr).alias(alias)
-                for alias, expr in named_exprs.items()
-            ),
+            (parse(x) for x in flatten(exprs)),
+            (parse(expr).alias(alias) for alias, expr in named_exprs.items()),
         )
         for expr in all_exprs:
             ce = expr(ns)
@@ -188,10 +185,6 @@ class BaseFrame(Generic[_FrameT]):
                     )
                     raise InvalidOperationError(msg)
         return out_exprs, out_kinds
-
-    @abstractmethod
-    def _parse_into_expr(self, arg: Any) -> Expr:
-        raise NotImplementedError
 
     def _extract_compliant_frame(self, other: Self | Any, /) -> Any:
         if isinstance(other, type(self)):
@@ -507,17 +500,6 @@ class DataFrame(BaseFrame[DataFrameT]):
     @property
     def _compliant(self) -> CompliantDataFrame[Any, Any, DataFrameT, Self]:
         return self._compliant_frame
-
-    def _parse_into_expr(self, arg: Expr | Series[Any] | _1DArray | str) -> Expr:
-        if isinstance(arg, str):
-            return col(arg)
-        if is_numpy_array_1d(arg):
-            return new_series("", arg, backend=self.implementation)._to_expr()
-        if is_series(arg):
-            return arg._to_expr()
-        if is_expr(arg):
-            return arg
-        raise InvalidIntoExprError.from_invalid_type(type(arg))
 
     @property
     def _series(self) -> type[Series[Any]]:
@@ -2327,14 +2309,6 @@ class LazyFrame(BaseFrame[LazyFrameT]):
     @property
     def _compliant(self) -> CompliantLazyFrame[Any, LazyFrameT, Self]:
         return self._compliant_frame
-
-    def _parse_into_expr(self, arg: Expr | str) -> Expr:
-        if isinstance(arg, str):
-            return col(arg)
-        if is_expr(arg):
-            # TODO(marco): need to validate something about metadata here :thinking:
-            return arg
-        raise InvalidIntoExprError.from_invalid_type(type(arg))
 
     @property
     def _dataframe(self) -> type[DataFrame[Any]]:

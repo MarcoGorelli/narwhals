@@ -5,10 +5,14 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, overload
 
 from narwhals._utils import is_compliant_expr, is_numpy_array_1d, zip_strict
-from narwhals.exceptions import InvalidOperationError, MultiOutputExpressionError
+from narwhals.exceptions import (
+    InvalidIntoExprError,
+    InvalidOperationError,
+    MultiOutputExpressionError,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -784,11 +788,32 @@ def apply_binary(
     return getattr(compliant_exprs[0], name)(compliant_exprs[1])
 
 
+@overload
 def _parse_into_expr(
     arg: IntoExpr | NonNestedLiteral | _1DArray,
     *,
     str_as_lit: bool = False,
     backend: Any = None,
+    allow_literal: Literal[False],
+) -> Expr: ...
+
+
+@overload
+def _parse_into_expr(
+    arg: IntoExpr | NonNestedLiteral | _1DArray,
+    *,
+    str_as_lit: bool = False,
+    backend: Any = None,
+    allow_literal: Literal[True] = ...,
+) -> Expr | NonNestedLiteral: ...
+
+
+def _parse_into_expr(
+    arg: IntoExpr | NonNestedLiteral | _1DArray,
+    *,
+    str_as_lit: bool = False,
+    backend: Any = None,
+    allow_literal: bool = True,
 ) -> Expr | NonNestedLiteral:
     from narwhals.functions import col, new_series
 
@@ -800,6 +825,8 @@ def _parse_into_expr(
         return arg._to_expr()
     if is_expr(arg):
         return arg
+    if not allow_literal:
+        raise InvalidIntoExprError.from_invalid_type(type(arg))
     return arg
 
 

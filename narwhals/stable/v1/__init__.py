@@ -235,15 +235,6 @@ class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
     def _dataframe(self) -> type[DataFrame[Any]]:
         return DataFrame
 
-    def _parse_into_expr(self, arg: Expr | str) -> Expr:  # type: ignore[override]
-        # After v1, we raise when passing order-dependent, length-changing,
-        # or filtration expressions to LazyFrame
-        if isinstance(arg, str):
-            return col(arg)
-        if is_expr(arg):
-            return arg
-        raise InvalidIntoExprError.from_invalid_type(type(arg))
-
     def collect(
         self, backend: IntoBackend[Polars | Pandas | Arrow] | None = None, **kwargs: Any
     ) -> DataFrame[Any]:
@@ -1364,6 +1355,7 @@ __all__ = [
     "Int32",
     "Int64",
     "Int128",
+    "InvalidIntoExprError",
     "LazyFrame",
     "List",
     "Object",
@@ -1396,6 +1388,7 @@ __all__ = [
     "generate_temporary_column_name",
     "get_level",
     "get_native_namespace",
+    "is_expr",
     "is_ordered_categorical",
     "len",
     "lit",
