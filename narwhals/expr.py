@@ -76,12 +76,10 @@ class Expr:
 
     @staticmethod
     def _serialize_expr_arg(
-        arg: Expr | NonNestedLiteral,
-    ) -> dict[str, Any] | NonNestedLiteral:
-        # If arg is Expr, serialize as dict
+        arg: IntoExpr | NonNestedLiteral,
+    ) -> dict[str, Any] | IntoExpr | NonNestedLiteral:
         if isinstance(arg, Expr):
             return {"__expr__": True, "data": [ExprNode.serialise(n) for n in arg._nodes]}
-        # If arg is a basic type, return as is
         return arg
 
     @staticmethod
@@ -91,7 +89,7 @@ class Expr:
         if isinstance(data, dict) and data.get("__expr__"):
             nodes = [ExprNode.deserialise(node_data) for node_data in data["data"]]
             return Expr(*nodes)
-        return data
+        return data  # pyright: ignore[reportReturnType]
 
     def _evaluate_node(
         self, node: ExprNode, ns: CompliantNamespace[Any, Any]

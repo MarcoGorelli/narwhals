@@ -224,17 +224,17 @@ class ExprNode:
         kind: ExprKind,
         name: str,
         /,
-        *exprs: Any,
+        *exprs: IntoExpr | NonNestedLiteral,
         str_as_lit: bool = False,
         allow_multi_output: bool = False,
         **kwargs: Any,
     ) -> None:
-        self.kind = kind
-        self.name = name
-        self.exprs = exprs
-        self.kwargs = kwargs
-        self.str_as_lit = str_as_lit
-        self.allow_multi_output = allow_multi_output
+        self.kind: ExprKind = kind
+        self.name: str = name
+        self.exprs: Sequence[IntoExpr | NonNestedLiteral] = exprs
+        self.kwargs: dict[str, Any] = kwargs
+        self.str_as_lit: bool = str_as_lit
+        self.allow_multi_output: bool = allow_multi_output
 
         # Cached methods.
         self._is_orderable_window: bool | None = None
@@ -260,7 +260,9 @@ class ExprNode:
     def is_orderable(self) -> bool:
         if self._is_orderable_window is None:
             self._is_orderable_window = self.kind.is_orderable or any(
-                any(node.is_orderable() for node in expr._nodes) for expr in self.exprs
+                any(node.is_orderable() for node in expr._nodes)
+                for expr in self.exprs
+                if is_expr(expr)
             )
         return self._is_orderable_window
 
@@ -665,11 +667,7 @@ class ExprMetadata:
 
     def op_nodes_reversed(self) -> Iterator[ExprNode]:
         for node in reversed(self.nodes):
-            if (
-                node.name.startswith("name.")  # noqa: PLR1714
-                or node.name == "alias"
-                or node.name == "over"
-            ):
+            if node.name.startswith("name.") or node.name == "alias":
                 # Skip nodes which only do aliasing.
                 continue
             yield node
