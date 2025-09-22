@@ -11,6 +11,7 @@ from narwhals._compliant.typing import (
     EagerDataFrameT,
     EagerExprT,
     EagerSeriesT,
+    EagerSeriesT_co,
     LazyExprT,
     NativeFrameT,
     NativeFrameT_co,
@@ -145,7 +146,7 @@ class LazyNamespace(
 
 class EagerNamespace(
     DepthTrackingNamespace[EagerDataFrameT, EagerExprT],
-    Protocol[EagerDataFrameT, EagerSeriesT, EagerExprT, NativeFrameT, NativeSeriesT],
+    Protocol[EagerDataFrameT, EagerSeriesT_co, EagerExprT, NativeFrameT, NativeSeriesT],
 ):
     @property
     def _backend_version(self) -> tuple[int, ...]:
@@ -154,7 +155,7 @@ class EagerNamespace(
     @property
     def _dataframe(self) -> type[EagerDataFrameT]: ...
     @property
-    def _series(self) -> type[EagerSeriesT]: ...
+    def _series(self) -> type[EagerSeriesT_co]: ...
     def _if_then_else(
         self,
         when: NativeSeriesT,
@@ -208,10 +209,10 @@ class EagerNamespace(
     @overload
     def from_native(self, data: NativeFrameT, /) -> EagerDataFrameT: ...
     @overload
-    def from_native(self, data: NativeSeriesT, /) -> EagerSeriesT: ...
+    def from_native(self, data: NativeSeriesT, /) -> EagerSeriesT_co: ...
     def from_native(
         self, data: NativeFrameT | NativeSeriesT | Any, /
-    ) -> EagerDataFrameT | EagerSeriesT:
+    ) -> EagerDataFrameT | EagerSeriesT_co:
         if self._dataframe._is_native(data):
             return self._dataframe.from_native(data, context=self)
         if self._series._is_native(data):
@@ -220,7 +221,7 @@ class EagerNamespace(
         raise TypeError(msg)
 
     @overload
-    def from_numpy(self, data: Into1DArray, /, schema: None = ...) -> EagerSeriesT: ...
+    def from_numpy(self, data: Into1DArray, /, schema: None = ...) -> EagerSeriesT_co: ...
 
     @overload
     def from_numpy(
