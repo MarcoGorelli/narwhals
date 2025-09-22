@@ -49,7 +49,7 @@ class PolarsExpr:
         else:
             ret = getattr(self, node.name)(*ces, **node.kwargs)
         ret._opt_metadata = md
-        return ret
+        return cast("PolarsExpr", ret)
 
     # CompliantExpr + builtin descriptor
     # TODO @dangotbanned: Remove in #2713
@@ -307,6 +307,13 @@ class PolarsExpr:
         result = self.native.mode()
         return self._with_native(result.first() if keep == "any" else result)
 
+    def __getattr__(self, attr: str) -> Any:
+        def func(*args: Any, **kwargs: Any) -> Any:
+            pos, kwds = extract_args_kwargs(args, kwargs)
+            return self._with_native(getattr(self.native, attr)(*pos, **kwds))
+
+        return func
+
     @property
     def dt(self) -> PolarsExprDateTimeNamespace:
         return PolarsExprDateTimeNamespace(self)
@@ -330,13 +337,6 @@ class PolarsExpr:
     @property
     def struct(self) -> PolarsExprStructNamespace:
         return PolarsExprStructNamespace(self)
-
-    def __getattr__(self, attr: str) -> Any:
-        def func(*args: Any, **kwargs: Any) -> Any:
-            pos, kwds = extract_args_kwargs(args, kwargs)
-            return self._with_native(getattr(self.native, attr)(*pos, **kwds))
-
-        return func
 
     # Polars
     abs: Method[Self]

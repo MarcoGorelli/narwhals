@@ -892,7 +892,6 @@ class LazyExpr(  # type: ignore[misc]
 class _ExprNamespace(  # type: ignore[misc]
     _StoresCompliant[CompliantExprT_co], Protocol[CompliantExprT_co]
 ):
-    _accessor: str
     _compliant_expr: CompliantExprT_co
 
     @property
@@ -1060,8 +1059,6 @@ class LazyExprNameNamespace(
     CompliantExprNameNamespace[LazyExprT],
     Generic[LazyExprT],
 ):
-    _accessor: str
-
     def _from_callable(self, func: AliasName | None) -> LazyExprT:
         expr = self.compliant
         output_names = self._alias_output_names(func) if func else None

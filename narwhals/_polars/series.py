@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     import pyarrow as pa
     from typing_extensions import Self, TypeAlias, TypeIs
 
+    from narwhals._compliant.typing import CompliantExprAny
     from narwhals._polars.dataframe import Method, PolarsDataFrame
     from narwhals._polars.namespace import PolarsNamespace
     from narwhals._utils import Version, _LimitedContext
@@ -151,7 +152,7 @@ class PolarsSeries:
         self._native_series = series
         self._version = version
 
-    def _to_expr(self) -> PolarsExpr:
+    def _to_expr(self) -> CompliantExprAny:
         # Polars can treat Series as Expr, so just pass down `self.native`.
         return PolarsExpr(self.native, version=self._version)  # type: ignore[arg-type]
 

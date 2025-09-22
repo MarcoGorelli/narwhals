@@ -7,7 +7,8 @@ from __future__ import annotations
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, overload
 
-from narwhals._utils import is_compliant_expr, is_numpy_array_1d, zip_strict
+from narwhals._utils import is_compliant_expr, zip_strict
+from narwhals.dependencies import is_numpy_array_1d
 from narwhals.exceptions import (
     InvalidIntoExprError,
     InvalidOperationError,
@@ -848,13 +849,13 @@ def maybe_broadcast_ces(
 ) -> list[CompliantExprAny | NonNestedLiteral]:
     kinds = [ExprKind.from_into_expr(comparand) for comparand in ces]
     broadcast = any(not kind.is_scalar_like for kind in kinds)
-    results = []
+    results: list[CompliantExprAny | NonNestedLiteral] = []
     for compliant_expr, kind in zip_strict(ces, kinds):
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind):
-            _ce = compliant_expr.broadcast(kind)
+            _compliant_expr = compliant_expr.broadcast(kind)
             # Make sure to preserve metadata.
-            _ce._opt_metadata = compliant_expr._metadata
-            results.append(_ce)
+            _compliant_expr._opt_metadata = compliant_expr._metadata
+            results.append(_compliant_expr)
         else:
             results.append(compliant_expr)
     return results

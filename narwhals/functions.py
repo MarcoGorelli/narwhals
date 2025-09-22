@@ -47,7 +47,6 @@ if TYPE_CHECKING:
         NativeLazyFrame,
         NativeSeries,
         NonNestedLiteral,
-        _1DArray,
         _2DArray,
     )
 
@@ -1327,12 +1326,12 @@ class When:
     def __init__(self, *predicates: IntoExpr | Iterable[IntoExpr]) -> None:
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
 
-    def then(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Then:
+    def then(self, value: IntoExpr | NonNestedLiteral) -> Then:
         return Then(ExprNode(ExprKind.ELEMENTWISE, "when_then", self._predicate, value))
 
 
 class Then(Expr):
-    def otherwise(self, value: IntoExpr | NonNestedLiteral | _1DArray) -> Expr:
+    def otherwise(self, value: IntoExpr | NonNestedLiteral) -> Expr:
         # eject latest node, replace with `when_then_otherwise`
         node = self._nodes[0]
         return Expr(ExprNode(ExprKind.ELEMENTWISE, "when_then", *node.exprs, value))
