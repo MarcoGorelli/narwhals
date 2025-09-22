@@ -131,9 +131,9 @@ class CompliantExpr(
         ):
             msg = "multi-output expressions are not allowed as arguments to Expr methods."
             raise MultiOutputExpressionError(msg)
-        ce = cast("Self", func(*ces, **node.kwargs))
-        ce._opt_metadata = md
-        return ce
+        ret = cast("Self", func(*ces, **node.kwargs))
+        ret._opt_metadata = md
+        return ret
 
     def __narwhals_namespace__(self) -> CompliantNamespace[CompliantFrameT, Self]: ...
     @classmethod
