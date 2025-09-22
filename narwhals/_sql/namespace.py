@@ -80,10 +80,10 @@ class SQLNamespace(
         then: SQLExprT | NonNestedLiteral,
         otherwise: SQLExprT | NonNestedLiteral | None = None,
     ) -> SQLExprT:
-        then_ce: SQLExprT = (
+        then_ce = (
             then if is_compliant_expr2(then) else self.lit(then, None)  # type: ignore[arg-type]
         )
-        otherwise_ce: SQLExprT | None = (
+        otherwise_ce = (
             otherwise
             if is_compliant_expr2(otherwise)
             else None
