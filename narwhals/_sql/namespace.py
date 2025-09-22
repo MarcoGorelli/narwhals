@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from narwhals._compliant import LazyNamespace
 from narwhals._compliant.typing import NativeExprT, NativeFrameT_co
-from narwhals._expression_parsing import is_compliant_expr
 from narwhals._sql.typing import SQLExprT, SQLLazyFrameT
+from narwhals._utils import is_compliant_expr
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from narwhals._sql.expr import WindowInputs
+    from narwhals._compliant.window import WindowInputs
     from narwhals.typing import NonNestedLiteral, PythonLiteral
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import partial
 from operator import methodcaller
-from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, Protocol, cast
 
 from narwhals._compliant.any_namespace import (
     CatNamespace,
@@ -33,11 +33,11 @@ from narwhals._expression_parsing import (
     ExprMetadata,
     ExprNode,
     evaluate_into_exprs,
-    is_compliant_expr,
     maybe_broadcast_ces,
 )
 from narwhals._utils import (
     _StoresCompliant,
+    is_compliant_expr,
     not_implemented,
     qualified_type_name,
     zip_strict,
@@ -131,7 +131,7 @@ class CompliantExpr(
         ):
             msg = "multi-output expressions are not allowed as arguments to Expr methods."
             raise MultiOutputExpressionError(msg)
-        ce = func(*ces, **node.kwargs)
+        ce = cast("Self", func(*ces, **node.kwargs))
         ce._opt_metadata = md
         return ce
 

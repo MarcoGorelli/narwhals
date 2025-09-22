@@ -9,7 +9,7 @@ from duckdb.typing import DuckDBPyType
 
 from narwhals._utils import (
     Version,
-    is_compliant_expr,
+    is_compliant_expr2,
     isinstance_or_issubclass,
     zip_strict,
 )
@@ -95,7 +95,7 @@ def evaluate_exprs(
     return [
         item
         for expr in exprs
-        for item in (expr(df) if is_compliant_expr(expr) else (lit(expr),))
+        for item in (expr(df) if is_compliant_expr2(expr) else (lit(expr),))
     ]
 
 

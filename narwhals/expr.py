@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from narwhals._expression_parsing import (
     ExprKind,
@@ -89,7 +89,7 @@ class Expr:
         if isinstance(data, dict) and data.get("__expr__"):
             nodes = [ExprNode.deserialise(node_data) for node_data in data["data"]]
             return Expr(*nodes)
-        return data  # pyright: ignore[reportReturnType]
+        return data  # type: ignore[return-value]
 
     def _evaluate_node(
         self, node: ExprNode, ns: CompliantNamespace[Any, Any]
@@ -102,7 +102,7 @@ class Expr:
         ces = maybe_broadcast_ces(
             *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
         )
-        ce = func(*ces, **node.kwargs)
+        ce = cast("CompliantExpr[Any, Any]", func(*ces, **node.kwargs))
         md = ExprMetadata.from_node(node, *ces)
         ce._opt_metadata = md
         return ce

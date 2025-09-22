@@ -16,10 +16,11 @@ from narwhals._compliant.typing import (
     NativeFrameT_co,
     NativeSeriesT,
 )
-from narwhals._expression_parsing import is_compliant_expr, is_expr
+from narwhals._expression_parsing import is_expr
 from narwhals._utils import (
     exclude_column_names,
     get_column_names,
+    is_compliant_expr,
     passthrough_column_names,
 )
 from narwhals.dependencies import is_numpy_array_2d

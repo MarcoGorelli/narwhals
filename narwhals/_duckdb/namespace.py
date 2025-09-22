@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
     from duckdb import DuckDBPyRelation  # noqa: F401
 
-    from narwhals._sql.expr import WindowInputs
+    from narwhals._compliant.window import WindowInputs
     from narwhals._utils import Version
     from narwhals.typing import ConcatMethod, IntoDType, NonNestedLiteral
 
