@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import operator
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from narwhals._compliant import LazyNamespace
 from narwhals._compliant.typing import NativeExprT, NativeFrameT_co
@@ -83,12 +83,15 @@ class SQLNamespace(
         then_ce = (
             then if is_compliant_expr2(then) else self.lit(then, None)  # type: ignore[arg-type]
         )
-        otherwise_ce = (
-            otherwise
-            if is_compliant_expr2(otherwise)
-            else None
-            if otherwise is None
-            else self.lit(otherwise, None)  # type: ignore[arg-type]
+        otherwise_ce = cast(
+            "SQLExprT",
+            (
+                otherwise
+                if is_compliant_expr2(otherwise)
+                else None
+                if otherwise is None
+                else self.lit(otherwise, None)  # type: ignore[arg-type]
+            ),
         )
 
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:

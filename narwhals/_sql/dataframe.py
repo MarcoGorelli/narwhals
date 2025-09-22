@@ -3,11 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 from narwhals._compliant.dataframe import CompliantLazyFrame
-from narwhals._compliant.typing import (
-    CompliantExprT_contra,
-    NativeExprT,
-    NativeLazyFrameT,
-)
+from narwhals._compliant.typing import NativeExprT, NativeLazyFrameT
+from narwhals._sql.typing import SQLExprT_contra
 from narwhals._translate import ToNarwhalsT_co
 from narwhals._utils import check_columns_exist
 from narwhals.exceptions import MultiOutputExpressionError
@@ -15,30 +12,26 @@ from narwhals.exceptions import MultiOutputExpressionError
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from typing_extensions import Self, TypeAlias
+    from typing_extensions import TypeAlias
 
     from narwhals._compliant.window import WindowInputs
-    from narwhals._sql.expr import SQLExpr
     from narwhals.exceptions import ColumnNotFoundError
 
     Incomplete: TypeAlias = Any
 
 
 class SQLLazyFrame(
-    CompliantLazyFrame[CompliantExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
-    Protocol[CompliantExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
+    CompliantLazyFrame[SQLExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
+    Protocol[SQLExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
 ):
     def _evaluate_window_expr(
-        self,
-        expr: SQLExpr[Self, NativeExprT],
-        /,
-        window_inputs: WindowInputs[NativeExprT],
+        self, expr: SQLExprT_contra, /, window_inputs: WindowInputs[NativeExprT]
     ) -> NativeExprT:
         result = expr.window_function(self, window_inputs)
         assert len(result) == 1  # debug assertion  # noqa: S101
-        return result[0]
+        return result[0]  # type: ignore[no-any-return]
 
-    def _evaluate_expr(self, expr: CompliantExprT_contra, /) -> Any:
+    def _evaluate_expr(self, expr: SQLExprT_contra, /) -> Any:
         result = expr(self)
         if len(result) != 1:
             msg = "multi-output expressions not allowed in this context"
