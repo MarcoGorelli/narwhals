@@ -115,8 +115,9 @@ class CompliantExpr(
 
     def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:
         md = self._metadata
-        ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
-        ce, *ces = maybe_broadcast_ces(self, *ces)
+        ce, *ces = maybe_broadcast_ces(
+            self, *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+        )
         assert is_compliant_expr(ce)  # noqa: S101
         md = md.with_node(node, ce, *ces)
         if "." in node.name:
