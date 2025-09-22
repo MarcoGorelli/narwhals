@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, cast
 
 import polars as pl
 
-from narwhals._expression_parsing import ExprNode, evaluate_into_exprs
+from narwhals._expression_parsing import ExprMetadata, ExprNode, evaluate_into_exprs
 from narwhals._polars.utils import (
     PolarsAnyNamespace,
     PolarsCatNamespace,
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from narwhals._compliant.typing import Accessor, CompliantExprAny
-    from narwhals._expression_parsing import ExprKind, ExprMetadata
+    from narwhals._expression_parsing import ExprKind
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
     from narwhals._utils import Version
@@ -90,7 +90,7 @@ class PolarsExpr:
     @property
     def _metadata(self) -> ExprMetadata:
         assert self._opt_metadata is not None  # noqa: S101
-        return self._opt_metadata
+        return cast("ExprMetadata", self._opt_metadata)
 
     def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Let Polars do its thing.

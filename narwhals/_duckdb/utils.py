@@ -7,8 +7,12 @@ import duckdb
 import duckdb.typing as duckdb_dtypes
 from duckdb.typing import DuckDBPyType
 
-from narwhals._expression_parsing import is_compliant_expr
-from narwhals._utils import Version, isinstance_or_issubclass, zip_strict
+from narwhals._utils import (
+    Version,
+    is_compliant_expr,
+    isinstance_or_issubclass,
+    zip_strict,
+)
 from narwhals.exceptions import ColumnNotFoundError
 
 if TYPE_CHECKING:
@@ -88,13 +92,11 @@ def evaluate_exprs_and_aliases(
 def evaluate_exprs(
     df: DuckDBLazyFrame, /, *exprs: DuckDBExpr | NonNestedLiteral
 ) -> list[Expression]:
-    native_results: list[Expression] = []
-    for expr in exprs:
-        if not is_compliant_expr(expr):
-            native_results.append(lit(expr))
-            continue
-        native_results.extend(expr(df))
-    return native_results
+    return [
+        item
+        for expr in exprs
+        for item in (expr(df) if is_compliant_expr(expr) else (lit(expr),))
+    ]
 
 
 class DeferredTimeZone:

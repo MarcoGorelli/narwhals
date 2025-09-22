@@ -852,7 +852,7 @@ def maybe_broadcast_ces(
     results: list[CompliantExprAny | NonNestedLiteral] = []
     for compliant_expr, kind in zip_strict(ces, kinds):
         if broadcast and is_compliant_expr(compliant_expr) and is_scalar_like(kind):
-            _compliant_expr = compliant_expr.broadcast(kind)
+            _compliant_expr: CompliantExprAny = compliant_expr.broadcast(kind)
             # Make sure to preserve metadata.
             _compliant_expr._opt_metadata = compliant_expr._metadata
             results.append(_compliant_expr)
