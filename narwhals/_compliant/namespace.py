@@ -233,7 +233,7 @@ class EagerNamespace(
         data: Into1DArray | _2DArray,
         /,
         schema: IntoSchema | Sequence[str] | None = None,
-    ) -> EagerDataFrameT | EagerSeriesT:
+    ) -> EagerDataFrameT | EagerSeriesT_co:
         if is_numpy_array_2d(data):
             return self._dataframe.from_numpy(data, schema=schema, context=self)
         return self._series.from_numpy(data, context=self)
