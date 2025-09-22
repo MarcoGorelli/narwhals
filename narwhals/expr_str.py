@@ -13,8 +13,6 @@ ExprT = TypeVar("ExprT", bound="Expr")
 
 
 class ExprStringNamespace(Generic[ExprT]):
-    _accessor = "str"
-
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 

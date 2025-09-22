@@ -12,8 +12,6 @@ if TYPE_CHECKING:
 
 
 class IbisExprStructNamespace(LazyExprNamespace["IbisExpr"], StructNamespace["IbisExpr"]):
-    _accessor = "struct"
-
     def field(self, name: str) -> IbisExpr:
         def func(expr: ir.StructColumn) -> ir.Column:
             return expr[name]

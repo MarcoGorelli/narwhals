@@ -11,8 +11,6 @@ ExprT = TypeVar("ExprT", bound="Expr")
 
 
 class ExprStructNamespace(Generic[ExprT]):
-    _accessor = "struct"
-
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 

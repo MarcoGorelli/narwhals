@@ -10,8 +10,6 @@ from narwhals._sql.typing import SQLExprT
 class SQLExprStringNamespace(
     LazyExprNamespace[SQLExprT], StringNamespace[SQLExprT], Generic[SQLExprT]
 ):
-    _accessor = "str"
-
     def _lit(self, value: Any) -> SQLExprT:
         return self.compliant._lit(value)  # type: ignore[no-any-return]
 

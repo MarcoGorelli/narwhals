@@ -913,8 +913,6 @@ class LazyExprNamespace(_ExprNamespace[LazyExprT], Generic[LazyExprT]):
 class EagerExprCatNamespace(
     EagerExprNamespace[EagerExprT], CatNamespace[EagerExprT], Generic[EagerExprT]
 ):
-    _accessor = "cat"
-
     def get_categories(self) -> EagerExprT:
         return self.compliant._reuse_series_namespace("cat", "get_categories")
 
@@ -922,8 +920,6 @@ class EagerExprCatNamespace(
 class EagerExprDateTimeNamespace(
     EagerExprNamespace[EagerExprT], DateTimeNamespace[EagerExprT], Generic[EagerExprT]
 ):
-    _accessor = "dt"
-
     def to_string(self, format: str) -> EagerExprT:
         return self.compliant._reuse_series_namespace("dt", "to_string", format=format)
 
@@ -1003,8 +999,6 @@ class EagerExprDateTimeNamespace(
 class EagerExprListNamespace(
     EagerExprNamespace[EagerExprT], ListNamespace[EagerExprT], Generic[EagerExprT]
 ):
-    _accessor = "list"
-
     def len(self) -> EagerExprT:
         return self.compliant._reuse_series_namespace("list", "len")
 
@@ -1023,8 +1017,6 @@ class CompliantExprNameNamespace(  # type: ignore[misc]
     NameNamespace[CompliantExprT_co],
     Protocol[CompliantExprT_co],
 ):
-    _accessor = "name"
-
     def keep(self) -> CompliantExprT_co:
         return self._from_callable(None)
 
@@ -1079,8 +1071,6 @@ class LazyExprNameNamespace(
 class EagerExprStringNamespace(
     EagerExprNamespace[EagerExprT], StringNamespace[EagerExprT], Generic[EagerExprT]
 ):
-    _accessor = "str"
-
     def len_chars(self) -> EagerExprT:
         return self.compliant._reuse_series_namespace("str", "len_chars")
 
@@ -1137,8 +1127,6 @@ class EagerExprStringNamespace(
 class EagerExprStructNamespace(
     EagerExprNamespace[EagerExprT], StructNamespace[EagerExprT], Generic[EagerExprT]
 ):
-    _accessor = "struct"
-
     def field(self, name: str) -> EagerExprT:
         return self.compliant._reuse_series_namespace("struct", "field", name=name).alias(
             name

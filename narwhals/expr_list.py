@@ -12,8 +12,6 @@ ExprT = TypeVar("ExprT", bound="Expr")
 
 
 class ExprListNamespace(Generic[ExprT]):
-    _accessor = "list"
-
     def __init__(self, expr: ExprT) -> None:
         self._expr = expr
 

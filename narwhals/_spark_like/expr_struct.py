@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 class SparkLikeExprStructNamespace(
     LazyExprNamespace["SparkLikeExpr"], StructNamespace["SparkLikeExpr"]
 ):
-    _accessor = "struct"
-
     def field(self, name: str) -> SparkLikeExpr:
         def func(expr: Column) -> Column:
             return expr.getField(name)
