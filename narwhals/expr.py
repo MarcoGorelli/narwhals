@@ -2215,9 +2215,13 @@ class Expr:
             msg = f"`rel_tol` must be in the range [0, 1) but got {rel_tol}"
             raise ComputeError(msg)
 
-        kwargs = {"abs_tol": abs_tol, "rel_tol": rel_tol, "nans_equal": nans_equal}
         node = ExprNode(
-            ExprKind.ELEMENTWISE, "is_close", other, str_as_lit=False, **kwargs
+            ExprKind.ELEMENTWISE,
+            "is_close",
+            other,
+            abs_tol=abs_tol,
+            rel_tol=rel_tol,
+            nans_equal=nans_equal,
         )
         return self._with_node(node)
 
