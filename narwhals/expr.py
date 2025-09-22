@@ -2216,7 +2216,9 @@ class Expr:
             raise ComputeError(msg)
 
         kwargs = {"abs_tol": abs_tol, "rel_tol": rel_tol, "nans_equal": nans_equal}
-        node = ExprNode(ExprKind.ELEMENTWISE, "is_close", other, **kwargs)
+        node = ExprNode(
+            ExprKind.ELEMENTWISE, "is_close", other, str_as_lit=False, **kwargs
+        )
         return self._with_node(node)
 
     @property
