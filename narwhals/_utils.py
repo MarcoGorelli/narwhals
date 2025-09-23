@@ -1597,10 +1597,6 @@ def is_compliant_expr(
     return hasattr(obj, "__narwhals_expr__")
 
 
-def is_compliant_expr2(obj: CompliantExprT | Any) -> TypeIs[CompliantExprT]:
-    return hasattr(obj, "__narwhals_expr__")
-
-
 def _is_namespace_accessor(obj: _IntoContext) -> TypeIs[NamespaceAccessor[_FullContext]]:
     # NOTE: Only `compliant` has false positives **internally**
     # - https://github.com/narwhals-dev/narwhals/blob/cc69bac35eb8c81a1106969c49bfba9fd569b856/narwhals/_compliant/group_by.py#L44-L49
