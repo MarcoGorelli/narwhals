@@ -10,7 +10,6 @@ from narwhals._compliant.typing import (
     DepthTrackingExprT,
     EagerDataFrameT,
     EagerExprT,
-    EagerSeriesT,
     EagerSeriesT_co,
     LazyExprT,
     NativeFrameT,
@@ -170,7 +169,7 @@ class EagerNamespace(
         then: EagerExprT | NonNestedLiteral,
         otherwise: EagerExprT | NonNestedLiteral | None = None,
     ) -> EagerExprT:
-        def func(df: EagerDataFrameT) -> Sequence[EagerSeriesT]:
+        def func(df: EagerDataFrameT) -> Sequence[EagerSeriesT_co]:
             predicate_s = df._evaluate_expr(predicate)
             align = predicate_s._align_full_broadcast
 
