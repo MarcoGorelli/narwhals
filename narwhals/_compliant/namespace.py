@@ -67,6 +67,8 @@ class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
             expr = data(self)
             assert isinstance(expr, self._expr)  # noqa: S101
             return expr
+        # TODO(marco): it would be nice to return `lit(data)` here,
+        # but for pandas and Dask this causes some issues.
         return data
 
     # NOTE: `polars`
