@@ -6,7 +6,7 @@ from narwhals._compliant.dataframe import CompliantLazyFrame
 from narwhals._compliant.typing import NativeExprT, NativeLazyFrameT
 from narwhals._sql.typing import SQLExprT_contra
 from narwhals._translate import ToNarwhalsT_co
-from narwhals._utils import check_columns_exist
+from narwhals._utils import check_columns_exist, is_compliant_expr2
 from narwhals.exceptions import MultiOutputExpressionError
 
 if TYPE_CHECKING:
@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import TypeAlias
 
+    from narwhals._compliant.typing import NativeExpr
     from narwhals._compliant.window import WindowInputs
     from narwhals.exceptions import ColumnNotFoundError
 
@@ -31,7 +32,9 @@ class SQLLazyFrame(
         assert len(result) == 1  # debug assertion  # noqa: S101
         return result[0]  # type: ignore[no-any-return]
 
-    def _evaluate_expr(self, expr: SQLExprT_contra, /) -> Any:
+    def _evaluate_expr(self, expr: SQLExprT_contra, /) -> NativeExpr:
+        if not is_compliant_expr2(expr):
+            return self.__narwhals_namespace__()._lit(expr)
         result = expr(self)
         if len(result) != 1:
             msg = "multi-output expressions not allowed in this context"
