@@ -751,6 +751,16 @@ class PolarsSeriesStringNamespace(
         ns = self.__narwhals_namespace__()
         return self.to_frame().select(ns.col([name]).str.zfill(width)).get_column(name)
 
+    def replace(self, value: str, pattern: str, *, literal: bool, n: int) -> PolarsSeries:
+        return self.compliant._with_native(
+            self.native.str.replace(pattern, extract_native(value), literal=literal, n=n)
+        )
+
+    def replace_all(self, value: str, pattern: str, *, literal: bool) -> PolarsSeries:
+        return self.compliant._with_native(
+            self.native.str.replace_all(pattern, extract_native(value), literal=literal)
+        )
+
 
 class PolarsSeriesCatNamespace(
     PolarsSeriesNamespace, PolarsCatNamespace[PolarsSeries, pl.Series]

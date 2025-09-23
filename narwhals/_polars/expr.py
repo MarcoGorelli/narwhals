@@ -406,7 +406,12 @@ class PolarsExprStringNamespace(
 
     def replace(self, value: str, pattern: str, *, literal: bool, n: int) -> PolarsExpr:
         return self.compliant._with_native(
-            self.native.str.replace(pattern, value, literal=literal, n=n)
+            self.native.str.replace(pattern, extract_native(value), literal=literal, n=n)
+        )
+
+    def replace_all(self, value: str, pattern: str, *, literal: bool) -> PolarsExpr:
+        return self.compliant._with_native(
+            self.native.str.replace_all(pattern, extract_native(value), literal=literal)
         )
 
 
