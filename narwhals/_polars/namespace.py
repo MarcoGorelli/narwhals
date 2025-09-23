@@ -238,6 +238,19 @@ class PolarsNamespace:
             version=self._version,
         )
 
+    def when_then(
+        self, when: PolarsExpr, then: PolarsExpr, otherwise: PolarsExpr | None = None
+    ) -> PolarsExpr:
+        if otherwise is None:
+            (when, then), _ = extract_args_kwargs((when, then), {})
+        else:
+            (when, then, otherwise), _ = extract_args_kwargs((when, then, otherwise), {})
+        if otherwise is None:
+            return self._expr(pl.when(when).then(then), version=self._version)
+        return self._expr(
+            pl.when(when).then(then).otherwise(otherwise), version=self._version
+        )
+
     # NOTE: Implementation is too different to annotate correctly (vs other `*SelectorNamespace`)
     # 1. Others have lots of private stuff for code reuse
     #    i. None of that is useful here

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from narwhals._expression_parsing import ExprKind
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
+    from narwhals._polars.series import PolarsSeries
     from narwhals._utils import Version
     from narwhals.typing import IntoDType, ModeKeepStrategy
 
@@ -39,6 +40,10 @@ class PolarsExpr:
     _evaluate_output_names: Any
     _alias_output_names: Any
     __call__: Any
+
+    @classmethod
+    def _from_series(cls, series: PolarsSeries) -> Self:
+        return cls(series.native, version=series._version)
 
     def with_node(self, node: ExprNode, ns: Any) -> PolarsExpr:
         md = self._metadata.with_node(node, cast("CompliantExprAny", self))
@@ -398,6 +403,11 @@ class PolarsExprStringNamespace(
             )
 
         return self.compliant._with_native(native_result)
+
+    def replace(self, value: str, pattern: str, *, literal: bool, n: int) -> PolarsExpr:
+        return self.compliant._with_native(
+            self.native.str.replace(pattern, value, literal=literal, n=n)
+        )
 
 
 class PolarsExprCatNamespace(
