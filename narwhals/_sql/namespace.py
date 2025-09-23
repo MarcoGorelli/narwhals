@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import operator
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol
 
 from narwhals._compliant import LazyNamespace
 from narwhals._compliant.typing import NativeExprT, NativeFrameT_co
 from narwhals._sql.typing import SQLExprT, SQLLazyFrameT
-from narwhals._utils import is_compliant_expr, is_compliant_expr2
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from narwhals._compliant.window import WindowInputs
-    from narwhals.typing import NonNestedLiteral, PythonLiteral
+    from narwhals.typing import PythonLiteral
 
 
 class SQLNamespace(
@@ -75,31 +74,12 @@ class SQLNamespace(
         return self._expr._from_elementwise_horizontal_op(func, *exprs)
 
     def when_then(
-        self,
-        predicate: SQLExprT,
-        then: SQLExprT | NonNestedLiteral,
-        otherwise: SQLExprT | NonNestedLiteral | None = None,
+        self, predicate: SQLExprT, then: SQLExprT, otherwise: SQLExprT | None = None
     ) -> SQLExprT:
-        then_ce = (
-            then if is_compliant_expr2(then) else self.lit(then, None)  # type: ignore[arg-type]
-        )
-        otherwise_ce = cast(
-            "SQLExprT",
-            (
-                otherwise
-                if is_compliant_expr2(otherwise)
-                else None
-                if otherwise is None
-                else self.lit(otherwise, None)  # type: ignore[arg-type]
-            ),
-        )
-
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
-            then_native = df._evaluate_expr(then_ce)
+            then_native = df._evaluate_expr(then)
             otherwise_native = (
-                df._evaluate_expr(otherwise_ce)
-                if is_compliant_expr(otherwise_ce)
-                else None
+                df._evaluate_expr(otherwise) if otherwise is not None else None
             )
 
             return [
@@ -109,10 +89,10 @@ class SQLNamespace(
         def window_function(
             df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
         ) -> Sequence[NativeExprT]:
-            then_native = df._evaluate_window_expr(then_ce, window_inputs)
+            then_native = df._evaluate_window_expr(then, window_inputs)
             otherwise_native = (
-                df._evaluate_window_expr(otherwise_ce, window_inputs)
-                if is_compliant_expr(otherwise_ce)
+                df._evaluate_window_expr(otherwise, window_inputs)
+                if otherwise is not None
                 else None
             )
 
@@ -128,8 +108,10 @@ class SQLNamespace(
         return self._expr(
             call,
             window_function=window_function,
-            evaluate_output_names=then_ce._evaluate_output_names,
-            alias_output_names=then_ce._alias_output_names,
+            evaluate_output_names=getattr(
+                then, "_evaluate_output_names", lambda _df: ["literal"]
+            ),
+            alias_output_names=getattr(then, "_alias_output_names", None),
             version=context._version,
             implementation=context._implementation,
         )

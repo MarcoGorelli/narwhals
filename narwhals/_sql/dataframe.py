@@ -28,6 +28,8 @@ class SQLLazyFrame(
     def _evaluate_window_expr(
         self, expr: SQLExprT_contra, /, window_inputs: WindowInputs[NativeExprT]
     ) -> NativeExprT:
+        if not is_compliant_expr2(expr):
+            return self.__narwhals_namespace__()._lit(expr)
         result = expr.window_function(self, window_inputs)
         assert len(result) == 1  # debug assertion  # noqa: S101
         return result[0]  # type: ignore[no-any-return]

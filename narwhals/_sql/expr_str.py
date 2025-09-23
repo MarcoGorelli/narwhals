@@ -45,13 +45,6 @@ class SQLExprStringNamespace(
         options: list[Any] = []
         if not literal and self.compliant._implementation.is_duckdb():
             options = [self._lit("g")]
-        if isinstance(value, str):
-            return self.compliant._with_elementwise(
-                lambda expr: self._function(
-                    fname, expr, self._lit(pattern), self._lit(value), *options
-                )
-            )
-
         return self.compliant._with_elementwise(
             lambda expr, value: self._function(
                 fname, expr, self._lit(pattern), value, *options
