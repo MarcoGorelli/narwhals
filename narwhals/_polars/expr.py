@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
     from narwhals._utils import Version
-    from narwhals.typing import IntoDType, ModeKeepStrategy, NumericLiteral
+    from narwhals.typing import IntoDType, ModeKeepStrategy
 
 
 class PolarsExpr:
@@ -262,46 +262,6 @@ class PolarsExpr:
 
     def cum_count(self, *, reverse: bool) -> Self:
         return self._with_native(self.native.cum_count(reverse=reverse))
-
-    def is_close(
-        self,
-        other: Self | NumericLiteral,
-        *,
-        abs_tol: float,
-        rel_tol: float,
-        nans_equal: bool,
-    ) -> Self:
-        left = self.native
-        right = other.native if isinstance(other, PolarsExpr) else pl.lit(other)
-
-        if self._backend_version < (1, 32, 0):
-            lower_bound = right.abs()
-            tolerance = (left.abs().clip(lower_bound) * rel_tol).clip(abs_tol)
-
-            # Values are close if abs_diff <= tolerance, and both finite
-            abs_diff = (left - right).abs()
-            all_ = pl.all_horizontal
-            is_close = all_((abs_diff <= tolerance), left.is_finite(), right.is_finite())
-
-            # Handle infinity cases: infinities are "close" only if they have the same sign
-            is_same_inf = all_(
-                left.is_infinite(), right.is_infinite(), (left.sign() == right.sign())
-            )
-
-            # Handle nan cases:
-            #   * nans_equals = True => if both values are NaN, then True
-            #   * nans_equals = False => if any value is NaN, then False
-            left_is_nan, right_is_nan = left.is_nan(), right.is_nan()
-            either_nan = left_is_nan | right_is_nan
-            result = (is_close | is_same_inf) & either_nan.not_()
-
-            if nans_equal:
-                result = result | (left_is_nan & right_is_nan)
-        else:
-            result = left.is_close(
-                right, abs_tol=abs_tol, rel_tol=rel_tol, nans_equal=nans_equal
-            )
-        return self._with_native(result)
 
     def mode(self, *, keep: ModeKeepStrategy) -> Self:
         result = self.native.mode()
