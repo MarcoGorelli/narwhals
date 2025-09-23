@@ -86,16 +86,17 @@ class SQLNamespace(
     def when_then(
         self, predicate: SQLExprT, then: SQLExprT, otherwise: SQLExprT | None = None
     ) -> SQLExprT:
+        if any(
+            x._metadata.expansion_kind.is_multi_output()
+            for x in ((then,) if otherwise is None else (then, otherwise))
+        ):
+            msg = "Multi-output expressions not allowed in `when-then-otherwise`."
+            raise MultiOutputExpressionError(msg)
+
         def func(cols: list[NativeExprT]) -> NativeExprT:
-            if len(cols) > 2:
-                msg = "Multi-output expressions not allowed"
-                raise MultiOutputExpressionError(msg)
             return self._when(cols[1], cols[0])
 
         def func_with_otherwise(cols: list[NativeExprT]) -> NativeExprT:
-            if len(cols) > 3:
-                msg = "Multi-output expressions not allowed"
-                raise MultiOutputExpressionError(msg)
             return self._when(cols[1], cols[0], cols[2])
 
         if otherwise is None:
