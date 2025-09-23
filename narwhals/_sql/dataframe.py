@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self, TypeAlias
 
     from narwhals._compliant.window import WindowInputs
-    from narwhals._sql.typing import SQLExpr
+    from narwhals._sql.expr import SQLExpr
     from narwhals.exceptions import ColumnNotFoundError
 
     Incomplete: TypeAlias = Any
@@ -38,7 +38,7 @@ class SQLLazyFrame(
         if len(result) != 1:  # pragma: no cover
             msg = "multi-output expressions not allowed in this context"
             raise MultiOutputExpressionError(msg)
-        return result[0]  # type: ignore[no-any-return]
+        return result[0]
 
     def _evaluate_expr(self, expr: SQLExpr[Self, NativeExprT], /) -> NativeExprT:
         result = expr(self)
