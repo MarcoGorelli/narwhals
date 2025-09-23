@@ -2694,29 +2694,19 @@ class Series(Generic[IntoSeriesT]):
               ]
             ]
         """
+        from narwhals.functions import col
+
         if not self.dtype.is_numeric():
             msg = (
                 f"is_close operation not supported for dtype `{self.dtype}`\n\n"
                 "Hint: `is_close` is only supported for numeric types"
             )
             raise InvalidOperationError(msg)
-
-        if abs_tol < 0:
-            msg = f"`abs_tol` must be non-negative but got {abs_tol}"
-            raise ComputeError(msg)
-
-        if not (0 <= rel_tol < 1):
-            msg = f"`rel_tol` must be in the range [0, 1) but got {rel_tol}"
-            raise ComputeError(msg)
-
-        return self._with_compliant(
-            self._compliant_series.is_close(
-                self._extract_native(other),
-                abs_tol=abs_tol,
-                rel_tol=rel_tol,
-                nans_equal=nans_equal,
+        return self.to_frame().select(
+            col(self.name).is_close(
+                other, abs_tol=abs_tol, rel_tol=rel_tol, nans_equal=nans_equal
             )
-        )
+        )[self.name]
 
     @property
     def str(self) -> SeriesStringNamespace[Self]:
