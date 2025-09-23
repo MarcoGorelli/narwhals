@@ -9,7 +9,7 @@ from narwhals._compliant.typing import (
     NativeLazyFrameT,
 )
 from narwhals._translate import ToNarwhalsT_co
-from narwhals._utils import check_columns_exist, is_compliant_expr2
+from narwhals._utils import check_columns_exist
 from narwhals.exceptions import MultiOutputExpressionError
 
 if TYPE_CHECKING:
@@ -34,8 +34,6 @@ class SQLLazyFrame(
         /,
         window_inputs: WindowInputs[NativeExprT],
     ) -> NativeExprT:
-        if not is_compliant_expr2(expr):
-            return self.__narwhals_namespace__()._lit(expr)
         result = expr.window_function(self, window_inputs)
         if len(result) != 1:  # pragma: no cover
             msg = "multi-output expressions not allowed in this context"
@@ -43,8 +41,6 @@ class SQLLazyFrame(
         return result[0]  # type: ignore[no-any-return]
 
     def _evaluate_expr(self, expr: SQLExpr[Self, NativeExprT], /) -> NativeExprT:
-        if not is_compliant_expr2(expr):
-            return self.__narwhals_namespace__()._lit(expr)
         result = expr(self)
         if len(result) != 1:
             msg = "multi-output expressions not allowed in this context"
