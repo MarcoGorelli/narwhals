@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 from narwhals._compliant.dataframe import CompliantLazyFrame
-from narwhals._compliant.typing import NativeExprT, NativeLazyFrameT
-from narwhals._sql.typing import SQLExprT_contra
+from narwhals._compliant.typing import (
+    CompliantExprT_contra,
+    NativeExprT,
+    NativeLazyFrameT,
+)
 from narwhals._translate import ToNarwhalsT_co
 from narwhals._utils import check_columns_exist, is_compliant_expr2
 from narwhals.exceptions import MultiOutputExpressionError
@@ -12,29 +15,34 @@ from narwhals.exceptions import MultiOutputExpressionError
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from typing_extensions import TypeAlias
+    from typing_extensions import Self, TypeAlias
 
-    from narwhals._compliant.typing import NativeExpr
     from narwhals._compliant.window import WindowInputs
+    from narwhals._sql.typing import SQLExpr
     from narwhals.exceptions import ColumnNotFoundError
 
     Incomplete: TypeAlias = Any
 
 
 class SQLLazyFrame(
-    CompliantLazyFrame[SQLExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
-    Protocol[SQLExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
+    CompliantLazyFrame[CompliantExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
+    Protocol[CompliantExprT_contra, NativeLazyFrameT, ToNarwhalsT_co],
 ):
     def _evaluate_window_expr(
-        self, expr: SQLExprT_contra, /, window_inputs: WindowInputs[NativeExprT]
+        self,
+        expr: SQLExpr[Self, NativeExprT],
+        /,
+        window_inputs: WindowInputs[NativeExprT],
     ) -> NativeExprT:
         if not is_compliant_expr2(expr):
             return self.__narwhals_namespace__()._lit(expr)
         result = expr.window_function(self, window_inputs)
-        assert len(result) == 1  # debug assertion  # noqa: S101
+        if len(result) != 1:  # pragma: no cover
+            msg = "multi-output expressions not allowed in this context"
+            raise MultiOutputExpressionError(msg)
         return result[0]  # type: ignore[no-any-return]
 
-    def _evaluate_expr(self, expr: SQLExprT_contra, /) -> NativeExpr:
+    def _evaluate_expr(self, expr: SQLExpr[Self, NativeExprT], /) -> NativeExprT:
         if not is_compliant_expr2(expr):
             return self.__narwhals_namespace__()._lit(expr)
         result = expr(self)
