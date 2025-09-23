@@ -242,13 +242,16 @@ class PolarsNamespace:
         self, when: PolarsExpr, then: PolarsExpr, otherwise: PolarsExpr | None = None
     ) -> PolarsExpr:
         if otherwise is None:
-            (when, then), _ = extract_args_kwargs((when, then), {})
-        else:
-            (when, then, otherwise), _ = extract_args_kwargs((when, then, otherwise), {})
-        if otherwise is None:
-            return self._expr(pl.when(when).then(then), version=self._version)
+            (when_native, then_native), _ = extract_args_kwargs((when, then), {})
+            return self._expr(
+                pl.when(when_native).then(then_native), version=self._version
+            )
+        (when_native, then_native, otherwise_native), _ = extract_args_kwargs(
+            (when, then, otherwise), {}
+        )
         return self._expr(
-            pl.when(when).then(then).otherwise(otherwise), version=self._version
+            pl.when(when_native).then(then_native).otherwise(otherwise_native),
+            version=self._version,
         )
 
     # NOTE: Implementation is too different to annotate correctly (vs other `*SelectorNamespace`)
