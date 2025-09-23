@@ -21,7 +21,7 @@ from narwhals._sql.utils import evaluate_exprs, evaluate_exprs_in_window_functio
 from narwhals._utils import Implementation, Version, not_implemented
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Sequence
 
     from typing_extensions import Self, TypeIs
 
@@ -304,7 +304,7 @@ class SQLExpr(LazyExpr[SQLLazyFrameT, NativeExprT], Protocol[SQLLazyFrameT, Nati
 
     @classmethod
     def _from_elementwise_horizontal_op(
-        cls, func: Callable[[Iterable[NativeExprT]], NativeExprT], *exprs: Self
+        cls, func: Callable[[list[NativeExprT]], NativeExprT], *exprs: Self
     ) -> Self:
         def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
             return [func(evaluate_exprs(df, *exprs))]

@@ -2,17 +2,20 @@ from __future__ import annotations
 
 import operator
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from narwhals._compliant import LazyNamespace
 from narwhals._compliant.typing import NativeExprT, NativeFrameT_co
+from narwhals._expression_parsing import is_expr
 from narwhals._sql.typing import SQLExprT, SQLLazyFrameT
+from narwhals.exceptions import MultiOutputExpressionError
+from narwhals.functions import lit
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable
 
-    from narwhals._compliant.window import WindowInputs
-    from narwhals.typing import PythonLiteral
+    from narwhals.expr import Expr
+    from narwhals.typing import NonNestedLiteral, PythonLiteral
 
 
 class SQLNamespace(
@@ -28,6 +31,13 @@ class SQLNamespace(
         otherwise: NativeExprT | None = None,
     ) -> NativeExprT: ...
     def _coalesce(self, *exprs: NativeExprT) -> NativeExprT: ...
+
+    def evaluate_expr(self, data: Expr | NonNestedLiteral | Any, /) -> SQLExprT:
+        if is_expr(data):
+            expr = data(self)
+            assert isinstance(expr, self._expr)  # noqa: S101
+            return expr
+        return cast("SQLExprT", lit(data)(self))
 
     # Horizontal functions
     def any_horizontal(self, *exprs: SQLExprT, ignore_nulls: bool) -> SQLExprT:
@@ -76,42 +86,20 @@ class SQLNamespace(
     def when_then(
         self, predicate: SQLExprT, then: SQLExprT, otherwise: SQLExprT | None = None
     ) -> SQLExprT:
-        def call(df: SQLLazyFrameT) -> Sequence[NativeExprT]:
-            then_native = df._evaluate_expr(then)
-            otherwise_native = (
-                df._evaluate_expr(otherwise) if otherwise is not None else None
-            )
+        def func(cols: list[NativeExprT]) -> NativeExprT:
+            if len(cols) > 2:
+                msg = "Multi-output expressions not allowed"
+                raise MultiOutputExpressionError(msg)
+            return self._when(cols[1], cols[0])
 
-            return [
-                self._when(df._evaluate_expr(predicate), then_native, otherwise_native)
-            ]
+        def func_with_otherwise(cols: list[NativeExprT]) -> NativeExprT:
+            if len(cols) > 3:
+                msg = "Multi-output expressions not allowed"
+                raise MultiOutputExpressionError(msg)
+            return self._when(cols[1], cols[0], cols[2])
 
-        def window_function(
-            df: SQLLazyFrameT, window_inputs: WindowInputs[NativeExprT]
-        ) -> Sequence[NativeExprT]:
-            then_native = df._evaluate_window_expr(then, window_inputs)
-            otherwise_native = (
-                df._evaluate_window_expr(otherwise, window_inputs)
-                if otherwise is not None
-                else None
-            )
-
-            return [
-                self._when(
-                    df._evaluate_window_expr(predicate, window_inputs),
-                    then_native,
-                    otherwise_native,
-                )
-            ]
-
-        context = predicate
-        return self._expr(
-            call,
-            window_function=window_function,
-            evaluate_output_names=getattr(
-                then, "_evaluate_output_names", lambda _df: ["literal"]
-            ),
-            alias_output_names=getattr(then, "_alias_output_names", None),
-            version=context._version,
-            implementation=context._implementation,
+        if otherwise is None:
+            return self._expr._from_elementwise_horizontal_op(func, then, predicate)
+        return self._expr._from_elementwise_horizontal_op(
+            func_with_otherwise, then, predicate, otherwise
         )
