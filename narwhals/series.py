@@ -2,9 +2,18 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Generic, Literal, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Generic,
+    Literal,
+    cast,
+    overload,
+)
 
-from narwhals._expression_parsing import ExprKind, ExprNode
+from narwhals._expression_parsing import ExprKind, ExprNode, is_series
 from narwhals._utils import (
     Implementation,
     Version,
@@ -2702,11 +2711,17 @@ class Series(Generic[IntoSeriesT]):
                 "Hint: `is_close` is only supported for numeric types"
             )
             raise InvalidOperationError(msg)
-        return self.to_frame().select(
-            col(self.name).is_close(
-                other, abs_tol=abs_tol, rel_tol=rel_tol, nans_equal=nans_equal
-            )
-        )[self.name]
+        return cast(
+            "Self",
+            self.to_frame().select(
+                col(self.name).is_close(
+                    other._to_expr() if is_series(other) else other,
+                    abs_tol=abs_tol,
+                    rel_tol=rel_tol,
+                    nans_equal=nans_equal,
+                )
+            )[self.name],
+        )
 
     @property
     def str(self) -> SeriesStringNamespace[Self]:
