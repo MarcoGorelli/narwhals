@@ -100,7 +100,12 @@ class Expr:
         else:
             func = getattr(ns, node.name)
         ces = maybe_broadcast_ces(
-            *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+            *evaluate_into_exprs(
+                *node.exprs,
+                ns=ns,
+                str_as_lit=node.str_as_lit,
+                allow_multi_output=node.allow_multi_output,
+            )
         )
         ce = cast("CompliantExpr[Any, Any]", func(*ces, **node.kwargs))
         md = ExprMetadata.from_node(node, *ces)

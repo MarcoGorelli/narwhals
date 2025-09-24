@@ -47,7 +47,12 @@ class PolarsExpr:
 
     def with_node(self, node: ExprNode, ns: Any) -> PolarsExpr:
         md = self._metadata.with_node(node, cast("CompliantExprAny", self))
-        ces = evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+        ces = evaluate_into_exprs(
+            *node.exprs,
+            ns=ns,
+            str_as_lit=node.str_as_lit,
+            allow_multi_output=node.allow_multi_output,
+        )
         if "." in node.name:
             module, func = node.name.split(".")
             ret = getattr(getattr(self, module), func)(*ces, **node.kwargs)

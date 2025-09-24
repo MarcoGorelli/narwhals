@@ -116,7 +116,13 @@ class CompliantExpr(
     def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:
         md = self._metadata
         ce, *ces = maybe_broadcast_ces(
-            self, *evaluate_into_exprs(*node.exprs, ns=ns, str_as_lit=node.str_as_lit)
+            self,
+            *evaluate_into_exprs(
+                *node.exprs,
+                ns=ns,
+                str_as_lit=node.str_as_lit,
+                allow_multi_output=node.allow_multi_output,
+            ),
         )
         assert is_compliant_expr(ce)  # noqa: S101
         md = md.with_node(node, ce, *ces)

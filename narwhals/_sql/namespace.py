@@ -8,7 +8,6 @@ from narwhals._compliant import LazyNamespace
 from narwhals._compliant.typing import NativeExprT, NativeFrameT_co
 from narwhals._expression_parsing import is_expr
 from narwhals._sql.typing import SQLExprT, SQLLazyFrameT
-from narwhals.exceptions import MultiOutputExpressionError
 from narwhals.functions import lit
 
 if TYPE_CHECKING:
@@ -86,13 +85,6 @@ class SQLNamespace(
     def when_then(
         self, predicate: SQLExprT, then: SQLExprT, otherwise: SQLExprT | None = None
     ) -> SQLExprT:
-        if any(
-            x._metadata.expansion_kind.is_multi_output()
-            for x in ((then,) if otherwise is None else (then, otherwise))
-        ):
-            msg = "Multi-output expressions not allowed in `when-then-otherwise`."
-            raise MultiOutputExpressionError(msg)
-
         def func(cols: list[NativeExprT]) -> NativeExprT:
             return self._when(cols[1], cols[0])
 

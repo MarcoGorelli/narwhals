@@ -1204,11 +1204,11 @@ def max(*columns: str) -> Expr:
     return col(*columns).max()
 
 
-def _expr_with_n_ary_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
+def _expr_with_horizontal_op(name: str, *exprs: IntoExpr, **kwargs: Any) -> Expr:
     if not exprs:
         msg = f"At least one expression must be passed to `{name}`"
         raise ValueError(msg)
-    node = ExprNode(ExprKind.ELEMENTWISE, name, *exprs, **kwargs)
+    node = ExprNode(ExprKind.ELEMENTWISE, name, *exprs, **kwargs, allow_multi_output=True)
     return Expr(node)
 
 
@@ -1247,7 +1247,7 @@ def sum_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         └────────────────────┘
     """
     flat_exprs = flatten(exprs)
-    return _expr_with_n_ary_op("sum_horizontal", *flat_exprs)
+    return _expr_with_horizontal_op("sum_horizontal", *flat_exprs)
 
 
 def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1282,7 +1282,7 @@ def min_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         | h_min: [[1,5,3]] |
         └──────────────────┘
     """
-    return _expr_with_n_ary_op("min_horizontal", *flatten(exprs))
+    return _expr_with_horizontal_op("min_horizontal", *flatten(exprs))
 
 
 def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1319,7 +1319,7 @@ def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         |└─────┴──────┴───────┘|
         └──────────────────────┘
     """
-    return _expr_with_n_ary_op("max_horizontal", *flatten(exprs))
+    return _expr_with_horizontal_op("max_horizontal", *flatten(exprs))
 
 
 class When:
@@ -1327,7 +1327,15 @@ class When:
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
 
     def then(self, value: IntoExpr | NonNestedLiteral) -> Then:
-        return Then(ExprNode(ExprKind.ELEMENTWISE, "when_then", self._predicate, value))
+        return Then(
+            ExprNode(
+                ExprKind.ELEMENTWISE,
+                "when_then",
+                self._predicate,
+                value,
+                allow_multi_output=False,
+            )
+        )
 
 
 class Then(Expr):
@@ -1422,7 +1430,9 @@ def all_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
 
     """
     flat_exprs = flatten(exprs)
-    return _expr_with_n_ary_op("all_horizontal", *flat_exprs, ignore_nulls=ignore_nulls)
+    return _expr_with_horizontal_op(
+        "all_horizontal", *flat_exprs, ignore_nulls=ignore_nulls
+    )
 
 
 def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
@@ -1512,7 +1522,9 @@ def any_horizontal(*exprs: IntoExpr | Iterable[IntoExpr], ignore_nulls: bool) ->
         └─────────────────────────┘
     """
     flat_exprs = flatten(exprs)
-    return _expr_with_n_ary_op("any_horizontal", *flat_exprs, ignore_nulls=ignore_nulls)
+    return _expr_with_horizontal_op(
+        "any_horizontal", *flat_exprs, ignore_nulls=ignore_nulls
+    )
 
 
 def mean_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
@@ -1545,7 +1557,7 @@ def mean_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
         | a: [[2.5,6.5,3]] |
         └──────────────────┘
     """
-    return _expr_with_n_ary_op("mean_horizontal", *flatten(exprs))
+    return _expr_with_horizontal_op("mean_horizontal", *flatten(exprs))
 
 
 def concat_str(
@@ -1597,7 +1609,7 @@ def concat_str(
         └──────────────────┘
     """
     flat_exprs = flatten([*flatten([exprs]), *more_exprs])
-    return _expr_with_n_ary_op(
+    return _expr_with_horizontal_op(
         "concat_str", *flat_exprs, separator=separator, ignore_nulls=ignore_nulls
     )
 

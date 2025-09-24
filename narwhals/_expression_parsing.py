@@ -835,13 +835,20 @@ def evaluate_into_exprs(
     *exprs: IntoExpr | NonNestedLiteral | _1DArray,
     ns: CompliantNamespaceAny,
     str_as_lit: bool,
+    allow_multi_output: bool,
 ) -> Iterator[CompliantExprAny | NonNestedLiteral]:
-    return (
-        ns.evaluate_expr(
+    for expr in exprs:
+        ret = ns.evaluate_expr(
             _parse_into_expr(expr, str_as_lit=str_as_lit, backend=ns._implementation)
         )
-        for expr in exprs
-    )
+        if (
+            not allow_multi_output
+            and is_compliant_expr(ret)
+            and ret._metadata.expansion_kind.is_multi_output()
+        ):
+            msg = "Multi-output expressions are not allowed in this context."
+            raise MultiOutputExpressionError(msg)
+        yield ret
 
 
 def maybe_broadcast_ces(
