@@ -59,7 +59,7 @@ class Expr:
     def _with_node(self, node: ExprNode) -> Self:
         if node.kind is ExprKind.OVER:
             # insert `over` before any elementwise operations.
-            # TODO(marco): write section in "how it works" and point to that.
+            # check "how it works" page in docs for why we do this.
             new_nodes = list(self._nodes)
             kwargs_no_order_by = {
                 key: value if key != "order_by" else []
