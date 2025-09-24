@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import partial
 from operator import methodcaller
-from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, Protocol
 
 from narwhals._compliant.any_namespace import (
     CatNamespace,
@@ -28,16 +28,8 @@ from narwhals._compliant.typing import (
     LazyExprT,
     NativeExprT,
 )
-from narwhals._expression_parsing import (
-    ExprKind,
-    ExprMetadata,
-    ExprNode,
-    evaluate_into_exprs,
-    maybe_broadcast_ces,
-)
 from narwhals._utils import (
     _StoresCompliant,
-    is_compliant_expr,
     not_implemented,
     qualified_type_name,
     zip_strict,
@@ -53,6 +45,7 @@ if TYPE_CHECKING:
     from narwhals._compliant.namespace import CompliantNamespace, EagerNamespace
     from narwhals._compliant.series import CompliantSeries
     from narwhals._compliant.typing import AliasNames, EvalNames, EvalSeries
+    from narwhals._expression_parsing import ExprKind, ExprMetadata
     from narwhals._utils import Implementation, Version, _LimitedContext
     from narwhals.typing import (
         ClosedInterval,
@@ -112,35 +105,6 @@ class CompliantExpr(
     ) -> Sequence[CompliantSeriesOrNativeExprT_co]: ...
     def __narwhals_expr__(self) -> Self:  # pragma: no cover
         return self
-
-    def with_node(self, node: ExprNode, ns: CompliantNamespace[Any, Any]) -> Self:
-        md = self._metadata
-        ce, *ces = maybe_broadcast_ces(
-            self,
-            *evaluate_into_exprs(
-                *node.exprs,
-                ns=ns,
-                str_as_lit=node.str_as_lit,
-                allow_multi_output=node.allow_multi_output,
-            ),
-        )
-        assert is_compliant_expr(ce)  # noqa: S101
-        md = md.with_node(node, ce, *ces)
-        if "." in node.name:
-            accessor, method = node.name.split(".")
-            func = getattr(getattr(ce, accessor), method)
-        else:
-            func = getattr(ce, node.name)
-        if not node.allow_multi_output and any(
-            x._metadata.expansion_kind.is_multi_output()
-            for x in ces
-            if is_compliant_expr(x)
-        ):
-            msg = "multi-output expressions are not allowed as arguments to Expr methods."
-            raise MultiOutputExpressionError(msg)
-        ret = cast("Self", func(*ces, **node.kwargs))
-        ret._opt_metadata = md
-        return ret
 
     def __narwhals_namespace__(self) -> CompliantNamespace[CompliantFrameT, Self]: ...
     @classmethod

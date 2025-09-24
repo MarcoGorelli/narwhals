@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar, Literal, cast
 
 import polars as pl
 
-from narwhals._expression_parsing import ExprMetadata, ExprNode, evaluate_into_exprs
 from narwhals._polars.utils import (
     PolarsAnyNamespace,
     PolarsCatNamespace,
@@ -16,8 +15,7 @@ from narwhals._polars.utils import (
     extract_native,
     narwhals_to_native_dtype,
 )
-from narwhals._utils import Implementation, is_compliant_expr, requires
-from narwhals.exceptions import MultiOutputExpressionError
+from narwhals._utils import Implementation, requires
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -25,7 +23,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
 
     from narwhals._compliant.typing import Accessor
-    from narwhals._expression_parsing import ExprKind
+    from narwhals._expression_parsing import ExprKind, ExprMetadata
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
     from narwhals._polars.series import PolarsSeries
@@ -45,32 +43,6 @@ class PolarsExpr:
     @classmethod
     def _from_series(cls, series: PolarsSeries) -> Self:
         return cls(series.native, version=series._version)
-
-    def with_node(self, node: ExprNode, ns: Any) -> PolarsExpr:
-        ce = self
-        md = self._metadata
-        ces = evaluate_into_exprs(
-            *node.exprs,
-            ns=ns,
-            str_as_lit=node.str_as_lit,
-            allow_multi_output=node.allow_multi_output,
-        )
-        md = md.with_node(node, ce, *ces)
-        if "." in node.name:
-            accessor, method = node.name.split(".")
-            func = getattr(getattr(ce, accessor), method)
-        else:
-            func = getattr(ce, node.name)
-        if not node.allow_multi_output and any(
-            x._metadata.expansion_kind.is_multi_output()
-            for x in ces
-            if is_compliant_expr(x)
-        ):
-            msg = "multi-output expressions are not allowed as arguments to Expr methods."
-            raise MultiOutputExpressionError(msg)
-        ret = cast("Self", func(*ces, **node.kwargs))
-        ret._opt_metadata = md
-        return ret
 
     # CompliantExpr + builtin descriptor
     # TODO @dangotbanned: Remove in #2713

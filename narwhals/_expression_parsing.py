@@ -888,11 +888,11 @@ def evaluate_root_node(node: ExprNode, ns: CompliantNamespaceAny) -> CompliantEx
 
 
 def evaluate_node(
-    ce: CompliantExprAny, node: ExprNode, ns: CompliantNamespaceAny
+    compliant_expr: CompliantExprAny, node: ExprNode, ns: CompliantNamespaceAny
 ) -> CompliantExprAny:
-    md = ce._metadata
+    md = compliant_expr._metadata
     ce, *ces = maybe_broadcast_ces(
-        ce,
+        compliant_expr,
         *evaluate_into_exprs(
             *node.exprs,
             ns=ns,
