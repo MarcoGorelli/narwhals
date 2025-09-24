@@ -4,44 +4,61 @@ import pytest
 
 import narwhals as nw
 from narwhals.exceptions import InvalidOperationError
+from tests.utils import Constructor, assert_equal_data
 
 
 @pytest.mark.parametrize(
     ("expr", "expected"),
     [
-        (nw.col("a"), 0),
-        (nw.col("a").mean(), 0),
-        (nw.col("a").cum_sum(), 1),
-        (nw.col("a").cum_sum().over(order_by="id"), 0),
-        (nw.col("a").cum_sum().abs().over(order_by="id"), 1),
-        ((nw.col("a").cum_sum() + 1).over(order_by="id"), 1),
-        (nw.col("a").cum_sum().cum_sum().over(order_by="id"), 1),
-        (nw.col("a").cum_sum().cum_sum(), 2),
-        (nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum()), 1),
-        (nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum()).over(order_by="a"), 1),
-        (nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum().over(order_by="i")), 0),
+        (nw.col("a"), [-1, 2, 3]),
+        (nw.col("a").mean(), [1.333333333]),
+        (nw.col("a").cum_sum().over(order_by="i"), [-1, 1, 4]),
+        (nw.col("a").cum_sum().abs().over(order_by="i"), [1, 1, 4]),
+        ((nw.col("a").cum_sum() + 1).over(order_by="i"), [0, 2, 5]),
         (
-            nw.sum_horizontal(
-                nw.col("a").diff(), nw.col("a").cum_sum().over(order_by="i")
-            ),
-            1,
+            nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum()).over(order_by="a"),
+            [-2, 3, 7],
+        ),
+        (
+            nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum().over(order_by="i")),
+            [-2, 3, 7],
         ),
         (
             nw.sum_horizontal(nw.col("a").diff(), nw.col("a").cum_sum()).over(
                 order_by="i"
             ),
-            2,
+            [-1.0, 4.0, 5.0],
         ),
         (
             nw.sum_horizontal(nw.col("a").diff().abs(), nw.col("a").cum_sum()).over(
                 order_by="i"
             ),
-            2,
+            [-1.0, 4.0, 5.0],
         ),
     ],
 )
-def test_window_kind(expr: nw.Expr, expected: int) -> None:
-    assert expr._metadata.n_orderable_ops == expected
+def test_over_pushdown(
+    constructor: Constructor, expr: nw.Expr, expected: list[float]
+) -> None:
+    df = nw.from_native(constructor({"a": [-1, 2, 3], "i": [0, 1, 2]})).lazy()
+    result = df.select(a=expr)
+    assert_equal_data(result, {"a": expected})
+
+
+@pytest.mark.parametrize(
+    "expr",
+    [
+        nw.col("a").cum_sum(),
+        nw.col("a").cum_sum().cum_sum().over(order_by="i"),
+        nw.col("a").cum_sum().cum_sum(),
+        nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum()),
+        nw.sum_horizontal(nw.col("a").diff(), nw.col("a").cum_sum().over(order_by="i")),
+    ],
+)
+def test_over_invalid(constructor: Constructor, expr: nw.Expr) -> None:
+    df = nw.from_native(constructor({"a": [-1, 2, 3], "i": [0, 1, 2]})).lazy()
+    with pytest.raises(InvalidOperationError):
+        df.select(a=expr)
 
 
 def test_misleading_order_by() -> None:

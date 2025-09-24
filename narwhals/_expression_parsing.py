@@ -272,7 +272,7 @@ class ExprNode:
         return self._is_orderable_window
 
     def push_down_over_node_in_place(
-        self, over_node: ExprNode, over_node_without_order_by: ExprNode
+        self, over_node: ExprNode, over_node_without_order_by: ExprNode | None
     ) -> None:
         self.exprs = tuple(
             expr
@@ -283,6 +283,8 @@ class ExprNode:
                 and any(expr_node.is_orderable() for expr_node in expr._nodes)
             )
             else expr._with_node(over_node_without_order_by)
+            if over_node_without_order_by is not None
+            else expr
             for expr in self.exprs
         )
 
