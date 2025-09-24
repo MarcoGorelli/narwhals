@@ -65,12 +65,7 @@ class Expr:
                 key: value if key != "order_by" else []
                 for (key, value) in node.kwargs.items()
             }
-            # If there's no `partition_by`, then `node_without_order_by` is just a no-op.
-            node_without_order_by = (
-                node.with_kwargs(**kwargs_no_order_by)
-                if node.kwargs["partition_by"]
-                else None
-            )
+            node_without_order_by = node.with_kwargs(**kwargs_no_order_by)
             n = len(new_nodes)
             i = n
             while i > 0 and (_node := new_nodes[i - 1]).kind is ExprKind.ELEMENTWISE:
@@ -81,13 +76,12 @@ class Expr:
                 new_nodes.append(node)
                 return self.__class__(*new_nodes)
             if i > 0:
-                new_nodes.insert(
-                    i,
-                    node
-                    if node.kwargs["order_by"]
-                    and any(node.is_orderable() for node in new_nodes[:i])
-                    else node_without_order_by,
-                )
+                if node.kwargs["order_by"] and any(
+                    node.is_orderable() for node in new_nodes[:i]
+                ):
+                    new_nodes.insert(i, node)
+                elif node.kwargs["partition_by"]:
+                    new_nodes.insert(i, node_without_order_by)
             return self.__class__(*new_nodes)
         return self.__class__(*self._nodes, node)
 

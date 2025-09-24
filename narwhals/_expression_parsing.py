@@ -268,7 +268,7 @@ class ExprNode:
         return self._is_orderable
 
     def push_down_over_node_in_place(
-        self, over_node: ExprNode, over_node_without_order_by: ExprNode | None
+        self, over_node: ExprNode, over_node_without_order_by: ExprNode
     ) -> None:
         self.exprs = tuple(
             expr
@@ -279,37 +279,10 @@ class ExprNode:
                 and any(expr_node.is_orderable() for expr_node in expr._nodes)
             )
             else expr._with_node(over_node_without_order_by)
-            if over_node_without_order_by is not None
+            if over_node_without_order_by.kwargs["partition_by"]
+            # If thefe's no `partition_by`, then `over_node_without_order_by` is a no-op.
             else expr
             for expr in self.exprs
-        )
-
-    def serialise(self) -> dict[str, Any]:
-        from narwhals.expr import Expr
-
-        if self.kind == ExprKind.SERIES:
-            msg = "Cannot serialize Expr with SERIES kind node."
-            raise TypeError(msg)
-        return {
-            "kind": self.kind.name,
-            "name": self.name,
-            "exprs": [Expr._serialize_expr_arg(e) for e in self.exprs],
-            "kwargs": self.kwargs,
-            "str_as_lit": self.str_as_lit,
-            "allow_multi_output": self.allow_multi_output,
-        }
-
-    @classmethod
-    def deserialise(cls, data: dict[str, Any]) -> ExprNode:
-        from narwhals.expr import Expr
-
-        return cls(
-            ExprKind[data["kind"]],
-            data["name"],
-            *[Expr._deserialize_expr_arg(e) for e in data["exprs"]],
-            str_as_lit=data["str_as_lit"],
-            allow_multi_output=data["allow_multi_output"],
-            **data["kwargs"],
         )
 
 
