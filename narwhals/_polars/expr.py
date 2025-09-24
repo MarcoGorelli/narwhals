@@ -16,14 +16,15 @@ from narwhals._polars.utils import (
     extract_native,
     narwhals_to_native_dtype,
 )
-from narwhals._utils import Implementation, requires
+from narwhals._utils import Implementation, is_compliant_expr, requires
+from narwhals.exceptions import MultiOutputExpressionError
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
     from typing_extensions import Self
 
-    from narwhals._compliant.typing import Accessor, CompliantExprAny
+    from narwhals._compliant.typing import Accessor
     from narwhals._expression_parsing import ExprKind
     from narwhals._polars.dataframe import Method
     from narwhals._polars.namespace import PolarsNamespace
@@ -46,20 +47,30 @@ class PolarsExpr:
         return cls(series.native, version=series._version)
 
     def with_node(self, node: ExprNode, ns: Any) -> PolarsExpr:
-        md = self._metadata.with_node(node, cast("CompliantExprAny", self))
+        ce = self
+        md = self._metadata
         ces = evaluate_into_exprs(
             *node.exprs,
             ns=ns,
             str_as_lit=node.str_as_lit,
             allow_multi_output=node.allow_multi_output,
         )
+        md = md.with_node(node, ce, *ces)
         if "." in node.name:
-            module, func = node.name.split(".")
-            ret = getattr(getattr(self, module), func)(*ces, **node.kwargs)
+            accessor, method = node.name.split(".")
+            func = getattr(getattr(ce, accessor), method)
         else:
-            ret = getattr(self, node.name)(*ces, **node.kwargs)
+            func = getattr(ce, node.name)
+        if not node.allow_multi_output and any(
+            x._metadata.expansion_kind.is_multi_output()
+            for x in ces
+            if is_compliant_expr(x)
+        ):
+            msg = "multi-output expressions are not allowed as arguments to Expr methods."
+            raise MultiOutputExpressionError(msg)
+        ret = cast("Self", func(*ces, **node.kwargs))
         ret._opt_metadata = md
-        return cast("PolarsExpr", ret)
+        return ret
 
     # CompliantExpr + builtin descriptor
     # TODO @dangotbanned: Remove in #2713
