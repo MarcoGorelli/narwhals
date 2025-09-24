@@ -4,7 +4,12 @@ import math
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Callable
 
-from narwhals._expression_parsing import ExprKind, ExprNode, evaluate_node
+from narwhals._expression_parsing import (
+    ExprKind,
+    ExprNode,
+    evaluate_node,
+    evaluate_root_node,
+)
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import ComputeError
@@ -85,11 +90,11 @@ class Expr:
             return Expr(*nodes)
         return data  # type: ignore[return-value]
 
-    def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
+    def __call__(self, ns: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
         nodes = self._nodes
-        ce = evaluate_node(nodes[0], plx)
+        ce = evaluate_root_node(nodes[0], ns)
         for node in nodes[1:]:
-            ce = ce.with_node(node, plx)
+            ce = evaluate_node(ce, node, ns)
         return ce
 
     def _with_node(self, node: ExprNode) -> Self:

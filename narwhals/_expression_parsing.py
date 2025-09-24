@@ -867,7 +867,7 @@ def maybe_broadcast_ces(
     return results
 
 
-def evaluate_node(node: ExprNode, ns: CompliantNamespaceAny) -> CompliantExprAny:
+def evaluate_root_node(node: ExprNode, ns: CompliantNamespaceAny) -> CompliantExprAny:
     if "." in node.name:
         module, method = node.name.split(".")
         func = getattr(getattr(ns, module), method)
@@ -885,3 +885,33 @@ def evaluate_node(node: ExprNode, ns: CompliantNamespaceAny) -> CompliantExprAny
     md = ExprMetadata.from_node(node, *ces)
     ce._opt_metadata = md
     return ce
+
+
+def evaluate_node(
+    ce: CompliantExprAny, node: ExprNode, ns: CompliantNamespaceAny
+) -> CompliantExprAny:
+    md = ce._metadata
+    ce, *ces = maybe_broadcast_ces(
+        ce,
+        *evaluate_into_exprs(
+            *node.exprs,
+            ns=ns,
+            str_as_lit=node.str_as_lit,
+            allow_multi_output=node.allow_multi_output,
+        ),
+    )
+    assert is_compliant_expr(ce)  # noqa: S101
+    md = md.with_node(node, ce, *ces)
+    if "." in node.name:
+        accessor, method = node.name.split(".")
+        func = getattr(getattr(ce, accessor), method)
+    else:
+        func = getattr(ce, node.name)
+    if not node.allow_multi_output and any(
+        x._metadata.expansion_kind.is_multi_output() for x in ces if is_compliant_expr(x)
+    ):
+        msg = "multi-output expressions are not allowed as arguments to Expr methods."
+        raise MultiOutputExpressionError(msg)
+    ret = cast("CompliantExprAny", func(*ces, **node.kwargs))
+    ret._opt_metadata = md
+    return ret
