@@ -323,7 +323,7 @@ class ExprMetadata:
         is_elementwise: bool = True,
         is_scalar_like: bool = False,
         is_literal: bool = False,
-        nodes: tuple[ExprNode, ...] | None = None,
+        nodes: tuple[ExprNode, ...],
     ) -> None:
         if is_literal:
             assert is_scalar_like  # noqa: S101  # debug assertion
@@ -336,7 +336,7 @@ class ExprMetadata:
         self.preserves_length: bool = preserves_length
         self.is_scalar_like: bool = is_scalar_like
         self.is_literal: bool = is_literal
-        self.nodes: tuple[ExprNode, ...] = nodes or ()
+        self.nodes: tuple[ExprNode, ...] = nodes
 
     def __init_subclass__(cls, /, *args: Any, **kwds: Any) -> Never:  # pragma: no cover
         msg = f"Cannot subclass {cls.__name__!r}"
@@ -566,7 +566,10 @@ class ExprMetadata:
             )
             raise InvalidOperationError(msg)
         n_orderable_ops = self.n_orderable_ops
-        if not n_orderable_ops and self.nodes[-1].kind is not ExprKind.WINDOW:
+        if (
+            not n_orderable_ops
+            and next(self.op_nodes_reversed()).kind is not ExprKind.WINDOW
+        ):
             msg = (
                 "Cannot use `order_by` in `over` on expression which isn't orderable.\n"
                 "If your expression is orderable, then make sure that `over(order_by=...)`\n"
