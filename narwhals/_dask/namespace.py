@@ -12,8 +12,13 @@ from narwhals._compliant import DepthTrackingNamespace, LazyNamespace
 from narwhals._dask.dataframe import DaskLazyFrame
 from narwhals._dask.expr import DaskExpr
 from narwhals._dask.selectors import DaskSelectorNamespace
-from narwhals._dask.utils import align_series_full_broadcast, narwhals_to_native_dtype
+from narwhals._dask.utils import (
+    align_series_full_broadcast,
+    narwhals_to_native_dtype,
+    validate_comparand,
+)
 from narwhals._expression_parsing import (
+    ExprKind,
     combine_alias_output_names,
     combine_evaluate_output_names,
 )
@@ -254,5 +259,50 @@ class DaskNamespace(
             call=func,
             evaluate_output_names=combine_evaluate_output_names(*exprs),
             alias_output_names=combine_alias_output_names(*exprs),
+            version=self._version,
+        )
+
+    def when_then(
+        self, predicate: DaskExpr, then: DaskExpr, otherwise: DaskExpr | None = None
+    ) -> DaskExpr:
+        def func(df: DaskLazyFrame) -> list[dx.Series]:
+            then_value = then(df)[0] if isinstance(then, DaskExpr) else then
+            otherwise_value = (
+                otherwise(df)[0] if isinstance(otherwise, DaskExpr) else otherwise
+            )
+
+            condition = predicate(df)[0]
+            # re-evaluate DataFrame if the condition aggregates to force
+            #   then/otherwise to be evaluated against the aggregated frame
+            assert predicate._metadata is not None  # noqa: S101
+            if all(
+                x._metadata.is_scalar_like
+                for x in (
+                    (predicate, then) if isinstance(then, DaskExpr) else (predicate,)
+                )
+            ):
+                new_df = df._with_native(condition.to_frame())
+                condition = predicate.broadcast(ExprKind.AGGREGATION)(df)[0]
+                df = new_df
+
+            if otherwise is None:
+                (condition, then_series) = align_series_full_broadcast(
+                    df, condition, then_value
+                )
+                validate_comparand(condition, then_series)
+                return [then_series.where(condition)]  # pyright: ignore[reportArgumentType]
+            (condition, then_series, otherwise_series) = align_series_full_broadcast(
+                df, condition, then_value, otherwise_value
+            )
+            validate_comparand(condition, then_series)
+            validate_comparand(condition, otherwise_series)
+            return [then_series.where(condition, otherwise_series)]  # pyright: ignore[reportArgumentType]
+
+        return self._expr(
+            call=func,
+            evaluate_output_names=getattr(
+                then, "_evaluate_output_names", lambda _df: ["literal"]
+            ),
+            alias_output_names=getattr(then, "_alias_output_names", None),
             version=self._version,
         )
