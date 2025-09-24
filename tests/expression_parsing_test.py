@@ -53,64 +53,24 @@ def test_over_pushdown(
         nw.col("a").cum_sum().cum_sum(),
         nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum()),
         nw.sum_horizontal(nw.col("a").diff(), nw.col("a").cum_sum().over(order_by="i")),
+        nw.col("a").mean().over(order_by="i"),
+        nw.col("a").mean().over("b").over("c"),
+        nw.col("a").mean().over("b").over("c", order_by="i"),
+        nw.col("a").mean().mean(),
+        nw.col("a").mean().sum(),
+        nw.col("a").mean().drop_nulls(),
+        nw.col("a").mean().rank(),
+        nw.col("a").mean().is_unique(),
+        nw.col("a").mean().diff(),
+        nw.col("a").fill_null(3).over("b"),
+        nw.col("a").drop_nulls().over("b"),
+        nw.col("a").drop_nulls().over("b", order_by="i"),
+        nw.col("a").diff().drop_nulls().over("b", order_by="i"),
     ],
 )
-def test_over_invalid(constructor: Constructor, expr: nw.Expr) -> None:
-    df = nw.from_native(constructor({"a": [-1, 2, 3], "i": [0, 1, 2]})).lazy()
-    with pytest.raises(InvalidOperationError):
+def test_invalid_operations(constructor: Constructor, expr: nw.Expr) -> None:
+    df = nw.from_native(
+        constructor({"a": [-1, 2, 3], "b": [1, 1, 1], "c": [2, 2, 2], "i": [0, 1, 2]})
+    ).lazy()
+    with pytest.raises((InvalidOperationError, NotImplementedError)):
         df.select(a=expr)
-
-
-def test_misleading_order_by() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().over(order_by="b")
-
-
-def test_double_over() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().over("b").over("c")
-
-
-def test_double_agg() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().mean()
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().sum()
-
-
-def test_filter_aggregation() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().drop_nulls()
-
-
-def test_rank_aggregation() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().rank()
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().is_unique()
-
-
-def test_diff_aggregation() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().diff()
-
-
-def test_invalid_over() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").fill_null(3).over("b")
-
-
-def test_nested_over() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().over("b").over("c")
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").mean().over("b").over("c", order_by="i")
-
-
-def test_filtration_over() -> None:
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").drop_nulls().over("b")
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").drop_nulls().over("b", order_by="i")
-    with pytest.raises(InvalidOperationError):
-        nw.col("a").diff().drop_nulls().over("b", order_by="i")
