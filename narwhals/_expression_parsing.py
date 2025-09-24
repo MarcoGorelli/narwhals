@@ -157,10 +157,6 @@ class ExprKind(Enum):
         return self in {ExprKind.LITERAL, ExprKind.AGGREGATION}
 
     @property
-    def is_orderable_window(self) -> bool:
-        return self in {ExprKind.ORDERABLE_WINDOW, ExprKind.ORDERABLE_AGGREGATION}
-
-    @property
     def is_orderable(self) -> bool:
         # Any operation which may be affected by `order_by`, such as `cum_sum`,
         # `diff`, `rank`, `arg_max`, ...
@@ -242,7 +238,7 @@ class ExprNode:
         self.allow_multi_output: bool = allow_multi_output
 
         # Cached methods.
-        self._is_orderable_window: bool | None = None
+        self._is_orderable: bool | None = None
 
     def __repr__(self) -> str:
         if self.name == "col":
@@ -263,13 +259,13 @@ class ExprNode:
         )
 
     def is_orderable(self) -> bool:
-        if self._is_orderable_window is None:
-            self._is_orderable_window = self.kind.is_orderable or any(
+        if self._is_orderable is None:
+            self._is_orderable = self.kind.is_orderable or any(
                 any(node.is_orderable() for node in expr._nodes)
                 for expr in self.exprs
                 if is_expr(expr)
             )
-        return self._is_orderable_window
+        return self._is_orderable
 
     def push_down_over_node_in_place(
         self, over_node: ExprNode, over_node_without_order_by: ExprNode | None
@@ -608,7 +604,7 @@ class ExprMetadata:
                 "  + `nw.col('price').diff().over(order_by='date') + 1`\n"
             )
             raise InvalidOperationError(msg)
-        if next(self.op_nodes_reversed()).kind.is_orderable_window:
+        if next(self.op_nodes_reversed()).kind.is_orderable:
             n_orderable_ops -= 1
         return ExprMetadata(
             self.expansion_kind,
