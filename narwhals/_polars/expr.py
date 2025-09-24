@@ -42,7 +42,7 @@ class PolarsExpr:
 
     @classmethod
     def _from_series(cls, series: PolarsSeries) -> Self:
-        return cls(series.native, version=series._version)
+        return cls(series.native, version=series._version)  # type: ignore[arg-type]
 
     # CompliantExpr + builtin descriptor
     # TODO @dangotbanned: Remove in #2713
