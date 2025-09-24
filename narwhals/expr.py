@@ -45,50 +45,9 @@ if TYPE_CHECKING:
     R = TypeVar("R")
 
 
-import json
-
-
 class Expr:
     def __init__(self, *nodes: ExprNode) -> None:
         self._nodes = nodes
-
-    def to_json(self) -> str:
-        """Serialise expression to json string.
-
-        Notes:
-        -----
-        This is not meant to be stable across Narwhals versions.
-        """
-        return json.dumps([node.serialise() for node in self._nodes])
-
-    @classmethod
-    def from_json(cls, json_str: str) -> Expr:
-        """Initialise Expr from json string.
-
-        Notes:
-        -----
-        This is not meant to be stable across Narwhals versions.
-        """
-        return cls(
-            *(ExprNode.deserialise(node_data) for node_data in json.loads(json_str))
-        )
-
-    @staticmethod
-    def _serialize_expr_arg(
-        arg: IntoExpr | NonNestedLiteral,
-    ) -> dict[str, Any] | IntoExpr | NonNestedLiteral:
-        if isinstance(arg, Expr):
-            return {"__expr__": True, "data": [ExprNode.serialise(n) for n in arg._nodes]}
-        return arg
-
-    @staticmethod
-    def _deserialize_expr_arg(
-        data: dict[str, Any] | NonNestedLiteral,
-    ) -> Expr | NonNestedLiteral:
-        if isinstance(data, dict) and data.get("__expr__"):
-            nodes = [ExprNode.deserialise(node_data) for node_data in data["data"]]
-            return Expr(*nodes)
-        return data  # type: ignore[return-value]
 
     def __call__(self, ns: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
         nodes = self._nodes

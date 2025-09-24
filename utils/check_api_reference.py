@@ -72,7 +72,7 @@ def read_documented_members(source: str | Path) -> list[str]:
 ret = 0
 
 NAMESPACES = {"dt", "str", "cat", "name", "list", "struct"}
-EXPR_ONLY_METHODS = {"over", "map_batches", "to_json", "from_json"}
+EXPR_ONLY_METHODS = {"over", "map_batches"}
 SERIES_ONLY_METHODS = {
     "arg_max",
     "arg_min",
