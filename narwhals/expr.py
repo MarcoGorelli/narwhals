@@ -2,15 +2,9 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, Callable
 
-from narwhals._expression_parsing import (
-    ExprKind,
-    ExprMetadata,
-    ExprNode,
-    evaluate_into_exprs,
-    maybe_broadcast_ces,
-)
+from narwhals._expression_parsing import ExprKind, ExprNode, evaluate_node
 from narwhals._utils import _validate_rolling_arguments, ensure_type, flatten
 from narwhals.dtypes import _validate_dtype
 from narwhals.exceptions import ComputeError
@@ -91,30 +85,9 @@ class Expr:
             return Expr(*nodes)
         return data  # type: ignore[return-value]
 
-    def _evaluate_node(
-        self, node: ExprNode, ns: CompliantNamespace[Any, Any]
-    ) -> CompliantExpr[Any, Any]:
-        if "." in node.name:
-            module, method = node.name.split(".")
-            func = getattr(getattr(ns, module), method)
-        else:
-            func = getattr(ns, node.name)
-        ces = maybe_broadcast_ces(
-            *evaluate_into_exprs(
-                *node.exprs,
-                ns=ns,
-                str_as_lit=node.str_as_lit,
-                allow_multi_output=node.allow_multi_output,
-            )
-        )
-        ce = cast("CompliantExpr[Any, Any]", func(*ces, **node.kwargs))
-        md = ExprMetadata.from_node(node, *ces)
-        ce._opt_metadata = md
-        return ce
-
     def __call__(self, plx: CompliantNamespace[Any, Any]) -> CompliantExpr[Any, Any]:
         nodes = self._nodes
-        ce = self._evaluate_node(nodes[0], plx)
+        ce = evaluate_node(nodes[0], plx)
         for node in nodes[1:]:
             ce = ce.with_node(node, plx)
         return ce

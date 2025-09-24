@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypeVar, cast, overload
 
 from narwhals._utils import is_compliant_expr, zip_strict
 from narwhals.dependencies import is_numpy_array_1d
@@ -865,3 +865,23 @@ def maybe_broadcast_ces(
         else:
             results.append(compliant_expr)
     return results
+
+
+def evaluate_node(node: ExprNode, ns: CompliantNamespaceAny) -> CompliantExprAny:
+    if "." in node.name:
+        module, method = node.name.split(".")
+        func = getattr(getattr(ns, module), method)
+    else:
+        func = getattr(ns, node.name)
+    ces = maybe_broadcast_ces(
+        *evaluate_into_exprs(
+            *node.exprs,
+            ns=ns,
+            str_as_lit=node.str_as_lit,
+            allow_multi_output=node.allow_multi_output,
+        )
+    )
+    ce = cast("CompliantExpr[Any, Any]", func(*ces, **node.kwargs))
+    md = ExprMetadata.from_node(node, *ces)
+    ce._opt_metadata = md
+    return ce
