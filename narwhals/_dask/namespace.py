@@ -278,7 +278,13 @@ class DaskNamespace(
             if all(
                 x._metadata.is_scalar_like
                 for x in (
-                    (predicate, then) if isinstance(then, DaskExpr) else (predicate,)
+                    (predicate, then)
+                    if (isinstance(then, DaskExpr) and otherwise is None)
+                    else (predicate, then, otherwise)
+                    if isinstance(then, DaskExpr) and isinstance(otherwise, DaskExpr)
+                    else (predicate, otherwise)
+                    if isinstance(otherwise, DaskExpr)
+                    else (predicate,)
                 )
             ):
                 new_df = df._with_native(condition.to_frame())
