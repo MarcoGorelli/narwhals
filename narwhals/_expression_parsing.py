@@ -282,7 +282,9 @@ class ExprNode:
         if self._is_orderable_cached is None:
             # Note: don't combine these if/then statements so that pytest-cov shows if
             # anything is uncovered.
-            if self.kind.is_orderable or any(
+            if self.kind.is_orderable:  # noqa: SIM114
+                self._is_orderable_cached = True
+            elif any(
                 any(node.is_orderable() for node in expr._nodes)
                 for expr in self.exprs
                 if is_expr(expr)
