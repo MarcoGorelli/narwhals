@@ -85,6 +85,13 @@ class PolarsExpr:
         assert self._opt_metadata is not None  # noqa: S101
         return cast("ExprMetadata", self._opt_metadata)
 
+    def __getattr__(self, attr: str) -> Any:
+        def func(*args: Any, **kwargs: Any) -> Any:
+            pos, kwds = extract_args_kwargs(args, kwargs)
+            return self._with_native(getattr(self.native, attr)(*pos, **kwds))
+
+        return func
+
     def broadcast(self, kind: Literal[ExprKind.AGGREGATION, ExprKind.LITERAL]) -> Self:
         # Let Polars do its thing.
         return self
@@ -259,13 +266,6 @@ class PolarsExpr:
     def mode(self, *, keep: ModeKeepStrategy) -> Self:
         result = self.native.mode()
         return self._with_native(result.first() if keep == "any" else result)
-
-    def __getattr__(self, attr: str) -> Any:
-        def func(*args: Any, **kwargs: Any) -> Any:
-            pos, kwds = extract_args_kwargs(args, kwargs)
-            return self._with_native(getattr(self.native, attr)(*pos, **kwds))
-
-        return func
 
     @property
     def dt(self) -> PolarsExprDateTimeNamespace:
