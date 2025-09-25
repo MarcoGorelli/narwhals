@@ -70,7 +70,7 @@ class Expr:
             i = n
             while i > 0 and (_node := new_nodes[i - 1]).kind is ExprKind.ELEMENTWISE:
                 i -= 1
-                _node.push_down_over_node_in_place(node, node_without_order_by)
+                _node._push_down_over_node_in_place(node, node_without_order_by)
             if i == n:
                 # node could not be pushed down, just append as-is
                 new_nodes.append(node)

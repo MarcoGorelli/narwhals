@@ -6,25 +6,46 @@ import narwhals as nw
 from narwhals.exceptions import InvalidOperationError
 from tests.utils import Constructor, assert_equal_data
 
+pytest.importorskip("polars")
+
+import polars as pl
+
 
 @pytest.mark.parametrize(
-    ("expr", "expected"),
+    ("expr", "pl_expr", "expected"),
     [
-        (nw.col("a"), [-1, 2, 3]),
-        (nw.col("a").mean(), [1.333333333]),
-        (nw.col("a").cum_sum().over(order_by="i"), [-1, 1, 4]),
-        (nw.col("a").cum_sum().abs().over(order_by="i"), [1, 1, 4]),
-        ((nw.col("a").cum_sum() + 1).over(order_by="i"), [0, 2, 5]),
+        (nw.col("a"), pl.col("a"), [-1, 2, 3]),
+        (nw.col("a").mean(), pl.col("a").mean(), [4 / 3, 4 / 3, 4 / 3]),
+        (
+            nw.col("a").cum_sum().over(order_by="i"),
+            pl.col("a").cum_sum().over(order_by="i"),
+            [-1, 1, 4],
+        ),
+        (
+            nw.col("a").cum_sum().abs().over(order_by="i"),
+            pl.col("a").cum_sum().abs().over(order_by="i"),
+            [1, 1, 4],
+        ),
+        (
+            (nw.col("a").cum_sum() + 1).over(order_by="i"),
+            (pl.col("a").cum_sum() + 1).over(order_by="i"),
+            [0, 2, 5],
+        ),
         (
             nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum()).over(order_by="a"),
+            pl.sum_horizontal(pl.col("a"), pl.col("a").cum_sum()).over(order_by="a"),
             [-2, 3, 7],
         ),
         (
             nw.sum_horizontal(nw.col("a"), nw.col("a").cum_sum().over(order_by="i")),
+            pl.sum_horizontal(pl.col("a"), pl.col("a").cum_sum().over(order_by="i")),
             [-2, 3, 7],
         ),
         (
             nw.sum_horizontal(nw.col("a").diff(), nw.col("a").cum_sum()).over(
+                order_by="i"
+            ),
+            pl.sum_horizontal(pl.col("a").diff(), pl.col("a").cum_sum()).over(
                 order_by="i"
             ),
             [-1.0, 4.0, 5.0],
@@ -33,16 +54,38 @@ from tests.utils import Constructor, assert_equal_data
             nw.sum_horizontal(nw.col("a").diff().abs(), nw.col("a").cum_sum()).over(
                 order_by="i"
             ),
+            pl.sum_horizontal(pl.col("a").diff().abs(), pl.col("a").cum_sum()).over(
+                order_by="i"
+            ),
             [-1.0, 4.0, 5.0],
+        ),
+        (
+            (nw.col("a").sum() + nw.col("a").rolling_sum(2, min_samples=1)).over(
+                order_by="i"
+            ),
+            (pl.col("a").sum() + pl.col("a").rolling_sum(2, min_samples=1)).over(
+                order_by="i"
+            ),
+            [3.0, 5.0, 9.0],
+        ),
+        (
+            (nw.col("a").sum() + nw.col("a").mean()).over("b"),
+            (pl.col("a").sum() + pl.col("a").mean()).over("b"),
+            [1.5, 1.5, 6.0],
         ),
     ],
 )
 def test_over_pushdown(
-    constructor: Constructor, expr: nw.Expr, expected: list[float]
+    constructor: Constructor, expr: nw.Expr, pl_expr: pl.Expr, expected: list[float]
 ) -> None:
-    df = nw.from_native(constructor({"a": [-1, 2, 3], "i": [0, 1, 2]})).lazy()
-    result = df.select(a=expr)
+    data = {"a": [-1, 2, 3], "b": [1, 1, 2], "i": [0, 1, 2]}
+    df = nw.from_native(constructor(data)).lazy()
+    result = df.select("i", a=expr).sort("i").select("a")
     assert_equal_data(result, {"a": expected})
+
+    # Confirm that doing the calculation in pure-Polars produces the same result.
+    pl_result = {"a": pl.DataFrame(data).select("i", a=pl_expr).sort("i")["a"].to_list()}
+    assert_equal_data(result, pl_result)
 
 
 @pytest.mark.parametrize(

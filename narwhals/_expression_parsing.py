@@ -267,23 +267,25 @@ class ExprNode:
             )
         return self._is_orderable
 
-    def push_down_over_node_in_place(
+    def _push_down_over_node_in_place(
         self, over_node: ExprNode, over_node_without_order_by: ExprNode
     ) -> None:
-        self.exprs = tuple(
-            expr
-            if not is_expr(expr)
-            else expr._with_node(over_node)
-            if (
-                over_node.kwargs["order_by"]
-                and any(expr_node.is_orderable() for expr_node in expr._nodes)
-            )
-            else expr._with_node(over_node_without_order_by)
-            if over_node_without_order_by.kwargs["partition_by"]
-            # If thefe's no `partition_by`, then `over_node_without_order_by` is a no-op.
-            else expr
-            for expr in self.exprs
-        )
+        exprs = []
+        # Note: please keep this as a for-loop (rather than a list-comprehension)
+        # so that pytest-cov highlights any uncovered branches.
+        for expr in self.exprs:
+            if not is_expr(expr):
+                exprs.append(expr)
+            elif over_node.kwargs["order_by"] and any(
+                expr_node.is_orderable() for expr_node in expr._nodes
+            ):
+                exprs.append(expr._with_node(over_node))
+            elif over_node_without_order_by.kwargs["partition_by"]:
+                exprs.append(expr._with_node(over_node_without_order_by))
+            else:
+                # If thefe's no `partition_by`, then `over_node_without_order_by` is a no-op.
+                exprs.append(expr)
+        self.exprs = exprs
 
 
 class ExprMetadata:
