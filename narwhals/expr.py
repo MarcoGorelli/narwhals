@@ -65,7 +65,7 @@ class Expr:
                 key: value if key != "order_by" else []
                 for (key, value) in node.kwargs.items()
             }
-            node_without_order_by = node.with_kwargs(**kwargs_no_order_by)
+            node_without_order_by = node._with_kwargs(**kwargs_no_order_by)
             n = len(new_nodes)
             i = n
             while i > 0 and (_node := new_nodes[i - 1]).kind is ExprKind.ELEMENTWISE:

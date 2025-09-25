@@ -253,19 +253,10 @@ class ExprNode:
             arg_str.append(kwargs_repr)
         return f"{self.name}({', '.join(arg_str)})"
 
-    def with_kwargs(self, **kwargs: Any) -> ExprNode:
+    def _with_kwargs(self, **kwargs: Any) -> ExprNode:
         return self.__class__(
             self.kind, self.name, *self.exprs, str_as_lit=self.str_as_lit, **kwargs
         )
-
-    def is_orderable(self) -> bool:
-        if self._is_orderable is None:
-            self._is_orderable = self.kind.is_orderable or any(
-                any(node.is_orderable() for node in expr._nodes)
-                for expr in self.exprs
-                if is_expr(expr)
-            )
-        return self._is_orderable
 
     def _push_down_over_node_in_place(
         self, over_node: ExprNode, over_node_without_order_by: ExprNode
@@ -286,6 +277,15 @@ class ExprNode:
                 # If thefe's no `partition_by`, then `over_node_without_order_by` is a no-op.
                 exprs.append(expr)
         self.exprs = exprs
+
+    def is_orderable(self) -> bool:
+        if self._is_orderable is None:
+            self._is_orderable = self.kind.is_orderable or any(
+                any(node.is_orderable() for node in expr._nodes)
+                for expr in self.exprs
+                if is_expr(expr)
+            )
+        return self._is_orderable
 
 
 class ExprMetadata:
