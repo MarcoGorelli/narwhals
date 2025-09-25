@@ -238,7 +238,7 @@ class ExprNode:
         self.allow_multi_output: bool = allow_multi_output
 
         # Cached methods.
-        self._is_orderable: bool | None = None
+        self._is_orderable_cached: bool | None = None
 
     def __repr__(self) -> str:
         if self.name == "col":
@@ -274,18 +274,23 @@ class ExprNode:
             elif over_node_without_order_by.kwargs["partition_by"]:
                 exprs.append(expr._with_node(over_node_without_order_by))
             else:
-                # If thefe's no `partition_by`, then `over_node_without_order_by` is a no-op.
+                # If there's no `partition_by`, then `over_node_without_order_by` is a no-op.
                 exprs.append(expr)
         self.exprs = exprs
 
     def is_orderable(self) -> bool:
-        if self._is_orderable is None:
-            self._is_orderable = self.kind.is_orderable or any(
+        if self._is_orderable_cached is None:
+            # Note: don't combine these if/then statements so that pytest-cov shows if
+            # anything is uncovered.
+            if self.kind.is_orderable or any(
                 any(node.is_orderable() for node in expr._nodes)
                 for expr in self.exprs
                 if is_expr(expr)
-            )
-        return self._is_orderable
+            ):
+                self._is_orderable_cached = True
+            else:
+                self._is_orderable_cached = False
+        return self._is_orderable_cached
 
 
 class ExprMetadata:

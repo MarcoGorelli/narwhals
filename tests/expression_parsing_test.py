@@ -73,6 +73,15 @@ import polars as pl
             (pl.col("a").sum() + pl.col("a").mean()).over("b"),
             [1.5, 1.5, 6.0],
         ),
+        (
+            (nw.col("a").mean().abs() + nw.sum_horizontal(nw.col("a").diff())).over(
+                order_by="i"
+            ),
+            (pl.col("a").mean().abs() + pl.sum_horizontal(pl.col("a").diff())).over(
+                order_by="i"
+            ),
+            [4 / 3, 13 / 3, 7 / 3],
+        ),
     ],
 )
 def test_over_pushdown(
