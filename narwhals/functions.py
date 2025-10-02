@@ -1139,158 +1139,27 @@ def len_() -> Expr:
 
 
 def sum(*columns: str) -> Expr:
-    """Sum all values.
-
-    Note:
-        Syntactic sugar for ``nw.col(columns).sum()``
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function
-
-    Returns:
-        A new expression.
-
-    Examples:
-        >>> import pandas as pd
-        >>> import narwhals as nw
-        >>>
-        >>> df_native = pd.DataFrame({"a": [1, 2], "b": [-1.4, 6.2]})
-        >>> nw.from_native(df_native).select(nw.sum("a", "b"))
-        ┌──────────────────┐
-        |Narwhals DataFrame|
-        |------------------|
-        |       a    b     |
-        |    0  3  4.8     |
-        └──────────────────┘
-    """
+    """Syntactic sugar for ``nw.col(columns).sum()``."""
     return col(*columns).sum()
 
 
 def mean(*columns: str) -> Expr:
-    """Get the mean value.
-
-    Note:
-        Syntactic sugar for ``nw.col(columns).mean()``
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function
-
-    Returns:
-        A new expression.
-
-    Examples:
-        >>> import pyarrow as pa
-        >>> import narwhals as nw
-        >>>
-        >>> df_native = pa.table({"a": [1, 8, 3], "b": [3.14, 6.28, 42.1]})
-        >>> nw.from_native(df_native).select(nw.mean("a", "b"))
-        ┌─────────────────────────┐
-        |   Narwhals DataFrame    |
-        |-------------------------|
-        |pyarrow.Table            |
-        |a: double                |
-        |b: double                |
-        |----                     |
-        |a: [[4]]                 |
-        |b: [[17.173333333333336]]|
-        └─────────────────────────┘
-    """
+    """Syntactic sugar for ``nw.col(columns).mean()``."""
     return col(*columns).mean()
 
 
 def median(*columns: str) -> Expr:
-    """Get the median value.
-
-    Notes:
-        - Syntactic sugar for ``nw.col(columns).median()``
-        - Results might slightly differ across backends due to differences in the
-            underlying algorithms used to compute the median.
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function
-
-    Returns:
-        A new expression.
-
-    Examples:
-        >>> import polars as pl
-        >>> import narwhals as nw
-        >>>
-        >>> df_native = pl.DataFrame({"a": [4, 5, 2]})
-        >>> nw.from_native(df_native).select(nw.median("a"))
-        ┌──────────────────┐
-        |Narwhals DataFrame|
-        |------------------|
-        |  shape: (1, 1)   |
-        |  ┌─────┐         |
-        |  │ a   │         |
-        |  │ --- │         |
-        |  │ f64 │         |
-        |  ╞═════╡         |
-        |  │ 4.0 │         |
-        |  └─────┘         |
-        └──────────────────┘
-    """
+    """Syntactic sugar for ``nw.col(columns).median()``."""
     return col(*columns).median()
 
 
 def min(*columns: str) -> Expr:
-    """Return the minimum value.
-
-    Note:
-       Syntactic sugar for ``nw.col(columns).min()``.
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function.
-
-    Returns:
-        A new expression.
-
-    Examples:
-        >>> import pyarrow as pa
-        >>> import narwhals as nw
-        >>>
-        >>> df_native = pa.table({"a": [1, 2], "b": [5, 10]})
-        >>> nw.from_native(df_native).select(nw.min("a", "b"))
-        ┌──────────────────┐
-        |Narwhals DataFrame|
-        |------------------|
-        |  pyarrow.Table   |
-        |  a: int64        |
-        |  b: int64        |
-        |  ----            |
-        |  a: [[1]]        |
-        |  b: [[5]]        |
-        └──────────────────┘
-    """
+    """Syntactic sugar for ``nw.col(columns).min()``."""
     return col(*columns).min()
 
 
 def max(*columns: str) -> Expr:
-    """Return the maximum value.
-
-    Note:
-       Syntactic sugar for ``nw.col(columns).max()``.
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function.
-
-    Returns:
-        A new expression.
-
-    Examples:
-        >>> import pandas as pd
-        >>> import narwhals as nw
-        >>>
-        >>> df_native = pd.DataFrame({"a": [1, 2], "b": [5, 10]})
-        >>> nw.from_native(df_native).select(nw.max("a", "b"))
-        ┌──────────────────┐
-        |Narwhals DataFrame|
-        |------------------|
-        |        a   b     |
-        |     0  2  10     |
-        └──────────────────┘
-    """
+    """Syntactic sugar for ``nw.col(columns).max()``."""
     return col(*columns).max()
 
 
