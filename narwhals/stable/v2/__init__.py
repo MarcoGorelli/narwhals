@@ -769,79 +769,27 @@ def lit(value: NonNestedLiteral, dtype: IntoDType | None = None) -> Expr:
 
 
 def min(*columns: str) -> Expr:
-    """Return the minimum value.
-
-    Note:
-       Syntactic sugar for ``nw.col(columns).min()``.
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function.
-
-    Returns:
-        A new expression.
-    """
+    """Syntactic sugar for ``nw.col(columns).min()``."""
     return _stableify(nw.min(*columns))
 
 
 def max(*columns: str) -> Expr:
-    """Return the maximum value.
-
-    Note:
-       Syntactic sugar for ``nw.col(columns).max()``.
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function.
-
-    Returns:
-        A new expression.
-    """
+    """Syntactic sugar for ``nw.col(columns).max()``."""
     return _stableify(nw.max(*columns))
 
 
 def mean(*columns: str) -> Expr:
-    """Get the mean value.
-
-    Note:
-        Syntactic sugar for ``nw.col(columns).mean()``
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function
-
-    Returns:
-        A new expression.
-    """
+    """Syntactic sugar for ``nw.col(columns).mean()``."""
     return _stableify(nw.mean(*columns))
 
 
 def median(*columns: str) -> Expr:
-    """Get the median value.
-
-    Notes:
-        - Syntactic sugar for ``nw.col(columns).median()``
-        - Results might slightly differ across backends due to differences in the
-            underlying algorithms used to compute the median.
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function
-
-    Returns:
-        A new expression.
-    """
+    """Syntactic sugar for ``nw.col(columns).median()``."""
     return _stableify(nw.median(*columns))
 
 
 def sum(*columns: str) -> Expr:
-    """Sum all values.
-
-    Note:
-        Syntactic sugar for ``nw.col(columns).sum()``
-
-    Arguments:
-        columns: Name(s) of the columns to use in the aggregation function
-
-    Returns:
-        A new expression.
-    """
+    """Syntactic sugar for ``nw.col(columns).sum()``."""
     return _stableify(nw.sum(*columns))
 
 
