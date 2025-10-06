@@ -143,12 +143,7 @@ def test_right_arithmetic_series(
     assert_equal_data({"a": result_series}, {"a": expected})
 
 
-def test_truediv_same_dims(
-    constructor_eager: ConstructorEager, request: pytest.FixtureRequest
-) -> None:
-    if "polars" in str(constructor_eager):
-        # https://github.com/pola-rs/polars/issues/17760
-        request.applymarker(pytest.mark.xfail)
+def test_truediv_same_dims(constructor_eager: ConstructorEager) -> None:
     s_left = nw.from_native(constructor_eager({"a": [1, 2, 3]}), eager_only=True)["a"]
     s_right = nw.from_native(constructor_eager({"a": [2, 2, 1]}), eager_only=True)["a"]
     result = s_left / s_right

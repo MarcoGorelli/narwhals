@@ -20,6 +20,7 @@ from narwhals._utils import (
 from narwhals.dependencies import is_numpy_array, is_numpy_array_1d, is_numpy_scalar
 from narwhals.dtypes import _validate_dtype, _validate_into_dtype
 from narwhals.exceptions import ComputeError, InvalidOperationError
+from narwhals.functions import col
 from narwhals.series_cat import SeriesCatNamespace
 from narwhals.series_dt import SeriesDateTimeNamespace
 from narwhals.series_list import SeriesListNamespace
@@ -436,14 +437,23 @@ class Series(Generic[IntoSeriesT]):
         return (self._compliant_series.len(),)
 
     def _extract_native(self, arg: Any) -> Any:
-        from narwhals.series import Series
-
+        # Extract underlying compliant series. This should not be used for
+        # methods which are also available in `Expr` - instead, just reuse the
+        # expression implementation by using `to_frame` and `select`.
         if isinstance(arg, Series):
             return arg._compliant_series
         return arg
 
     def _with_compliant(self, series: Any) -> Self:
         return self.__class__(series, level=self._level)
+
+    def _with_binary(self, attr: str, other: Any) -> Self:
+        return self.to_frame().select(getattr(col(self.name), attr)(other))[self.name]  # type: ignore[return-value]
+
+    def _with_rbinary(self, attr: str, other: Any) -> Self:
+        return self.to_frame().select(
+            getattr(col(self.name), attr)(other).alias(self.name)
+        )[self.name]  # type: ignore[return-value]
 
     def pipe(self, function: Callable[[Any], Self], *args: Any, **kwargs: Any) -> Self:
         """Pipe function call.
@@ -881,12 +891,9 @@ class Series(Generic[IntoSeriesT]):
             5    3
             dtype: int64
         """
-        return self._with_compliant(
-            self._compliant_series.clip(
-                lower_bound=self._extract_native(lower_bound),
-                upper_bound=self._extract_native(upper_bound),
-            )
-        )
+        return self.to_frame().select(col(self.name).clip(lower_bound, upper_bound))[
+            self.name
+        ]  # type: ignore[return-value]
 
     def first(self) -> PythonLiteral:
         """Get the first element of the Series.
@@ -1414,20 +1421,9 @@ class Series(Generic[IntoSeriesT]):
             2    2.0
             dtype: float64
         """
-        if value is not None and strategy is not None:
-            msg = "cannot specify both `value` and `strategy`"
-            raise ValueError(msg)
-        if value is None and strategy is None:
-            msg = "must specify either a fill `value` or `strategy`"
-            raise ValueError(msg)
-        if strategy is not None and strategy not in {"forward", "backward"}:
-            msg = f"strategy not supported: {strategy}"
-            raise ValueError(msg)
-        return self._with_compliant(
-            self._compliant_series.fill_null(
-                value=self._extract_native(value), strategy=strategy, limit=limit
-            )
-        )
+        return self.to_frame().select(col(self.name).fill_null(value, strategy, limit))[
+            self.name
+        ]  # type: ignore[return-value]
 
     def fill_nan(self, value: float | None) -> Self:
         """Fill floating point NaN values with given value.
@@ -1455,9 +1451,7 @@ class Series(Generic[IntoSeriesT]):
                null
             ]
         """
-        return self._with_compliant(
-            self._compliant_series.fill_nan(value=self._extract_native(value))
-        )
+        return self._with_compliant(self._compliant_series.fill_nan(value))
 
     def is_between(
         self,
@@ -1494,13 +1488,9 @@ class Series(Generic[IntoSeriesT]):
               ]
             ]
         """
-        return self._with_compliant(
-            self._compliant_series.is_between(
-                self._extract_native(lower_bound),
-                self._extract_native(upper_bound),
-                closed=closed,
-            )
-        )
+        return self.to_frame().select(
+            col(self.name).is_between(lower_bound, upper_bound, closed)
+        )[self.name]  # type: ignore[return-value]
 
     def n_unique(self) -> int:
         """Count the number of unique values.
@@ -1566,128 +1556,80 @@ class Series(Generic[IntoSeriesT]):
         return self._compliant_series.to_polars()
 
     def __add__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__add__(self._extract_native(other))
-        )
+        return self._with_binary("__add__", other)
 
     def __radd__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__radd__(self._extract_native(other))
-        )
+        return self._with_rbinary("__radd__", other)
 
     def __sub__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__sub__(self._extract_native(other))
-        )
+        return self._with_binary("__sub__", other)
 
     def __rsub__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rsub__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rsub__", other)
 
     def __mul__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__mul__(self._extract_native(other))
-        )
+        return self._with_binary("__mul__", other)
 
     def __rmul__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rmul__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rmul__", other)
 
     def __truediv__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__truediv__(self._extract_native(other))
-        )
+        return self._with_binary("__truediv__", other)
 
     def __rtruediv__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rtruediv__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rtruediv__", other)
 
     def __floordiv__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__floordiv__(self._extract_native(other))
-        )
+        return self._with_binary("__floordiv__", other)
 
     def __rfloordiv__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rfloordiv__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rfloordiv__", other)
 
     def __pow__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__pow__(self._extract_native(other))
-        )
+        return self._with_binary("__pow__", other)
 
     def __rpow__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rpow__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rpow__", other)
 
     def __mod__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__mod__(self._extract_native(other))
-        )
+        return self._with_binary("__mod__", other)
 
     def __rmod__(self, other: object) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rmod__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rmod__", other)
 
     def __eq__(self, other: object) -> Self:  # type: ignore[override]
-        return self._with_compliant(
-            self._compliant_series.__eq__(self._extract_native(other))
-        )
+        return self._with_binary("__eq__", other)
 
     def __ne__(self, other: object) -> Self:  # type: ignore[override]
-        return self._with_compliant(
-            self._compliant_series.__ne__(self._extract_native(other))
-        )
+        return self._with_binary("__ne__", other)
 
     def __gt__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__gt__(self._extract_native(other))
-        )
+        return self._with_binary("__gt__", other)
 
     def __ge__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__ge__(self._extract_native(other))
-        )
+        return self._with_binary("__ge__", other)
 
     def __lt__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__lt__(self._extract_native(other))
-        )
+        return self._with_binary("__lt__", other)
 
     def __le__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__le__(self._extract_native(other))
-        )
+        return self._with_binary("__le__", other)
 
     def __and__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__and__(self._extract_native(other))
-        )
+        return self._with_binary("__and__", other)
 
     def __rand__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__rand__(self._extract_native(other))
-        )
+        return self._with_rbinary("__rand__", other)
 
     def __or__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__or__(self._extract_native(other))
-        )
+        return self._with_binary("__or__", other)
 
     def __ror__(self, other: Any) -> Self:
-        return self._with_compliant(
-            self._compliant_series.__ror__(self._extract_native(other))
-        )
+        return self._with_rbinary("__ror__", other)
 
     # unary
     def __invert__(self) -> Self:
-        return self._with_compliant(self._compliant_series.__invert__())
+        return self.to_frame().select(~col(self.name))[self.name]  # type: ignore[return-value]
 
     def filter(self, predicate: Any) -> Self:
         """Filter elements in the Series based on a condition.
@@ -1704,9 +1646,7 @@ class Series(Generic[IntoSeriesT]):
             4    50
             dtype: int64
         """
-        return self._with_compliant(
-            self._compliant_series.filter(self._extract_native(predicate))
-        )
+        return self.to_frame().select(col(self.name).filter(predicate))[self.name]  # type: ignore[return-value]
 
     # --- descriptive ---
     def is_duplicated(self) -> Self:
@@ -1730,7 +1670,7 @@ class Series(Generic[IntoSeriesT]):
               ]
             ]
         """
-        return self._with_compliant(self._compliant_series.is_duplicated())
+        return self.to_frame().select(col(self.name).is_duplicated())[self.name]  # type: ignore[return-value]
 
     def is_empty(self) -> bool:
         r"""Check if the series is empty.
@@ -1764,7 +1704,7 @@ class Series(Generic[IntoSeriesT]):
             3    False
             dtype: bool
         """
-        return self._with_compliant(self._compliant_series.is_unique())
+        return self.to_frame().select(col(self.name).is_unique())[self.name]  # type: ignore[return-value]
 
     def null_count(self) -> int:
         r"""Count the number of null values.
@@ -2729,23 +2669,11 @@ class Series(Generic[IntoSeriesT]):
                 "Hint: `is_close` is only supported for numeric types"
             )
             raise InvalidOperationError(msg)
-
-        if abs_tol < 0:
-            msg = f"`abs_tol` must be non-negative but got {abs_tol}"
-            raise ComputeError(msg)
-
-        if not (0 <= rel_tol < 1):
-            msg = f"`rel_tol` must be in the range [0, 1) but got {rel_tol}"
-            raise ComputeError(msg)
-
-        return self._with_compliant(
-            self._compliant_series.is_close(
-                self._extract_native(other),
-                abs_tol=abs_tol,
-                rel_tol=rel_tol,
-                nans_equal=nans_equal,
+        return self.to_frame().select(
+            col(self.name).is_close(
+                other, abs_tol=abs_tol, rel_tol=rel_tol, nans_equal=nans_equal
             )
-        )
+        )[self.name]  # type: ignore[return-value]
 
     @property
     def str(self) -> SeriesStringNamespace[Self]:

@@ -33,7 +33,6 @@ from narwhals.dependencies import (
 )
 from narwhals.exceptions import InvalidOperationError
 from narwhals.expr import Expr
-from narwhals.series import Series
 from narwhals.translate import from_native, to_native
 
 if TYPE_CHECKING:
@@ -45,6 +44,7 @@ if TYPE_CHECKING:
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import Backend, EagerAllowed, IntoBackend
     from narwhals.dataframe import DataFrame, LazyFrame
+    from narwhals.series import Series
     from narwhals.typing import (
         ConcatMethod,
         FileSource,
@@ -1729,6 +1729,8 @@ def coalesce(
         |  └─────┘         |
         └──────────────────┘
     """
+    from narwhals.series import Series
+
     flat_exprs = flatten([*flatten([exprs]), *more_exprs])
 
     non_exprs = [expr for expr in flat_exprs if not isinstance(expr, (str, Expr, Series))]
