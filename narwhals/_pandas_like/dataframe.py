@@ -594,6 +594,13 @@ class PandasLikeDataFrame(
 
         return PandasLikeGroupBy(self, keys, drop_null_keys=drop_null_keys)
 
+    def _kwargs_join(self) -> dict[str, bool]:
+        return (
+            {"copy": False}
+            if self._implementation.is_pandas() and self._backend_version < (3,)
+            else {}
+        )
+
     def _join_inner(
         self, other: Self, *, left_on: Sequence[str], right_on: Sequence[str], suffix: str
     ) -> pd.DataFrame:
@@ -603,6 +610,7 @@ class PandasLikeDataFrame(
             right_on=right_on,
             how="inner",
             suffixes=("", suffix),
+            **self._kwargs_join(),
         )
 
     def _join_left(
@@ -614,6 +622,7 @@ class PandasLikeDataFrame(
             left_on=left_on,
             right_on=right_on,
             suffixes=("", suffix),
+            **self._kwargs_join(),
         )
         extra = [
             right_key if right_key not in self.columns else f"{right_key}{suffix}"
@@ -639,6 +648,7 @@ class PandasLikeDataFrame(
             right_on=right_suffixed,
             how="outer",
             suffixes=("", suffix),
+            **self._kwargs_join(),
         )
 
     def _join_cross(self, other: Self, *, suffix: str) -> pd.DataFrame:
@@ -650,18 +660,22 @@ class PandasLikeDataFrame(
             key_token = generate_temporary_column_name(
                 n_bytes=8, columns=(*self.columns, *other.columns)
             )
+            # TODO(unassigned): use `concat` instead of `assign` to avoid copy.
             result_native = self.native.assign(**{key_token: 0}).merge(
                 other.native.assign(**{key_token: 0}),
                 how="inner",
                 left_on=key_token,
                 right_on=key_token,
                 suffixes=("", suffix),
+                **self._kwargs_join(),
             )
             # NOTE: Keep `inplace=True` to avoid making a redundant copy.
             # This may need updating, depending on https://github.com/pandas-dev/pandas/pull/51466/files
             result_native.drop(columns=key_token, inplace=True)  # noqa: PD002
             return result_native
-        return self.native.merge(other.native, how="cross", suffixes=("", suffix))
+        return self.native.merge(
+            other.native, how="cross", suffixes=("", suffix), **self._kwargs_join()
+        )
 
     def _join_semi(
         self, other: Self, *, left_on: Sequence[str], right_on: Sequence[str]
@@ -672,7 +686,11 @@ class PandasLikeDataFrame(
             columns_mapping=dict(zip(right_on, left_on)),
         )
         return self.native.merge(
-            other_native, how="inner", left_on=left_on, right_on=left_on
+            other_native,
+            how="inner",
+            left_on=left_on,
+            right_on=left_on,
+            **self._kwargs_join(),
         )
 
     def _join_anti(
@@ -701,6 +719,7 @@ class PandasLikeDataFrame(
             indicator=indicator_token,
             left_on=left_on,
             right_on=left_on,
+            **self._kwargs_join(),
         ).loc[lambda t: t[indicator_token] == "left_only"]
         # NOTE: Keep `inplace=True` to avoid making a redundant copy.
         # This may need updating, depending on https://github.com/pandas-dev/pandas/pull/51466/files
