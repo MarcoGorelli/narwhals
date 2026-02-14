@@ -118,22 +118,22 @@ def to_native(
 
 
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: SeriesT, **kwds: Unpack[OnlySeries]
-) -> SeriesT: ...  # pyrefly: ignore[inconsistent-overload]
+) -> SeriesT: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: SeriesT, **kwds: Unpack[AllowSeries]
-) -> SeriesT: ...  # pyrefly: ignore[inconsistent-overload]
+) -> SeriesT: ...
 @overload
 def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: DataFrameT, **kwds: Unpack[ExcludeSeries]
 ) -> DataFrameT: ...
 # Closer to *intended* than https://github.com/narwhals-dev/narwhals/issues/3226
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: LazyFrameT, **kwds: Unpack[AllowLazy]
-) -> LazyFrameT: ...  # pyrefly: ignore[inconsistent-overload]
+) -> LazyFrameT: ...
 @overload
 def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT, **kwds: Unpack[ExcludeSeries]
@@ -159,9 +159,9 @@ def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT | IntoLazyFrameT | IntoSeriesT, **kwds: Unpack[AllowAny]
 ) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT] | Series[IntoSeriesT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: T, **kwds: Unpack[PassThroughUnknown]
-) -> T: ...  # pyrefly: ignore[inconsistent-overload]
+) -> T: ...
 # All params passed in as variables
 @overload
 def from_native(
