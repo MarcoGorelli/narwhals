@@ -2883,7 +2883,7 @@ class Series(Generic[IntoSeriesT]):
         series = self.rename(tmp_name) if name_is_none else self
         result = series.to_frame().select(expr).get_column(tmp_name)
         result = result.rename(orig_name) if name_is_none else result
-        return cast("Self", result)
+        return cast("Self", result)  # pyrefly: ignore[bad-argument-type]
 
     @unstable
     def any_value(self, *, ignore_nulls: bool = False) -> PythonLiteral:
@@ -2926,3 +2926,6 @@ class Series(Generic[IntoSeriesT]):
     @property
     def struct(self) -> SeriesStructNamespace[Self]:
         return SeriesStructNamespace(self)
+
+
+__all__ = ["Series"]

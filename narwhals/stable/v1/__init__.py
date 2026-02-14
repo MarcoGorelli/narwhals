@@ -257,8 +257,8 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):  # type: ignore[type-var]
     def _l1_norm(self) -> Self:
         # Private, just used to test the stable API.
         return self.select(
-            all()._l1_norm()
-        )  # pyrefly: ignore[bad-argument-count, missing-attribute]
+            all()._l1_norm()  # pyrefly: ignore[bad-argument-count, missing-attribute]
+        )
 
 
 class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
@@ -284,8 +284,8 @@ class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
         # Private, just used to test the stable API.
         # https://github.com/facebook/pyrefly/issues/1054
         return self.select(
-            all()._l1_norm()
-        )  # pyrefly: ignore[bad-argument-count, missing-attribute]
+            all()._l1_norm()  # pyrefly: ignore[bad-argument-count, missing-attribute]
+        )
 
     def tail(self, n: int = 5) -> Self:
         r"""Get the last `n` rows."""

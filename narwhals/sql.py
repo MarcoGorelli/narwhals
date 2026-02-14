@@ -26,7 +26,7 @@ TZ = DeferredTimeZone(
 )
 
 
-class SQLTable(LazyFrame[duckdb.DuckDBPyRelation]):
+class SQLTable(LazyFrame[duckdb.DuckDBPyRelation]):  # pyrefly: ignore[bad-specialization]
     """A LazyFrame with an additional `to_sql` method."""
 
     def __init__(
@@ -99,7 +99,7 @@ def table(name: str, schema: IntoSchema) -> SQLTable:
         CREATE TABLE "{name}"
         ({dtypes});
         """)
-    lf = from_native(CONN.table(name))
+    lf = from_native(CONN.table(name))  # pyrefly: ignore[no-matching-overload]
     return SQLTable(lf._compliant_frame, level=lf._level)
 
 

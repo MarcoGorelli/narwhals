@@ -685,7 +685,7 @@ def read_csv(
         kwargs = _validate_separator_pyarrow(separator, **kwargs)
         from pyarrow import csv  # ignore-banned-import
 
-        native_frame = csv.read_csv(source, **kwargs)
+        native_frame = csv.read_csv(source, **kwargs)  # pyrefly: ignore[bad-assignment]
     elif impl in {
         Implementation.PYSPARK,
         Implementation.DASK,
@@ -772,7 +772,7 @@ def scan_csv(
         kwargs = _validate_separator_pyarrow(separator, **kwargs)
         from pyarrow import csv  # ignore-banned-import
 
-        native_frame = csv.read_csv(source, **kwargs)
+        native_frame = csv.read_csv(source, **kwargs)  # pyrefly: ignore[bad-assignment]
     elif implementation.is_spark_like():
         _validate_separators(separator, ("sep", "delimiter"), **kwargs)
         if (session := kwargs.pop("session", None)) is None:
@@ -951,7 +951,7 @@ def scan_parquet(
     elif implementation is Implementation.PYARROW:
         import pyarrow.parquet as pq  # ignore-banned-import
 
-        native_frame = pq.read_table(source, **kwargs)
+        native_frame = pq.read_table(source, **kwargs)  # pyrefly: ignore[bad-assignment]
     elif implementation.is_spark_like():
         if (session := kwargs.pop("session", None)) is None:
             msg = "Spark like backends require a session object to be passed in `kwargs`."
