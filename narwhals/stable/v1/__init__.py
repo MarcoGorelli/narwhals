@@ -530,80 +530,94 @@ def _stableify(
 
 
 @overload
-def from_native(native_object: SeriesT, **kwds: Unpack[OnlySeries]) -> SeriesT: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: SeriesT, **kwds: Unpack[OnlySeries]
+) -> SeriesT: ...
 @overload
-def from_native(native_object: SeriesT, **kwds: Unpack[OnlySeriesStrict]) -> SeriesT: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: SeriesT, **kwds: Unpack[OnlySeriesStrict]
+) -> SeriesT: ...
 @overload
-def from_native(native_object: SeriesT, **kwds: Unpack[AllowSeries]) -> SeriesT: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: SeriesT, **kwds: Unpack[AllowSeries]
+) -> SeriesT: ...
 @overload
-def from_native(native_object: SeriesT, **kwds: Unpack[AllowSeriesStrict]) -> SeriesT: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: SeriesT, **kwds: Unpack[AllowSeriesStrict]
+) -> SeriesT: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: DataFrameT, **kwds: Unpack[ExcludeSeries]
 ) -> DataFrameT: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: DataFrameT, **kwds: Unpack[ExcludeSeriesStrict]
 ) -> DataFrameT: ...
 @overload
-def from_native(native_object: LazyFrameT, **kwds: Unpack[AllowLazy]) -> LazyFrameT: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: LazyFrameT, **kwds: Unpack[AllowLazy]
+) -> LazyFrameT: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: LazyFrameT, **kwds: Unpack[AllowLazyStrict]
 ) -> LazyFrameT: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT, **kwds: Unpack[OnlyEagerOrInterchange]
 ) -> DataFrame[IntoDataFrameT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT, **kwds: Unpack[OnlyEagerOrInterchangeStrict]
 ) -> DataFrame[IntoDataFrameT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT, **kwds: Unpack[ExcludeSeries]
 ) -> DataFrame[IntoDataFrameT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT, **kwds: Unpack[ExcludeSeriesStrict]
 ) -> DataFrame[IntoDataFrameT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoSeriesT, **kwds: Unpack[OnlySeries]
 ) -> Series[IntoSeriesT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoSeriesT, **kwds: Unpack[OnlySeriesStrict]
 ) -> Series[IntoSeriesT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT | IntoSeriesT, **kwds: Unpack[AllowSeries]
 ) -> DataFrame[IntoDataFrameT] | Series[IntoSeriesT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT | IntoSeriesT, **kwds: Unpack[AllowSeriesStrict]
 ) -> DataFrame[IntoDataFrameT] | Series[IntoSeriesT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoLazyFrameT, **kwds: Unpack[AllowLazy]
 ) -> LazyFrame[IntoLazyFrameT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoLazyFrameT, **kwds: Unpack[AllowLazyStrict]
 ) -> LazyFrame[IntoLazyFrameT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT | IntoLazyFrameT | IntoSeriesT, **kwds: Unpack[AllowAny]
 ) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT] | Series[IntoSeriesT]: ...
 @overload
-def from_native(
+def from_native(  # pyrefly: ignore[inconsistent-overload]
     native_object: IntoDataFrameT | IntoLazyFrameT | IntoSeriesT,
     **kwds: Unpack[AllowAnyStrict],
 ) -> DataFrame[IntoDataFrameT] | LazyFrame[IntoLazyFrameT] | Series[IntoSeriesT]: ...
 @overload
-def from_native(native_object: T, **kwds: Unpack[PassThroughUnknown]) -> T: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: T, **kwds: Unpack[PassThroughUnknown]
+) -> T: ...
 @overload
-def from_native(native_object: T, **kwds: Unpack[StrictUnknown]) -> T: ...
+def from_native(  # pyrefly: ignore[inconsistent-overload]
+    native_object: T, **kwds: Unpack[StrictUnknown]
+) -> T: ...
 
 
 # All params passed in as variables

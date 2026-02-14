@@ -219,9 +219,9 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
         return _stableify(super().lazy(backend=backend, session=session))
 
     @overload  # type: ignore[override]
-    def to_dict(
+    def to_dict(  # pyrefly: ignore[bad-override]
         self, *, as_series: Literal[True] = ...
-    ) -> dict[str, Series[Any]]: ...  # pyrefly: ignore[bad-override]
+    ) -> dict[str, Series[Any]]: ...
     @overload
     def to_dict(self, *, as_series: Literal[False]) -> dict[str, list[Any]]: ...
     @overload
