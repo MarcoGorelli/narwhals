@@ -387,3 +387,5 @@ ignore = [
   "../../../**/Lib",      # stdlib
   "../../../**/typeshed*" # typeshed-fallback
 ]
+
+[tool.pyrefly]
