@@ -232,7 +232,9 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):  # type: ignore[type-var]
         return _stableify(super().lazy(backend=backend, session=session))
 
     @overload  # type: ignore[override]
-    def to_dict(self, *, as_series: Literal[True] = ...) -> dict[str, Series[Any]]: ...
+    def to_dict(  # pyrefly: ignore[bad-override]
+        self, *, as_series: Literal[True] = ...
+    ) -> dict[str, Series[Any]]: ...
     @overload
     def to_dict(self, *, as_series: Literal[False]) -> dict[str, list[Any]]: ...
     @overload
@@ -254,7 +256,9 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):  # type: ignore[type-var]
 
     def _l1_norm(self) -> Self:
         # Private, just used to test the stable API.
-        return self.select(all()._l1_norm())
+        return self.select(
+            all()._l1_norm()
+        )  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
 
 class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
@@ -278,7 +282,10 @@ class LazyFrame(NwLazyFrame[IntoLazyFrameT]):
 
     def _l1_norm(self) -> Self:
         # Private, just used to test the stable API.
-        return self.select(all()._l1_norm())
+        # https://github.com/facebook/pyrefly/issues/1054
+        return self.select(
+            all()._l1_norm()
+        )  # pyrefly: ignore[bad-argument-count, missing-attribute]
 
     def tail(self, n: int = 5) -> Self:
         r"""Get the last `n` rows."""
@@ -495,7 +502,7 @@ class Expr(NwExpr):
 class Schema(NwSchema):
     _version = Version.V1
 
-    @inherit_doc(NwSchema)
+    @inherit_doc(NwSchema)  # pyrefly: ignore[bad-argument-type]
     def __init__(
         self, schema: Mapping[str, DType] | Iterable[tuple[str, DType]] | None = None
     ) -> None:
