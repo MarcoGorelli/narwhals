@@ -4,10 +4,10 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    import cudf
+    import cudf  # pyrefly: ignore[missing-import]
     import dask.dataframe as dd
-    import ibis
-    import modin.pandas as mpd
+    import ibis  # pyrefly: ignore[missing-import]
+    import modin.pandas as mpd  # pyrefly: ignore[missing-import]
     import pandas as pd
     import polars as pl
     import pyarrow as pa

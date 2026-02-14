@@ -219,7 +219,9 @@ class DataFrame(NwDataFrame[IntoDataFrameT]):
         return _stableify(super().lazy(backend=backend, session=session))
 
     @overload  # type: ignore[override]
-    def to_dict(self, *, as_series: Literal[True] = ...) -> dict[str, Series[Any]]: ...
+    def to_dict(
+        self, *, as_series: Literal[True] = ...
+    ) -> dict[str, Series[Any]]: ...  # pyrefly: ignore[bad-override]
     @overload
     def to_dict(self, *, as_series: Literal[False]) -> dict[str, list[Any]]: ...
     @overload
@@ -349,7 +351,7 @@ class Expr(NwExpr):
 class Schema(NwSchema):
     _version = Version.V2
 
-    @inherit_doc(NwSchema)
+    @inherit_doc(NwSchema)  # pyrefly: ignore[bad-argument-type]
     def __init__(
         self, schema: Mapping[str, DType] | Iterable[tuple[str, DType]] | None = None
     ) -> None:
