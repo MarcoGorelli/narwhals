@@ -3,7 +3,7 @@ from __future__ import annotations
 import platform
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from narwhals._expression_parsing import ExprKind, ExprNode, is_expr, is_series
 from narwhals._utils import (
@@ -1369,13 +1369,24 @@ def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
 class When:
     def __init__(self, *predicates: IntoExpr | Iterable[IntoExpr]) -> None:
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
+
+        # Previous `when-then`. It's a `Then` node, with a predicate, a `then`
+        # value, and possibly a `otherwise` value.
+
+        # when(a).then(b)
+        # WhenThen(a, b)
+        # when(a).then(b).when(c).then(d)
+        # WhenThen(a, b, WhenThen(c, d))
+        # 
         self._previous_when_then: Then | None = None
 
     def then(self, value: IntoExpr | NonNestedLiteral) -> Then:
         if self._previous_when_then is None:
             exprs = (self._predicate, value)
         else:
-            prev_predicate, prev_then = self._previous_when_then._nodes[0].exprs
+            # If there's a previous when/then, then we need to inject the
+            # current one into the previous one's `otherwise`.
+            prev_exprs = self._previous_when_then._nodes[0].exprs
             new_expr = Then(
                 ExprNode(
                     ExprKind.ELEMENTWISE,
@@ -1384,7 +1395,18 @@ class When:
                     allow_multi_output=False,
                 )
             )
-            exprs = (prev_predicate, prev_then, new_expr)
+            if len(prev_exprs) == 2:
+                exprs = (*prev_exprs, new_expr)
+            else:
+                prev_otherwise = cast(Expr, prev_exprs[2])
+                otherwise = Expr(
+                    ExprNode(
+                        ExprKind.ELEMENTWISE,
+                        "when_then",
+                        exprs=(*prev_otherwise._nodes[0].exprs, value),
+                    )
+                )
+                exprs = (*prev_exprs[:2], otherwise)
         return Then(
             ExprNode(
                 ExprKind.ELEMENTWISE, "when_then", exprs=exprs, allow_multi_output=False
@@ -1395,6 +1417,7 @@ class When:
 class Then(Expr):
     def when(self, *predicates: IntoExpr | Iterable[IntoExpr]) -> When:
         new_node = When(*predicates)
+        breakpoint()
         new_node._previous_when_then = self
         return new_node
 
@@ -1407,6 +1430,9 @@ class Then(Expr):
             )
 
         predicate, then, otherwise = exprs
+
+        # need to branch on otherwise's exprs...
+        breakpoint()
         assert isinstance(otherwise, Expr)  # noqa: S101
         otherwise = Expr(
             ExprNode(
