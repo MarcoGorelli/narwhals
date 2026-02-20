@@ -1369,23 +1369,56 @@ def max_horizontal(*exprs: IntoExpr | Iterable[IntoExpr]) -> Expr:
 class When:
     def __init__(self, *predicates: IntoExpr | Iterable[IntoExpr]) -> None:
         self._predicate = all_horizontal(*flatten(predicates), ignore_nulls=False)
+        self._previous_when_then: Then | None = None
 
     def then(self, value: IntoExpr | NonNestedLiteral) -> Then:
+        if self._previous_when_then is None:
+            exprs = (self._predicate, value)
+        else:
+            prev_predicate, prev_then = self._previous_when_then._nodes[0].exprs
+            new_expr = Then(
+                ExprNode(
+                    ExprKind.ELEMENTWISE,
+                    "when_then",
+                    exprs=(self._predicate, value),
+                    allow_multi_output=False,
+                )
+            )
+            exprs = (prev_predicate, prev_then, new_expr)
         return Then(
             ExprNode(
-                ExprKind.ELEMENTWISE,
-                "when_then",
-                exprs=(self._predicate, value),
-                allow_multi_output=False,
+                ExprKind.ELEMENTWISE, "when_then", exprs=exprs, allow_multi_output=False
             )
         )
 
 
 class Then(Expr):
+    def when(self, *predicates: IntoExpr | Iterable[IntoExpr]) -> When:
+        new_node = When(*predicates)
+        new_node._previous_when_then = self
+        return new_node
+
     def otherwise(self, value: IntoExpr | NonNestedLiteral) -> Expr:
         node = self._nodes[0]
+        exprs = node.exprs
+        if len(exprs) == 2:
+            return Expr(
+                ExprNode(ExprKind.ELEMENTWISE, "when_then", exprs=(*exprs, value))
+            )
+
+        predicate, then, otherwise = exprs
+        assert isinstance(otherwise, Expr)  # noqa: S101
+        otherwise = Expr(
+            ExprNode(
+                ExprKind.ELEMENTWISE,
+                "when_then",
+                exprs=(*otherwise._nodes[0].exprs, value),
+            )
+        )
         return Expr(
-            ExprNode(ExprKind.ELEMENTWISE, "when_then", exprs=(*node.exprs, value))
+            ExprNode(
+                ExprKind.ELEMENTWISE, "when_then", exprs=(predicate, then, otherwise)
+            )
         )
 
 
