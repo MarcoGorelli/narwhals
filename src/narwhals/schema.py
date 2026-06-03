@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, cast
 from narwhals._utils import Implementation, Version, qualified_type_name
 from narwhals.dependencies import (
     get_cudf,
+    import_optional_pyarrow,
     is_cudf_dtype,
     is_pandas_like_dtype,
     is_polars_data_type,
@@ -135,8 +136,7 @@ class Schema(OrderedDict[str, "DType"]):
         if isinstance(schema, Mapping):
             if not schema:
                 return cls()
-            import pyarrow as pa  # ignore-banned-import
-
+            pa = import_optional_pyarrow()
             schema = pa.schema(schema)
         from narwhals._arrow.utils import native_to_narwhals_dtype
 
@@ -261,8 +261,7 @@ class Schema(OrderedDict[str, "DType"]):
             a: int64
             b: timestamp[ns]
         """
-        import pyarrow as pa  # ignore-banned-import
-
+        pa = import_optional_pyarrow()
         from narwhals._arrow.utils import narwhals_to_native_dtype
 
         return pa.schema(

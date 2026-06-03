@@ -27,6 +27,7 @@ from narwhals._utils import (
     parse_version,
     requires,
 )
+from narwhals.dependencies import import_optional_pyarrow
 from narwhals.exceptions import ShapeError
 
 if TYPE_CHECKING:
@@ -443,8 +444,7 @@ def narwhals_to_native_dtype(  # noqa: C901, PLR0912
         return into_pd_type[dtype_backend]
     if issubclass(base_type, dtypes.String):
         if dtype_backend == "pyarrow":
-            import pyarrow as pa  # ignore-banned-import
-
+            pa = import_optional_pyarrow()
             # Note: this is different from `string[pyarrow]`, even though the repr
             # looks the same.
             # >>> pd.DataFrame({'a':['foo']}, dtype='string[pyarrow]')['a'].str.len()
@@ -498,12 +498,7 @@ def narwhals_to_native_dtype(  # noqa: C901, PLR0912
             else f"timedelta64[{du_time_unit}]"
         )
     if isinstance_or_issubclass(dtype, dtypes.Date):
-        try:
-            import pyarrow as pa  # ignore-banned-import
-        except ModuleNotFoundError as exc:
-            # BUG: Never re-raised?
-            msg = "'pyarrow>=13.0.0' is required for `Date` dtype."
-            raise ModuleNotFoundError(msg) from exc
+        import_optional_pyarrow(min_version=(13,))
         return "date32[pyarrow]"
     if isinstance_or_issubclass(dtype, dtypes.Enum):
         if version is Version.V1:
@@ -534,13 +529,7 @@ def narwhals_to_native_arrow_dtype(
     dtype: IntoDType, implementation: Implementation, version: Version
 ) -> pd.ArrowDtype:
     if is_pandas_or_modin(implementation) and PANDAS_VERSION >= (2, 2):
-        try:
-            import pyarrow as pa  # ignore-banned-import  # noqa: F401
-        except ImportError as exc:  # pragma: no cover
-            msg = (
-                f"Unable to convert to {dtype} due to the following exception: {exc.msg}"
-            )
-            raise ImportError(msg) from exc
+        import_optional_pyarrow()
         from narwhals._arrow.utils import narwhals_to_native_dtype as _to_arrow_dtype
 
         return pd.ArrowDtype(_to_arrow_dtype(dtype, version))
@@ -703,8 +692,7 @@ def binary_string_sum_fallback(  # pragma: no cover
     left_dtype = left.dtype
     left_dtype_str = str(left_dtype)
     if left_dtype_str == "large_string[pyarrow]" and isinstance(right, str):
-        import pyarrow as pa  # ignore-banned-import
-
+        pa = import_optional_pyarrow()
         return left + pa.scalar(right, type=pa.large_string())
     if isinstance(right, pdx.Series):
         right_dtype = right.dtype
@@ -714,8 +702,7 @@ def binary_string_sum_fallback(  # pragma: no cover
         if hasattr(left.values, "__arrow_array__") and hasattr(
             right.values, "__arrow_array__"
         ):
-            import pyarrow as pa  # ignore-banned-import
-
+            pa = import_optional_pyarrow()
             left_arrow = left.values.__arrow_array__().type  # noqa: PD011  # type: ignore[attr-defined]
             right_arrow = right.values.__arrow_array__().type  # noqa: PD011  # type: ignore[attr-defined]
             if pa.types.is_string(left_arrow) and pa.types.is_large_string(right_arrow):

@@ -764,6 +764,52 @@ def is_narwhals_series_bool(
     return is_narwhals_series(ser) and ser.dtype.is_boolean()
 
 
+def _check_min_version(module: Any, pkg_name: str, min_version: tuple[int, ...]) -> None:
+    from narwhals._utils import parse_version
+
+    actual = parse_version(module)
+    if actual < min_version:
+        ver_str = ".".join(str(v) for v in min_version)
+        msg = f"{pkg_name}>={ver_str} is required, found {module.__version__!r}"
+        raise ImportError(msg)
+
+
+def import_optional_pandas(min_version: tuple[int, ...] | None = None) -> Any:
+    """Import pandas, raising an informative error if not installed."""
+    try:
+        import pandas as pd  # ignore-banned-import
+    except ImportError:
+        msg = "pandas is required. Install it with: pip install pandas"
+        raise ImportError(msg) from None
+    if min_version is not None:
+        _check_min_version(pd, "pandas", min_version)
+    return pd
+
+
+def import_optional_pyarrow(min_version: tuple[int, ...] | None = None) -> Any:
+    """Import pyarrow, raising an informative error if not installed."""
+    try:
+        import pyarrow as pa  # ignore-banned-import
+    except ImportError:
+        msg = "pyarrow is required. Install it with: pip install pyarrow"
+        raise ImportError(msg) from None
+    if min_version is not None:
+        _check_min_version(pa, "pyarrow", min_version)
+    return pa
+
+
+def import_optional_numpy(min_version: tuple[int, ...] | None = None) -> Any:
+    """Import numpy, raising an informative error if not installed."""
+    try:
+        import numpy as np  # ignore-banned-import
+    except ImportError:
+        msg = "numpy is required. Install it with: pip install numpy"
+        raise ImportError(msg) from None
+    if min_version is not None:
+        _check_min_version(np, "numpy", min_version)
+    return np
+
+
 __all__ = [
     "get_cudf",
     "get_dask",
@@ -779,6 +825,8 @@ __all__ = [
     "get_pyspark_connect",
     "get_pyspark_sql",
     "get_sqlframe",
+    "import_optional_pandas",
+    "import_optional_pyarrow",
     "is_cudf_dataframe",
     "is_cudf_index",
     "is_cudf_series",

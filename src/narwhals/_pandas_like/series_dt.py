@@ -21,6 +21,7 @@ from narwhals._pandas_like.utils import (
     int_dtype_mapper,
     is_dtype_pyarrow,
 )
+from narwhals.dependencies import import_optional_pyarrow
 
 if TYPE_CHECKING:
     from datetime import timedelta
@@ -71,8 +72,7 @@ class PandasLikeSeriesDateTimeNamespace(
     def microsecond(self) -> PandasLikeSeries:
         if self.backend_version < (3, 0, 0) and self._is_pyarrow():
             # crazy workaround for https://github.com/pandas-dev/pandas/issues/59154
-            import pyarrow.compute as pc  # ignore-banned-import()
-
+            pc = import_optional_pyarrow().compute
             from narwhals._arrow.utils import lit
 
             arr_ns = self.native.array
@@ -228,8 +228,7 @@ class PandasLikeSeriesDateTimeNamespace(
                 msg = f"Truncating to {unit} is not supported yet for cuDF."
                 raise NotImplementedError(msg)
             if dtype_backend == "pyarrow":
-                import pyarrow.compute as pc  # ignore-banned-import
-
+                pc = import_optional_pyarrow().compute
                 ca = native.array._pa_array
                 result_arr = pc.floor_temporal(ca, multiple, UNITS_DICT[unit])
             else:
@@ -257,8 +256,7 @@ class PandasLikeSeriesDateTimeNamespace(
         native = self.native
         pdx = self.compliant.__native_namespace__()
         if self._is_pyarrow():
-            import pyarrow as pa  # ignore-banned-import
-
+            pa = import_optional_pyarrow()
             compliant = self.compliant
             ca = pa.chunked_array([compliant.to_arrow()])  # type: ignore[arg-type]
             result = (

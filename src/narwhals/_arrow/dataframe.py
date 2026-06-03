@@ -26,7 +26,7 @@ from narwhals._utils import (
     scale_bytes,
     supports_arrow_c_stream,
 )
-from narwhals.dependencies import is_numpy_array_1d
+from narwhals.dependencies import import_optional_numpy, is_numpy_array_1d
 from narwhals.exceptions import ShapeError
 
 if TYPE_CHECKING:
@@ -722,8 +722,7 @@ class ArrowDataFrame(
         return None
 
     def is_unique(self) -> ArrowSeries:
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         col_token = generate_temporary_column_name(n_bytes=8, columns=self.columns)
         row_index = pa.array(np.arange(len(self)))
         keep_idx = (
@@ -749,8 +748,7 @@ class ArrowDataFrame(
     ) -> Self:
         # The param `maintain_order` is only here for compatibility with the Polars API
         # and has no effect on the output.
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         if subset and (error := self._check_columns_exist(subset)):
             raise error
         subset = list(subset or self.columns)
@@ -804,8 +802,7 @@ class ArrowDataFrame(
         with_replacement: bool,
         seed: int | None,
     ) -> Self:
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         num_rows = len(self)
         if n is None and fraction is not None:
             n = int(num_rows * fraction)

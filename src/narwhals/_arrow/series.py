@@ -33,7 +33,7 @@ from narwhals._utils import (
     is_list_of,
     not_implemented,
 )
-from narwhals.dependencies import is_numpy_array_1d
+from narwhals.dependencies import import_optional_numpy, is_numpy_array_1d
 from narwhals.exceptions import InvalidOperationError, ShapeError
 
 if TYPE_CHECKING:
@@ -573,8 +573,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         return self._with_native(pc.is_in(self.native, value_set=value_set))
 
     def arg_true(self) -> Self:
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         res = np.flatnonzero(self.native)
         return self.from_iterable(res, name=self.name, context=self)
 
@@ -625,8 +624,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         with_replacement: bool,
         seed: int | None,
     ) -> Self:
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         num_rows = len(self)
         if n is None and fraction is not None:
             n = int(num_rows * fraction)
@@ -701,8 +699,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         return self.to_frame().is_unique().alias(self.name)
 
     def is_first_distinct(self) -> Self:
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         row_number = pa.array(np.arange(len(self)))
         col_token = generate_temporary_column_name(n_bytes=8, columns=[self.name])
         first_distinct_index = (
@@ -716,8 +713,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         return self._with_native(pc.is_in(row_number, first_distinct_index))
 
     def is_last_distinct(self) -> Self:
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         row_number = pa.array(np.arange(len(self)))
         col_token = generate_temporary_column_name(n_bytes=8, columns=[self.name])
         last_distinct_index = (
@@ -795,7 +791,7 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
         return self._with_native(self.native.take(sorted_indices))
 
     def to_dummies(self, *, separator: str, drop_first: bool) -> ArrowDataFrame:
-        import numpy as np  # ignore-banned-import
+        np = import_optional_numpy()
 
         from narwhals._arrow.dataframe import ArrowDataFrame
 
@@ -1152,8 +1148,7 @@ class _ArrowHist(
         *,
         closed: Literal["both", "none"] = "both",
     ) -> _1DArray:
-        from numpy import linspace  # ignore-banned-import
-
+        linspace = import_optional_numpy().linspace
         return linspace(start=start, stop=end, num=num_samples, endpoint=closed == "both")
 
     def _calculate_bins(self, bin_count: int) -> _1DArray:
@@ -1183,7 +1178,7 @@ class _ArrowHist(
             return {"count": [count]}
 
         # Handle multiple bins
-        import numpy as np  # ignore-banned-import
+        np = import_optional_numpy()
 
         bin_indices = np.searchsorted(bins, ser, side="left")
         # lowest bin is inclusive

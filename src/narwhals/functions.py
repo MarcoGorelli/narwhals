@@ -25,6 +25,7 @@ from narwhals._utils import (
     validate_laziness,
 )
 from narwhals.dependencies import (
+    import_optional_pyarrow,
     is_narwhals_series,
     is_numpy_array,
     is_numpy_array_2d,
@@ -638,8 +639,7 @@ def _validate_separator_pyarrow(separator: str, **kwargs: Any) -> Any:
             )
             raise TypeError(msg)
         return kwargs
-    from pyarrow import csv  # ignore-banned-import
-
+    csv = import_optional_pyarrow().csv
     return {"parse_options": csv.ParseOptions(delimiter=separator)}
 
 

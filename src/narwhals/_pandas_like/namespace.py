@@ -6,6 +6,8 @@ from functools import reduce
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Literal, Protocol, overload
 
+import pandas as pd
+
 from narwhals._compliant import EagerNamespace
 from narwhals._expression_parsing import (
     combine_alias_output_names,
@@ -17,6 +19,7 @@ from narwhals._pandas_like.selectors import PandasSelectorNamespace
 from narwhals._pandas_like.series import PandasLikeSeries
 from narwhals._pandas_like.typing import NativeDataFrameT, NativeSeriesT
 from narwhals._pandas_like.utils import is_non_nullable_boolean
+from narwhals.dependencies import import_optional_pyarrow
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -84,15 +87,7 @@ class PandasLikeNamespace(
     def lit(self, value: PythonLiteral, dtype: IntoDType | None) -> PandasLikeExpr:
         def _lit_pandas_series(df: PandasLikeDataFrame) -> PandasLikeSeries:
             if isinstance(value, (list, tuple, dict)):
-                try:
-                    import pandas as pd  # ignore-banned-import
-                    import pyarrow as pa  # ignore-banned-import
-                except ImportError as exc:  # pragma: no cover
-                    msg = (
-                        "Nested structures require pyarrow to be installed for pandas backend. "
-                        "Please install pyarrow: pip install pyarrow"
-                    )
-                    raise ImportError(msg) from exc
+                pa = import_optional_pyarrow()
 
                 from narwhals._arrow.utils import (
                     narwhals_to_native_dtype as _to_arrow_dtype,
@@ -364,16 +359,8 @@ class PandasLikeNamespace(
 
     def struct(self, *exprs: PandasLikeExpr) -> PandasLikeExpr:
         def func(df: PandasLikeDataFrame) -> list[PandasLikeSeries]:
-            try:
-                import pandas as pd  # ignore-banned-import
-                import pyarrow as pa  # ignore-banned-import
-                import pyarrow.compute as pc  # ignore-banned-import
-            except ImportError as exc:  # pragma: no cover
-                msg = (
-                    "struct requires pyarrow to be installed for pandas backend. "
-                    "Please install pyarrow: pip install pyarrow"
-                )
-                raise ImportError(msg) from exc
+            pa = import_optional_pyarrow()
+            pc = pa.compute
 
             align = self._series._align_full_broadcast
             series = align(*chain.from_iterable(expr(df) for expr in exprs))

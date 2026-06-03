@@ -8,6 +8,7 @@ import pyarrow.compute as pc
 
 from narwhals._compliant import EagerSeriesNamespace
 from narwhals._utils import Implementation, Version, isinstance_or_issubclass
+from narwhals.dependencies import import_optional_numpy
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
@@ -492,8 +493,7 @@ class ArrowSeriesNamespace(EagerSeriesNamespace["ArrowSeries", "ChunkedArrayAny"
 
 def arange(start: int, end: int, step: int) -> ArrayAny:
     if BACKEND_VERSION < (21,):
-        import numpy as np  # ignore-banned-import
-
+        np = import_optional_numpy()
         return pa.array(np.arange(start, end, step))
     # NOTE: Added in https://github.com/apache/arrow/pull/46778
     return pa.arange(start, end, step)  # type: ignore[attr-defined]
