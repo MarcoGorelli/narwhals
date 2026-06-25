@@ -5,6 +5,7 @@ import typing as _t
 from narwhals import dependencies, dtypes, exceptions, selectors
 from narwhals._utils import (
     Implementation,
+    PluginImplementation,
     generate_temporary_column_name,
     is_ordered_categorical,
     maybe_align_index,
@@ -110,6 +111,7 @@ __all__ = [
     "Float32",
     "Float64",
     "Implementation",
+    "PluginImplementation",
     "Int8",
     "Int16",
     "Int32",

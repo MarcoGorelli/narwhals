@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from narwhals._compliant.typing import AliasNames, EvalNames, EvalSeries
     from narwhals._expression_parsing import ExprMetadata
     from narwhals._typing import NoDefault
-    from narwhals._utils import Implementation, Version, _LimitedContext
+    from narwhals._utils import Implementation, PluginImplementation, Version, _LimitedContext
     from narwhals.typing import (
         ClosedInterval,
         FillNullStrategy,
@@ -81,7 +81,7 @@ class CompliantExpr(
     CompliantColumn, Protocol[CompliantFrameT, CompliantSeriesOrNativeExprT_co]
 ):
     # NOTE: `narwhals`
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     _evaluate_output_names: EvalNames[CompliantFrameT]
     _alias_output_names: AliasNames | None
     # This should be set with extreme care, only in `_expression_parsing.py`,

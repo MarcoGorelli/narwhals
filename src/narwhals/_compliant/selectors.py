@@ -32,7 +32,7 @@ if TYPE_CHECKING:
         EvalNames,
         EvalSeries,
     )
-    from narwhals._utils import Implementation, Version, _LimitedContext
+    from narwhals._utils import Implementation, PluginImplementation, Version, _LimitedContext
     from narwhals.dtypes import DType
     from narwhals.typing import TimeUnit
 
@@ -57,7 +57,7 @@ SelectorOrExpr: TypeAlias = (
 
 class CompliantSelectorNamespace(Protocol[FrameT, SeriesOrExprT]):
     # NOTE: `narwhals`
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     _version: Version
 
     @property
@@ -199,7 +199,7 @@ class CompliantSelector(
 ):
     _call: EvalSeries[FrameT, SeriesOrExprT]
     _function_name: str
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     _version: Version
 
     @classmethod

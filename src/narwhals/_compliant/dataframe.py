@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from narwhals._spark_like.utils import SparkSession
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import _EagerAllowedImpl, _LazyAllowedImpl
-    from narwhals._utils import Implementation, _LimitedContext
+    from narwhals._utils import Implementation, PluginImplementation, _LimitedContext
     from narwhals.dataframe import DataFrame
     from narwhals.dtypes import DType
     from narwhals.exceptions import ColumnNotFoundError
@@ -100,7 +100,7 @@ class CompliantFrame(
     """Common parts of `DataFrame`, `LazyFrame`."""
 
     _native_frame: _NativeFrameT
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     _version: Version
 
     def __native_namespace__(self) -> ModuleType: ...

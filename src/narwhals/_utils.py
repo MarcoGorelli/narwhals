@@ -213,7 +213,7 @@ class _StoresVersion(Protocol):
 
 
 class _StoresImplementation(Protocol):
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     """Implementation of native object (pandas, Polars, PyArrow, ...)."""
 
 
@@ -593,6 +593,115 @@ class Implementation(NoAutoEnum):
         return backend_version(self)
 
 
+class PluginImplementation:
+    """Implementation for plugin-defined backends.
+
+    Plugin authors should create one instance of this class to identify their backend:
+
+        MY_IMPLEMENTATION = PluginImplementation("mylib")
+
+    or, to expose the backend version:
+
+        MY_IMPLEMENTATION = PluginImplementation("mylib", version_fn=lambda: (1, 2, 3))
+
+    Arguments:
+        value: Unique string identifier for the backend (e.g. ``"daft"``).
+        version_fn: Optional callable that returns the backend version as a tuple of ints.
+            Defaults to returning ``(0, 0, 0)`` if not provided.
+
+    Examples:
+        >>> from narwhals._utils import PluginImplementation
+        >>> impl = PluginImplementation("mylib")
+        >>> impl.is_pandas()
+        False
+        >>> impl.is_polars()
+        False
+        >>> str(impl)
+        'mylib'
+    """
+
+    def __init__(
+        self,
+        value: str,
+        *,
+        version_fn: Callable[[], tuple[int, ...]] | None = None,
+    ) -> None:
+        self.value = value
+        self._version_fn = version_fn
+
+    def __str__(self) -> str:
+        return self.value
+
+    def __repr__(self) -> str:
+        return f"PluginImplementation({self.value!r})"
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, PluginImplementation):
+            return self.value == other.value
+        return NotImplemented
+
+    def is_pandas(self) -> bool:
+        """Return whether implementation is pandas."""
+        return False
+
+    def is_pandas_like(self) -> bool:
+        """Return whether implementation is pandas, Modin, or cuDF."""
+        return False
+
+    def is_polars(self) -> bool:
+        """Return whether implementation is Polars."""
+        return False
+
+    def is_cudf(self) -> bool:
+        """Return whether implementation is cuDF."""
+        return False
+
+    def is_modin(self) -> bool:
+        """Return whether implementation is Modin."""
+        return False
+
+    def is_pyspark(self) -> bool:
+        """Return whether implementation is PySpark."""
+        return False
+
+    def is_pyspark_connect(self) -> bool:
+        """Return whether implementation is PySpark Connect."""
+        return False
+
+    def is_pyarrow(self) -> bool:
+        """Return whether implementation is PyArrow."""
+        return False
+
+    def is_dask(self) -> bool:
+        """Return whether implementation is Dask."""
+        return False
+
+    def is_duckdb(self) -> bool:
+        """Return whether implementation is DuckDB."""
+        return False
+
+    def is_ibis(self) -> bool:
+        """Return whether implementation is Ibis."""
+        return False
+
+    def is_sqlframe(self) -> bool:
+        """Return whether implementation is SQLFrame."""
+        return False
+
+    def is_spark_like(self) -> bool:
+        """Return whether implementation is pyspark or sqlframe."""
+        return False
+
+    def _backend_version(self) -> tuple[int, ...]:
+        """Returns backend version."""
+        if self._version_fn is not None:
+            return self._version_fn()
+        return (0, 0, 0)
+
+
 def is_pyspark_pre_4(implementation: Implementation) -> bool:
     """Whether implementation is PySpark (or PySpark Connect) with version < 4.0."""
     return (
@@ -630,7 +739,7 @@ def _import_native_namespace(module_name: str) -> ModuleType:
     return import_module(module_name)
 
 
-# NOTE: We can safely use an unbounded cache, the size is constrained by `len(Implementation._member_names_)`
+# NOTE: We can safely use an unbounded cache, the size is constrained by `len(Implementation)`
 # Faster than `lru_cache`
 # https://docs.python.org/3/library/functools.html#functools.cache
 @cache

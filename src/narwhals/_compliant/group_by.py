@@ -134,7 +134,7 @@ class DepthTrackingGroupBy(
     def _ensure_all_simple(self, exprs: Sequence[DepthTrackingExprT_contra]) -> None:
         for expr in exprs:
             if not self._is_simple(expr):
-                name = self.compliant._implementation.name.lower()
+                name = str(self.compliant._implementation)
                 msg = (
                     f"Non-trivial complex aggregation found.\n\n"
                     f"Hint: you were probably trying to apply a non-elementary aggregation with a"

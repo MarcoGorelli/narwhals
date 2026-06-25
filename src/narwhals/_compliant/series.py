@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
     from narwhals._compliant.dataframe import CompliantDataFrame
     from narwhals._compliant.namespace import EagerNamespace
-    from narwhals._utils import Implementation, Version, _LimitedContext
+    from narwhals._utils import Implementation, PluginImplementation, Version, _LimitedContext
     from narwhals.dtypes import DType
     from narwhals.series import Series
     from narwhals.typing import (
@@ -82,7 +82,7 @@ class CompliantSeries(
     Protocol[NativeSeriesT],
 ):
     # NOTE: `narwhals`
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
 
     @property
     def native(self) -> NativeSeriesT: ...
@@ -202,7 +202,7 @@ class CompliantSeries(
 
 class EagerSeries(CompliantSeries[NativeSeriesT], Protocol[NativeSeriesT]):
     _native_series: Any
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     _version: Version
     _broadcast: bool
 
@@ -283,7 +283,7 @@ class _SeriesNamespace(  # type: ignore[misc]
         return self._compliant_series
 
     @property
-    def implementation(self) -> Implementation:
+    def implementation(self) -> Implementation | PluginImplementation:
         return self.compliant._implementation
 
     @property

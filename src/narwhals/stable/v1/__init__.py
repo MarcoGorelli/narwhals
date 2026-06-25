@@ -10,6 +10,7 @@ from narwhals._expression_parsing import ExprKind, ExprNode, is_expr
 from narwhals._typing_compat import TypeVar, assert_never
 from narwhals._utils import (
     Implementation,
+    PluginImplementation,
     Version,
     deprecate_native_namespace,
     generate_temporary_column_name,
@@ -1121,6 +1122,7 @@ __all__ = [
     "Float32",
     "Float64",
     "Implementation",
+    "PluginImplementation",
     "Int8",
     "Int16",
     "Int32",

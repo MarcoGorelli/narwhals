@@ -34,7 +34,7 @@ from narwhals._native import (
     is_native_spark_like,
     is_native_sqlframe,
 )
-from narwhals._utils import Implementation, Version
+from narwhals._utils import Implementation, PluginImplementation, Version
 
 if TYPE_CHECKING:
     from typing import TypeAlias
@@ -90,7 +90,7 @@ class Namespace(Generic[CompliantNamespaceT_co]):
         return self._compliant_namespace
 
     @property
-    def implementation(self) -> Implementation:
+    def implementation(self) -> Implementation | PluginImplementation:
         return self.compliant._implementation
 
     @property

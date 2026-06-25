@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeIs
 
     from narwhals._compliant.selectors import CompliantSelectorNamespace
-    from narwhals._utils import Implementation, Version
+    from narwhals._utils import Implementation, PluginImplementation, Version
     from narwhals.typing import (
         ConcatMethod,
         CorrelationMethod,
@@ -53,7 +53,7 @@ __all__ = [
 
 class CompliantNamespace(Protocol[CompliantFrameT, CompliantExprT]):
     # NOTE: `narwhals`
-    _implementation: Implementation
+    _implementation: Implementation | PluginImplementation
     _version: Version
 
     @property
