@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self, TypeIs
 
-    from narwhals._native import NativeDataFrame, NativeLazyFrame, NativeSeries
+    from narwhals._native import NativeDataFrame, NativeLazyFrame
     from narwhals._translate import IntoArrowTable
     from narwhals._typing import Backend, EagerAllowed, IntoBackend
     from narwhals.dataframe import DataFrame, LazyFrame
@@ -662,15 +662,9 @@ def read_csv(
             f"Hint: use nw.scan_csv(source={source}, backend={backend})"
         )
         raise ValueError(msg)
-    else:
-        from narwhals.plugins import get_plugin_by_package
-
-        plugin = get_plugin_by_package(str(impl))
-        ns = plugin.__narwhals_namespace__(version=Version.MAIN) if plugin is not None else None
-        if ns is None or not hasattr(ns, "read_csv"):  # pragma: no cover
-            msg = f"{impl!r} does not support `read_csv` through narwhals. Read the file natively and wrap the result with `nw.from_native()`."
-            raise NotImplementedError(msg)
-        native_frame = ns.read_csv(normalize_path(source), separator=separator, **kwargs)
+    else:  # pragma: no cover
+        msg = f"`read_csv` is not yet supported for {backend}."
+        raise NotImplementedError(msg)
     return from_native(native_frame, eager_only=True)
 
 
@@ -718,7 +712,9 @@ def scan_csv(
     native_frame: NativeDataFrame | NativeLazyFrame
     source = normalize_path(source)
     if implementation is Implementation.POLARS:
-        native_frame = implementation.to_native_namespace().scan_csv(source, separator=separator, **kwargs)
+        native_frame = implementation.to_native_namespace().scan_csv(
+            source, separator=separator, **kwargs
+        )
     elif implementation in {
         Implementation.PANDAS,
         Implementation.MODIN,
@@ -727,10 +723,14 @@ def scan_csv(
         Implementation.IBIS,
     }:
         _validate_separators(separator, ("sep",), **kwargs)
-        native_frame = implementation.to_native_namespace().read_csv(source, sep=separator, **kwargs)
+        native_frame = implementation.to_native_namespace().read_csv(
+            source, sep=separator, **kwargs
+        )
     elif implementation is Implementation.DUCKDB:
         _validate_separators(separator, ("delimiter", "delim", "sep"), **kwargs)
-        native_frame = implementation.to_native_namespace().read_csv(source, delimiter=separator, **kwargs)
+        native_frame = implementation.to_native_namespace().read_csv(
+            source, delimiter=separator, **kwargs
+        )
     elif implementation is Implementation.PYARROW:
         kwargs = _validate_separator_pyarrow(separator, **kwargs)
         from pyarrow import csv  # ignore-banned-import
@@ -750,15 +750,9 @@ def scan_csv(
             )
             else csv_reader.options(sep=separator, **kwargs).load(source)
         )
-    else:
-        from narwhals.plugins import get_plugin_by_package
-
-        plugin = get_plugin_by_package(str(implementation))
-        ns = plugin.__narwhals_namespace__(version=Version.MAIN) if plugin is not None else None
-        if ns is None or not hasattr(ns, "scan_csv"):  # pragma: no cover
-            msg = f"{implementation!r} does not support `scan_csv` through narwhals. Read the file natively and wrap the result with `nw.from_native()`."
-            raise NotImplementedError(msg)
-        native_frame = ns.scan_csv(source, separator=separator, **kwargs)
+    else:  # pragma: no cover
+        msg = f"`scan_csv` is not yet supported for {backend}."
+        raise NotImplementedError(msg)
     return from_native(native_frame).lazy()
 
 
@@ -823,15 +817,9 @@ def read_parquet(
             f"Hint: use nw.scan_parquet(source={source}, backend={backend})"
         )
         raise ValueError(msg)
-    else:
-        from narwhals.plugins import get_plugin_by_package
-
-        plugin = get_plugin_by_package(str(impl))
-        ns = plugin.__narwhals_namespace__(version=Version.MAIN) if plugin is not None else None
-        if ns is None or not hasattr(ns, "read_parquet"):  # pragma: no cover
-            msg = f"{impl!r} does not support `read_parquet` through narwhals. Read the file natively and wrap the result with `nw.from_native()`."
-            raise NotImplementedError(msg)
-        native_frame = ns.read_parquet(normalize_path(source), **kwargs)
+    else:  # pragma: no cover
+        msg = f"`read_parquet` is not yet supported for {backend}."
+        raise NotImplementedError(msg)
     return from_native(native_frame, eager_only=True)
 
 
@@ -928,15 +916,9 @@ def scan_parquet(
             )
             else pq_reader.options(**kwargs).load(source)
         )
-    else:
-        from narwhals.plugins import get_plugin_by_package
-
-        plugin = get_plugin_by_package(str(implementation))
-        ns = plugin.__narwhals_namespace__(version=Version.MAIN) if plugin is not None else None
-        if ns is None or not hasattr(ns, "scan_parquet"):  # pragma: no cover
-            msg = f"{implementation!r} does not support `scan_parquet` through narwhals. Read the file natively and wrap the result with `nw.from_native()`."
-            raise NotImplementedError(msg)
-        native_frame = ns.scan_parquet(source, **kwargs)
+    else:  # pragma: no cover
+        msg = f"`scan_parquet` is not yet supported for {backend}."
+        raise NotImplementedError(msg)
     return from_native(native_frame).lazy()
 
 
