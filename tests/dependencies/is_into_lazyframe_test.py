@@ -76,9 +76,9 @@ def test_is_into_lazyframe_numpy() -> None:
 
 
 def test_is_into_lazyframe_other(always_has_attr: AlwaysHasAttr) -> None:
-    assert not is_into_lazyframe(data)
-    assert not v1_is_into_lazyframe(data)
-    assert not v2_is_into_lazyframe(data)
+    assert is_into_lazyframe(data)
+    assert v1_is_into_lazyframe(data)
+    assert v2_is_into_lazyframe(data)
 
     assert is_into_lazyframe(DictLazyFrame(data))
     assert v1_is_into_lazyframe(DictLazyFrame(data))
