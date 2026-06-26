@@ -230,13 +230,17 @@ def _translate_if_compliant(  # noqa: C901,PLR0911
     series_only: bool,
     allow_series: bool | None,
     version: Version,
+    passthrough_object: Any = None,
 ) -> Any:
+    # When pass_through=True and a constraint is violated, return this object.
+    # For plugin objects, this is the original native object (not the compliant wrapper).
+    pt_obj = compliant_object if passthrough_object is None else passthrough_object
     if is_compliant_dataframe(compliant_object):
         if series_only:
             if not pass_through:
                 msg = "Cannot only use `series_only` with dataframe"
                 raise TypeError(msg)
-            return compliant_object
+            return pt_obj
         return version.dataframe(
             compliant_object.__narwhals_dataframe__()._with_version(version), level="full"
         )
@@ -245,12 +249,12 @@ def _translate_if_compliant(  # noqa: C901,PLR0911
             if not pass_through:
                 msg = "Cannot only use `series_only` with lazyframe"
                 raise TypeError(msg)
-            return compliant_object
+            return pt_obj
         if eager_only or eager_or_interchange_only:
             if not pass_through:
                 msg = "Cannot only use `eager_only` or `eager_or_interchange_only` with lazyframe"
                 raise TypeError(msg)
-            return compliant_object
+            return pt_obj
         return version.lazyframe(
             compliant_object.__narwhals_lazyframe__()._with_version(version), level="full"
         )
@@ -259,7 +263,7 @@ def _translate_if_compliant(  # noqa: C901,PLR0911
             if not pass_through:
                 msg = "Please set `allow_series=True` or `series_only=True`"
                 raise TypeError(msg)
-            return compliant_object
+            return pt_obj
         return version.series(
             compliant_object.__narwhals_series__()._with_version(version), level="full"
         )
@@ -390,30 +394,6 @@ def _from_native_impl(  # noqa: C901, PLR0911, PLR0912, PLR0915
             .to_narwhals()
         )
 
-    # Dask
-    if is_dask_dataframe(native_object):
-        if series_only:
-            if not pass_through:
-                msg = "Cannot only use `series_only` with dask DataFrame"
-                raise TypeError(msg)
-            return native_object
-        if eager_only or eager_or_interchange_only:
-            if not pass_through:
-                msg = "Cannot only use `eager_only` or `eager_or_interchange_only` with dask DataFrame"
-                raise TypeError(msg)
-            return native_object
-        if (
-            Implementation.DASK._backend_version() <= (2024, 12, 1)
-            and get_dask_expr() is None
-        ):  # pragma: no cover
-            msg = "Please install dask-expr"
-            raise ImportError(msg)
-        return (
-            version.namespace.from_backend(Implementation.DASK)
-            .compliant.from_native(native_object)
-            .to_narwhals()
-        )
-
     # DuckDB
     if is_duckdb_relation(native_object):
         if eager_only or series_only:  # pragma: no cover
@@ -453,6 +433,18 @@ def _from_native_impl(  # noqa: C901, PLR0911, PLR0912, PLR0915
             return native_object
         return ns_spark.compliant.from_native(native_object).to_narwhals()
 
+    if (compliant_object := plugins.from_native(native_object, version)) is not None:
+        return _translate_if_compliant(
+            compliant_object,
+            pass_through=pass_through,
+            eager_only=eager_only,
+            eager_or_interchange_only=eager_or_interchange_only,
+            series_only=series_only,
+            allow_series=allow_series,
+            version=version,
+            passthrough_object=native_object,
+        )
+
     # Interchange protocol
     if version is Version.V1 and supports_dataframe_interchange(native_object):
         from narwhals._interchange.dataframe import InterchangeFrame
@@ -466,17 +458,6 @@ def _from_native_impl(  # noqa: C901, PLR0911, PLR0912, PLR0915
                 raise TypeError(msg)
             return native_object
         return Version.V1.dataframe(InterchangeFrame(native_object), level="interchange")
-
-    if (compliant_object := plugins.from_native(native_object, version)) is not None:
-        return _translate_if_compliant(
-            compliant_object,
-            pass_through=pass_through,
-            eager_only=eager_only,
-            eager_or_interchange_only=eager_or_interchange_only,
-            series_only=series_only,
-            allow_series=allow_series,
-            version=version,
-        )
 
     if not pass_through:
         msg = f"Unsupported dataframe type, got: {type(native_object)}"
@@ -523,6 +504,9 @@ def _get_native_namespace_single_obj(
 ) -> Any:
     if has_native_namespace(obj):
         return obj.__native_namespace__()
+    compliant = plugins.from_native(obj, Version.MAIN)
+    if compliant is not None and has_native_namespace(compliant):
+        return compliant.__native_namespace__()
     return Version.MAIN.namespace.from_native_object(
         obj
     ).implementation.to_native_namespace()

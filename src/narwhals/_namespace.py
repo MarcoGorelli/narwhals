@@ -265,8 +265,6 @@ class Namespace(Generic[CompliantNamespaceT_co]):
                 if is_native_pyspark_connect(native)
                 else Implementation.PYSPARK
             )
-        elif is_native_dask(native):  # pragma: no cover
-            impl = Implementation.DASK
         elif is_native_duckdb(native):
             impl = Implementation.DUCKDB
         elif is_native_cudf(native):  # pragma: no cover
@@ -276,6 +274,12 @@ class Namespace(Generic[CompliantNamespaceT_co]):
         elif is_native_ibis(native):  # pragma: no cover
             impl = Implementation.IBIS
         else:
+            from narwhals import plugins
+
+            for ep in plugins._discover_entrypoints():
+                plugin: plugins.Plugin = ep.load()
+                if plugins._is_native_plugin(native, plugin):
+                    return cls(plugin.__narwhals_namespace__(version=cls._version))
             msg = f"Unsupported type: {type(native).__qualname__!r}"
             raise TypeError(msg)
         return cls.from_backend(impl)

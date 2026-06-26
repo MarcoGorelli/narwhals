@@ -677,7 +677,7 @@ class PluginImplementation:
 
     def is_dask(self) -> bool:
         """Return whether implementation is Dask."""
-        return False
+        return self.value == 'dask'
 
     def is_duckdb(self) -> bool:
         """Return whether implementation is DuckDB."""
