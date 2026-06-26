@@ -63,6 +63,20 @@ class Plugin(Protocol[FrameT, FromNativeR_co]):
 
 
 @cache
+def _entrypoints_by_package() -> dict[str, Plugin]:
+    result: dict[str, Plugin] = {}
+    for ep in _discover_entrypoints():
+        plugin: Plugin = ep.load()
+        result[plugin.NATIVE_PACKAGE] = plugin
+    return result
+
+
+def get_plugin_by_package(name: str) -> Plugin | None:
+    """Return the plugin whose ``NATIVE_PACKAGE`` equals *name*, or ``None``."""
+    return _entrypoints_by_package().get(name)
+
+
+@cache
 def _might_be(cls: type, type_: str) -> bool:  # pragma: no cover
     try:
         return any(type_ in o.__module__.split(".") for o in cls.mro())
@@ -85,6 +99,16 @@ def _iter_from_native(native_object: Any, version: Version) -> Iterator[Complian
         if _is_native_plugin(native_object, plugin):
             compliant_namespace = plugin.__narwhals_namespace__(version=version)
             yield compliant_namespace.from_native(native_object)
+
+
+def _is_plugin_lazyframe(native_object: Any) -> bool:
+    from narwhals._utils import is_compliant_lazyframe
+    from narwhals.utils import Version
+
+    return any(
+        is_compliant_lazyframe(compliant)
+        for compliant in _iter_from_native(native_object, Version.MAIN)
+    )
 
 
 def from_native(native_object: Any, version: Version) -> CompliantAny | None:

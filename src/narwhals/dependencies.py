@@ -613,6 +613,7 @@ def _is_native_dataframe(obj: Any | IntoDataFrameT) -> TypeIs[IntoDataFrameT]:
 
 def _is_native_lazyframe(obj: Any | IntoLazyFrameT) -> TypeIs[IntoLazyFrameT]:
     from narwhals._utils import _hasattr_static
+    from narwhals.plugins import _is_plugin_lazyframe
 
     return (
         _hasattr_static(obj, "__narwhals_lazyframe__")
@@ -623,6 +624,7 @@ def _is_native_lazyframe(obj: Any | IntoLazyFrameT) -> TypeIs[IntoLazyFrameT]:
         or _is_pyspark_dataframe(obj)
         or _is_pyspark_connect_dataframe(obj)
         or _is_sqlframe_dataframe(obj)
+        or _is_plugin_lazyframe(obj)
     )
 
 

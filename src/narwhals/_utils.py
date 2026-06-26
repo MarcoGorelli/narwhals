@@ -391,7 +391,7 @@ class Implementation(NoAutoEnum):
     @classmethod
     def from_backend(
         cls: type[Self], backend: IntoBackend[Backend] | UnknownBackendName
-    ) -> Implementation:
+    ) -> Implementation | PluginImplementation:
         """Instantiate from native namespace module, string, or Implementation.
 
         Arguments:
@@ -401,7 +401,7 @@ class Implementation(NoAutoEnum):
             cls.from_string(backend)
             if isinstance(backend, str)
             else backend
-            if isinstance(backend, Implementation)
+            if isinstance(backend, (Implementation, PluginImplementation))
             else cls.from_native_namespace(backend)
         )
 

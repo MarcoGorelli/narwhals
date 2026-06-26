@@ -391,28 +391,28 @@ def _from_native_impl(  # noqa: C901, PLR0911, PLR0912, PLR0915
         )
 
     # Dask
-    # if is_dask_dataframe(native_object):
-    #     if series_only:
-    #         if not pass_through:
-    #             msg = "Cannot only use `series_only` with dask DataFrame"
-    #             raise TypeError(msg)
-    #         return native_object
-    #     if eager_only or eager_or_interchange_only:
-    #         if not pass_through:
-    #             msg = "Cannot only use `eager_only` or `eager_or_interchange_only` with dask DataFrame"
-    #             raise TypeError(msg)
-    #         return native_object
-    #     if (
-    #         Implementation.DASK._backend_version() <= (2024, 12, 1)
-    #         and get_dask_expr() is None
-    #     ):  # pragma: no cover
-    #         msg = "Please install dask-expr"
-    #         raise ImportError(msg)
-    #     return (
-    #         version.namespace.from_backend(Implementation.DASK)
-    #         .compliant.from_native(native_object)
-    #         .to_narwhals()
-    #     )
+    if is_dask_dataframe(native_object):
+        if series_only:
+            if not pass_through:
+                msg = "Cannot only use `series_only` with dask DataFrame"
+                raise TypeError(msg)
+            return native_object
+        if eager_only or eager_or_interchange_only:
+            if not pass_through:
+                msg = "Cannot only use `eager_only` or `eager_or_interchange_only` with dask DataFrame"
+                raise TypeError(msg)
+            return native_object
+        if (
+            Implementation.DASK._backend_version() <= (2024, 12, 1)
+            and get_dask_expr() is None
+        ):  # pragma: no cover
+            msg = "Please install dask-expr"
+            raise ImportError(msg)
+        return (
+            version.namespace.from_backend(Implementation.DASK)
+            .compliant.from_native(native_object)
+            .to_narwhals()
+        )
 
     # DuckDB
     if is_duckdb_relation(native_object):
