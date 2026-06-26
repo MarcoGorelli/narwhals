@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import datetime as dt
+import warnings
 from decimal import Decimal
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 from narwhals import plugins
 from narwhals._constants import EPOCH, MS_PER_SECOND
+from narwhals._exceptions import find_stacklevel
 from narwhals._native import (
     is_native_arrow,
     is_native_pandas_like,
@@ -230,17 +232,13 @@ def _translate_if_compliant(  # noqa: C901,PLR0911
     series_only: bool,
     allow_series: bool | None,
     version: Version,
-    passthrough_object: Any = None,
 ) -> Any:
-    # When pass_through=True and a constraint is violated, return this object.
-    # For plugin objects, this is the original native object (not the compliant wrapper).
-    pt_obj = compliant_object if passthrough_object is None else passthrough_object
     if is_compliant_dataframe(compliant_object):
         if series_only:
             if not pass_through:
                 msg = "Cannot only use `series_only` with dataframe"
                 raise TypeError(msg)
-            return pt_obj
+            return compliant_object
         return version.dataframe(
             compliant_object.__narwhals_dataframe__()._with_version(version), level="full"
         )
@@ -249,12 +247,12 @@ def _translate_if_compliant(  # noqa: C901,PLR0911
             if not pass_through:
                 msg = "Cannot only use `series_only` with lazyframe"
                 raise TypeError(msg)
-            return pt_obj
+            return compliant_object
         if eager_only or eager_or_interchange_only:
             if not pass_through:
                 msg = "Cannot only use `eager_only` or `eager_or_interchange_only` with lazyframe"
                 raise TypeError(msg)
-            return pt_obj
+            return compliant_object
         return version.lazyframe(
             compliant_object.__narwhals_lazyframe__()._with_version(version), level="full"
         )
@@ -263,7 +261,7 @@ def _translate_if_compliant(  # noqa: C901,PLR0911
             if not pass_through:
                 msg = "Please set `allow_series=True` or `series_only=True`"
                 raise TypeError(msg)
-            return pt_obj
+            return compliant_object
         return version.series(
             compliant_object.__narwhals_series__()._with_version(version), level="full"
         )
@@ -434,7 +432,7 @@ def _from_native_impl(  # noqa: C901, PLR0911, PLR0912, PLR0915
         return ns_spark.compliant.from_native(native_object).to_narwhals()
 
     if (compliant_object := plugins.from_native(native_object, version)) is not None:
-        return _translate_if_compliant(
+        translated = _translate_if_compliant(
             compliant_object,
             pass_through=pass_through,
             eager_only=eager_only,
@@ -442,7 +440,36 @@ def _from_native_impl(  # noqa: C901, PLR0911, PLR0912, PLR0915
             series_only=series_only,
             allow_series=allow_series,
             version=version,
-            passthrough_object=native_object,
+        )
+        return native_object if translated is compliant_object else translated
+
+    # Dask
+    if is_dask_dataframe(native_object):
+        msg = (
+            "Using Dask in Narwhals will require having the `narwhals-dask` plugin installed.\n\n"
+            "Hint: run `pip install narwhals-dask` to silence this warning."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stacklevel())
+        if series_only:
+            if not pass_through:
+                msg = "Cannot only use `series_only` with dask DataFrame"
+                raise TypeError(msg)
+            return native_object
+        if eager_only or eager_or_interchange_only:
+            if not pass_through:
+                msg = "Cannot only use `eager_only` or `eager_or_interchange_only` with dask DataFrame"
+                raise TypeError(msg)
+            return native_object
+        if (
+            Implementation.DASK._backend_version() <= (2024, 12, 1)
+            and get_dask_expr() is None
+        ):  # pragma: no cover
+            msg = "Please install dask-expr"
+            raise ImportError(msg)
+        return (
+            version.namespace.from_backend(Implementation.DASK)
+            .compliant.from_native(native_object)
+            .to_narwhals()
         )
 
     # Interchange protocol

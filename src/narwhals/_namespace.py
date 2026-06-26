@@ -247,7 +247,7 @@ class Namespace(Generic[CompliantNamespaceT_co]):
     ) -> Namespace[CompliantNamespaceAny]: ...
 
     @classmethod
-    def from_native_object(
+    def from_native_object(  # noqa: C901
         cls: type[Namespace[Any]], native: NativeAny, /
     ) -> Namespace[Any]:
         impl: Backend
@@ -280,6 +280,8 @@ class Namespace(Generic[CompliantNamespaceT_co]):
                 plugin: plugins.Plugin = ep.load()
                 if plugins._is_native_plugin(native, plugin):
                     return cls(plugin.__narwhals_namespace__(version=cls._version))
+            if is_native_dask(native):
+                return cls.from_backend(Implementation.DASK)
             msg = f"Unsupported type: {type(native).__qualname__!r}"
             raise TypeError(msg)
         return cls.from_backend(impl)

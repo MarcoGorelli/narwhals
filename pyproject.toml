@@ -408,7 +408,10 @@ filterwarnings = [
   "ignore:.*inplace keyword .* is deprecated*:Warning:dask",
 
   # raise internally by polars
-  "ignore:.*interchange protocol is deprecated.*:DeprecationWarning"
+  "ignore:.*interchange protocol is deprecated.*:DeprecationWarning",
+
+  # we raise this warning
+  "ignore:Using Dask in Narwhals will require:FutureWarning"
 ]
 xfail_strict = true
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
