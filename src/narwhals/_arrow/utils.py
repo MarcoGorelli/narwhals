@@ -8,7 +8,12 @@ import pyarrow as pa
 import pyarrow.compute as pc
 
 from narwhals._compliant import EagerSeriesNamespace
-from narwhals._utils import Implementation, Version, isinstance_or_issubclass
+from narwhals._utils import (
+    Implementation,
+    Version,
+    generate_temporary_column_name,
+    isinstance_or_issubclass,
+)
 from narwhals.exceptions import ColumnNotFoundError, InvalidOperationError
 
 if TYPE_CHECKING:
@@ -705,6 +710,29 @@ def sortable_table(table: pa.Table, keys: Iterable[str], /) -> pa.Table:
         if is_dictionary(table.field(index).type):
             table = table.set_column(index, name, sortable(table.column(index)))
     return table
+
+
+def sortable_table_and_keys(
+    table: pa.Table, sorting: Sequence[tuple[str, Order]], /
+) -> tuple[pa.Table, list[tuple[str, Order]]]:
+    """`sortable_table`, plus sort keys which order NaN above every other value.
+
+    `pyarrow` puts NaN next to the nulls, whereas Polars treats NaN as the largest
+    value. So each float key holding a NaN gets an `is_nan` key in front of it.
+    """
+    table = sortable_table(table, [name for name, _ in sorting])
+    keys: list[tuple[str, Order]] = []
+    for name, order in sorting:
+        column = table.column(name)
+        if (
+            pa.types.is_floating(column.type)
+            and pc.any(is_nan := pc.is_nan(column)).as_py()
+        ):
+            token = generate_temporary_column_name(8, table.column_names)
+            table = table.append_column(token, is_nan)
+            keys.append((token, order))
+        keys.append((name, order))
+    return table, keys
 
 
 def sort_indices(

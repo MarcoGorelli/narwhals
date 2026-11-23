@@ -25,7 +25,9 @@ from narwhals._arrow.utils import (
     nulls_like,
     pad_series,
     repeat,
+    sort_indices,
     sortable,
+    sortable_table_and_keys,
     zeros,
 )
 from narwhals._compliant import EagerSeries, EagerSeriesHist
@@ -871,9 +873,10 @@ class ArrowSeries(EagerSeries["ChunkedArrayAny"]):
     def sort(self, *, descending: bool, nulls_last: bool) -> Self:
         order: Order = "descending" if descending else "ascending"
         null_placement: NullPlacement = "at_end" if nulls_last else "at_start"
-        sorted_indices = pc.array_sort_indices(
-            sortable(self.native), order=order, null_placement=null_placement
+        table, keys = sortable_table_and_keys(
+            pa.Table.from_arrays([self.native], names=["values"]), [("values", order)]
         )
+        sorted_indices = sort_indices(table, keys, null_placement)
         return self._with_native(self.native.take(sorted_indices))
 
     def to_dummies(self, *, separator: str, drop_first: bool) -> ArrowDataFrame:

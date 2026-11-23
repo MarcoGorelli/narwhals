@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -131,3 +132,41 @@ def test_sort_dictionary_pyarrow(
     assert_equal_data(result, {"c": expected})
     # ordering does not decode the output
     assert result.to_native().schema == native.schema
+
+
+@pytest.mark.parametrize(
+    ("descending", "nulls_last", "expected"),
+    [
+        (False, False, [None, 1.5, 3.0, float("nan"), float("nan")]),
+        (False, True, [1.5, 3.0, float("nan"), float("nan"), None]),
+        (True, False, [None, float("nan"), float("nan"), 3.0, 1.5]),
+        (True, True, [float("nan"), float("nan"), 3.0, 1.5, None]),
+    ],
+)
+def test_sort_nan(
+    constructor: Constructor,
+    request: pytest.FixtureRequest,
+    *,
+    descending: bool,
+    nulls_last: bool,
+    expected: list[float | None],
+) -> None:
+    if any(
+        x in str(constructor)
+        for x in ("pandas_constructor", "modin_constructor", "dask", "cudf")
+    ):
+        request.applymarker(
+            pytest.mark.xfail(reason="NaN is null in non-nullable pandas")
+        )
+    if any(
+        x in str(constructor)
+        for x in ("pandas_nullable", "pandas_pyarrow", "modin_pyarrow")
+    ):
+        request.applymarker(
+            pytest.mark.xfail(reason="The constructor turns NaN into null")
+        )
+    df = nw.from_native(constructor({"a": [1.5, float("nan"), 3.0, None, float("nan")]}))
+    result = df.sort("a", descending=descending, nulls_last=nulls_last)
+    assert_equal_data(result, {"a": expected})
+    is_nan = [None if x is None else math.isnan(x) for x in expected]
+    assert_equal_data(result.select(nw.col("a").is_nan()), {"a": is_nan})

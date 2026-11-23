@@ -15,7 +15,7 @@ from narwhals._arrow.utils import (
     native_to_narwhals_dtype,
     repeat,
     sort_indices,
-    sortable_table,
+    sortable_table_and_keys,
 )
 from narwhals._compliant import EagerDataFrame
 from narwhals._utils import (
@@ -488,9 +488,10 @@ class ArrowDataFrame(
             ]
 
         null_placement: NullPlacement = "at_end" if nulls_last else "at_start"
-        # NOTE: sort on `sortable_table`, take from the original, so that
+        # NOTE: sort on `sortable_table_and_keys`, take from the original, so that
         # dictionary-encoded (categorical) keys keep their encoding in the output.
-        indices = sort_indices(sortable_table(self.native, by), sorting, null_placement)
+        table, keys = sortable_table_and_keys(self.native, sorting)
+        indices = sort_indices(table, keys, null_placement)
         return self._with_native(self.native.take(indices), validate_column_names=False)
 
     def top_k(self, k: int, *, by: Iterable[str], reverse: bool | Sequence[bool]) -> Self:
@@ -502,9 +503,8 @@ class ArrowDataFrame(
                 (key, "ascending" if is_ascending else "descending")
                 for key, is_ascending in zip(by, reverse, strict=True)
             ]
-        keys = [name for name, _ in sorting]
-        table = sortable_table(self.native, keys)
-        indices = pc.select_k_unstable(table, k, sorting)  # type: ignore[call-overload]
+        table, keys = sortable_table_and_keys(self.native, sorting)
+        indices = pc.select_k_unstable(table, k, keys)  # type: ignore[call-overload]
         return self._with_native(self.native.take(indices), validate_column_names=False)
 
     def to_pandas(self) -> pd.DataFrame:
@@ -544,7 +544,8 @@ class ArrowDataFrame(
             )
             return self.select(row_index, plx.all())
         sorting: list[tuple[str, Order]] = [(name, "ascending") for name in order_by]
-        indices = sort_indices(sortable_table(self.native, order_by), sorting, "at_start")
+        table, keys = sortable_table_and_keys(self.native, sorting)
+        indices = sort_indices(table, keys, "at_start")
         if self._backend_version < (20,):
             new_col = data.take(pc.sort_indices(indices))
         else:
