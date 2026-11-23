@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 from packaging.version import Version as PkgVersion
 
@@ -126,3 +128,36 @@ def test_ceil_dtype_pandas_pyarrow() -> None:
         [1.0, None, 3.0], name="a", dtype="Float32[pyarrow]", index=[8, 7, 6]
     )
     pd.testing.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("method", "expected"),
+    [
+        ("floor", [1.0, float("nan"), float("inf"), float("-inf"), -1.0]),
+        ("ceil", [2.0, float("nan"), float("inf"), float("-inf"), -0.0]),
+    ],
+)
+def test_floor_ceil_non_finite(
+    constructor: Constructor,
+    request: pytest.FixtureRequest,
+    method: str,
+    expected: list[float],
+) -> None:
+    if "ibis" in str(constructor) or (
+        "pyspark" in str(constructor) and "sqlframe" not in str(constructor)
+    ):
+        # Ibis and Spark return integers from `floor`/`ceil`, which can't hold NaN.
+        request.applymarker(pytest.mark.xfail)
+    data = {"a": [1.5, float("nan"), float("inf"), float("-inf"), -0.5]}
+    df = nw.from_native(constructor(data))
+    result = df.select(getattr(nw.col("a"), method)())
+    assert_equal_data(result, {"a": expected})
+    if not any(
+        x in str(constructor)
+        for x in ("pandas_nullable", "pandas_pyarrow", "modin_pyarrow")
+    ):
+        # Those constructors turn the input NaN into null.
+        assert_equal_data(
+            result.select(nw.col("a").is_nan()), {"a": [math.isnan(x) for x in expected]}
+        )
+    assert result.collect_schema()["a"] == nw.Float64

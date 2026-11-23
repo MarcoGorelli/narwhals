@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -98,3 +99,26 @@ def test_top_k_categorical(constructor: Constructor) -> None:
     assert_equal_data(result, {"c": ["dog", "cat"], "n": [1, 2]})
     result = df.top_k(2, by="c", reverse=True).sort("n")
     assert_equal_data(result, {"c": ["cat", "bird"], "n": [2, 3]})
+
+
+@pytest.mark.parametrize(
+    ("reverse", "expected"), [(False, [3.0, float("nan")]), (True, [1.5, 3.0])]
+)
+def test_top_k_nan(
+    constructor: Constructor,
+    request: pytest.FixtureRequest,
+    *,
+    reverse: bool,
+    expected: list[float],
+) -> None:
+    if not reverse and any(
+        x in str(constructor) for x in ("pandas", "modin", "cudf", "dask", "pyarrow")
+    ):
+        # NaN should rank above every other value, like in `sort`.
+        request.applymarker(pytest.mark.xfail(reason="NaN is ranked below other values"))
+    df = nw.from_native(constructor({"a": [1.5, float("nan"), 3.0, None]}))
+    result = df.top_k(2, by="a", reverse=reverse).sort("a", nulls_last=True)
+    assert_equal_data(result, {"a": expected})
+    assert_equal_data(
+        result.select(nw.col("a").is_nan()), {"a": [math.isnan(x) for x in expected]}
+    )
