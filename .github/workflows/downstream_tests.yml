@@ -319,7 +319,7 @@ jobs:
       - name: Run pytest
         run: |
           cd tubular
-          pytest tests --config-file=pyproject.toml
+          pytest tests --config-file=pyproject.toml --ignore=tests/benchmarks
 
   plotly:
     if: github.head_ref != 'bump-version'
@@ -704,8 +704,7 @@ jobs:
       - name: install-deps
         run: |
           cd fairlearn
-          # TODO(FBruzzesi): Align with fairlearn team to get a minimal requirement to test narwhals features
-          uv pip install -e . lightgbm matplotlib polars pyarrow pytest typing-extensions
+          uv pip install -e . --group tests
       - name: install-narwhals-dev
         run: |
           cd fairlearn
